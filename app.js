@@ -3,9 +3,14 @@ var express = require('express');
 var cors = require('cors');
 var app = express();
 var PORT = 3000;
+var path = require('path');
+app.use(express.static(path.join(__dirname, '..')));
+
 
 app.use(cors());
 app.use(express.json());
+// Force the server engine to automatically serve frontend portal files from the root
+app.use(express.static(__dirname));
 
 // Mandatory Call Intake Disclaimer Template
 const DISPATCH_DISCLAIMER = "Disclaimer: If this is an active emergency requiring immediate police or medical assistance, please hang up and dial 911 immediately. All calls are recorded and monitored for quality assurance.";
