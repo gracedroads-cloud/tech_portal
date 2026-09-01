@@ -1,24 +1,24 @@
 // VERIFICATION CODE: 774291
 var express = require('express');
 var cors = require('cors');
+var path = require('path');
 var app = express();
 var PORT = 3000;
-var path = require('path');
-app.use(express.static(path.join(__dirname, '..')));
-
 
 app.use(cors());
 app.use(express.json());
-// Force the server engine to automatically serve frontend portal files from the root
+
+// Force the server engine to automatically serve frontend portal files from the root and parent directories
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, '..')));
 
 // Mandatory Call Intake Disclaimer Template
 const DISPATCH_DISCLAIMER = "Disclaimer: If this is an active emergency requiring immediate police or medical assistance, please hang up and dial 911 immediately. All calls are recorded and monitored for quality assurance.";
 
-// High-Converting Instant Booking Text & Voice Templates
+// Legally Protected Voice & Text Disclosures
 const TEXT_TEMPLATES = {
-    intake_welcome: "EH Roadside Assistance: We provide an immediate cost estimate and a guaranteed response on call acceptance within 3 minutes. Your field technician arrival ETA is 90 to 120 minutes.",
-    digital_checkout_fallback: "Prefer to speed up your booking? Click this secure link to input your exact breakdown coordinates and checkout instantly to secure your under-5-minute booking window: "
+    intake_welcome: "EH Roadside Assistance: We provide an immediate cost estimate within 3 minutes. Physical field technician response times are safe and dependable, with ETAs factoring technician availability and location. When there's a breakdown, we provide solutions.",
+    digital_checkout_fallback: "To securely view your 3-minute cost estimate breakdown and finalize your localized dispatch triage file, click here: "
 };
 
 // Zero-billing exception array for subcontracted accounts
@@ -35,7 +35,7 @@ var dispatchLogs = [];
 var jobLogs = [];
 
 // ==========================================
-// 1. STANDARDIZED FIELD TECH SUBMISSION ROUTE (FIXED)
+// 1. STANDARDIZED FIELD TECH SUBMISSION ROUTE
 // ==========================================
 app.post('/api/submit-job', function(req, res) {
     var jobData = req.body;
@@ -47,7 +47,7 @@ app.post('/api/submit-job', function(req, res) {
     var structuredJob = {
         ticketId: jobData.ticketId || "N/A",
         carrier: customerName,
-        unitAsset: jobData.unitAsset || "N/A",
+        unitAsset: jobData.unitAsset || "Fleet Van #201", // Standardized van fallback
         destination: jobData.destination || "N/A",
         diagnosis: jobData.diagnosis || "N/A",
         repairs: jobData.repairs || "N/A",
@@ -106,12 +106,13 @@ app.post('/api/dispatch/incoming', function(req, res) {
     }
 
     if (rawText.includes("link") || rawText.includes("digital") || rawText.includes("checkout")) {
-        var personalizedFallbackText = `${TEXT_TEMPLATES.digital_checkout_fallback}https://gracedroads.com{smsData.sender}`;
+        var personalizedFallbackText = `${TEXT_TEMPLATES.digital_checkout_fallback}https://gracedroads.com`;
         console.log(`🚀 [AUTOMATED SMS FALLBACK] Dispatched to ${smsData.sender}`);
         return res.json({ status: "Link Dispatched", script_used: personalizedFallbackText });
     }
 
     console.log(`📢 [DISPATCH VOICE INTAKE PLAYING]: ${DISPATCH_DISCLAIMER}`);
+    console.log(`📢 [LEGAL ASSURANCE OUT LOUD]: ${TEXT_TEMPLATES.intake_welcome}`);
     res.json({ status: "Voice Call Parsed" });
 });
 
@@ -134,7 +135,7 @@ app.post('/api/dvir/submit', function(req, res) {
 });
 
 app.get('/api/status', function(req, res) {
-    res.json({ status: "Live", message: "EH Unified Network Suite communicating perfectly!" });
+    res.json({ status: "Live", message: "EH Unified Network Suite communicating perfectly with legal disclaimers active!" });
 });
 
 app.listen(PORT, function() {
