@@ -1,0 +1,50 @@
+﻿<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EH Graced Roads - Grace Live Interaction Stream</title>
+    <style>
+        :root { --bg-dark: #020617; --card-bg: #0f172a; --border-color: #334155; --text-main: #f1f5f9; --accent-orange: #ff9f1c; --accent-blue: #38bdf8; --accent-green: #10b981; }
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: monospace; padding: 20px; margin: 0; }
+        .stream-container { max-width: 1100px; margin: 0 auto; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; }
+        .stream-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; }
+        .audio-btn { background: #1e293b; border: 1px solid var(--accent-green); color: var(--accent-green); padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .terminal-feed { background-color: #020617; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; height: 300px; overflow-y: auto; margin-top: 20px; }
+        .log-line { border-bottom: 1px solid #1e293b; padding-bottom: 10px; font-size: 12px; }
+        .tag-source { color: var(--accent-blue); }
+        .text-highlight { color: var(--accent-green); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="stream-container">
+        <div class="stream-header">
+            <h2>🎙️ Grace Telemetry Stream & Interaction Monitor</h2>
+            <button class="audio-btn" onclick="triggerAudioPing()">🔊 TEST AUDIO RADAR ALARM</button>
+        </div>
+        <div class="terminal-feed">
+            <div class="log-line">
+                <div>[02:15:00 AM] <span class="tag-source">GRACE_ENGINE</span> ➔ VALUATION_LOCK</div>
+                <div style="margin-top:4px;">Processing metric breakdown request... Mapped service item locked at flat zero rate: <span class="text-highlight">$0.00</span>.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let audioCtx = null;
+        function triggerAudioPing() {
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(1320, now + 0.15);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+    </script>
+</body>
+</html>

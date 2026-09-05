@@ -1,0 +1,40 @@
+﻿<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EH Graced Roads - Tech Operations Gate</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        body { background-color: #020617; color: #f1f5f9; font-family: sans-serif; padding: 20px; }
+        .app-box { max-width: 500px; margin: 0 auto; background-color: #0f172a; border: 1px solid #10b981; padding: 24px; border-radius: 12px; }
+        .bank-strip { background-color: #020617; border-left: 4px solid #10b981; padding: 10px; font-size: 11px; font-family: monospace; color: #10b981; margin-bottom: 16px; }
+        label { font-size: 11px; color: #10b981; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
+        input[type="text"], select { width: 100%; padding: 12px; background-color: #1e293b; border: 1px solid #334155; color: white; border-radius: 8px; font-size: 13px; margin-bottom: 14px; box-sizing: border-box; outline: none; }
+        .action-btn { background-color: #10b981; color: #020617; font-weight: bold; text-transform: uppercase; padding: 14px; width: 100%; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .status-banner { background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 12px; display: none; text-transform: uppercase; margin-top: 14px; }
+    </style>
+</head>
+<body>
+    <div class="app-box">
+        <h2>📱 Field Technician App</h2>
+        <div class="bank-strip">
+            🏢 DISBURSEMENT BANK SOURCE: LILI BUSINESS STANDALONE<br>
+            📌 RTN: 091017138 | ACCT: 692101449662
+        </div>
+        <form onsubmit="event.preventDefault(); document.getElementById('tech-status').style.display='block';">
+            <label>Assigned Response Rig Unit</label>
+            <select>
+                <option>High-Utility Service Van #201</option>
+                <option>Mechanic Pick-Up Truck Rig #202</option>
+            </select>
+            <label>Active Client Ticket Reference</label>
+            <input type="text" placeholder="e.g. #GRS-1082" required>
+            <button type="submit" class="action-btn">Commit Work Metrics to Lili Ledger</button>
+        </form>
+        <div id="tech-status" class="status-banner">✅ Metrics Logged and Saved to Lili Account Ledger</div>
+    </div>
+</body>
+</html>

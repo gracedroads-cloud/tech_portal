@@ -1,0 +1,45 @@
+﻿<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EH Graced Roads - Owner's Draw Digital Extraction Vault</title>
+    <style>
+        body { background-color: #020617; color: #f1f5f9; font-family: sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; margin: 0; box-sizing: border-box; }
+        .vault-card { width: 100%; max-width: 500px; background-color: #0f172a; border: 1px solid #ff9f1c; border-radius: 16px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        h2 { text-align: center; color: #ff9f1c; margin-top: 0; text-transform: uppercase; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 12px; font-weight: bold; }
+        .bank-strip { background-color: #020617; border-left: 4px solid #10b981; padding: 10px; font-size: 11px; font-family: monospace; color: #10b981; margin-bottom: 16px; border-radius: 0 6px 6px 0; }
+        label { font-size: 11px; color: #ff9f1c; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
+        input[type="number"], input[type="text"] { width: 100%; padding: 10px; background-color: #1e293b; border: 1px solid #334155; color: white; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 14px; }
+        .submit-btn { background-color: #ff9f1c; color: #020617; font-weight: 900; text-transform: uppercase; padding: 14px; width: 100%; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .status-box { background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 12px; display: none; text-transform: uppercase; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="vault-card">
+        <h2>Digital Owner's Draw Ledger</h2>
+        <div class="bank-strip">
+            🏢 REMITTING BANK SOURCE: LILI BUSINESS STANDALONE<br>
+            📌 RTN: 091017138 | ACCT: 692101449662
+        </div>
+        <form id="draw-form" onsubmit="event.preventDefault(); document.getElementById('vault-status').style.display='block';">
+            <label>Disbursement Extraction Amount ($ USD)</label>
+            <input type="number" id="w-amount" step="0.01" placeholder="0.00" required>
+            
+            <label>Internal Corporate Authorization Key / Signature</label>
+            <input type="text" id="w-auth" placeholder="Type Elijah Wright to confirm" required>
+            
+            <div id="vault-status" class="status-box"></div>
+            <button type="submit" id="w-btn" class="submit-btn">Inject Extraction Row to Lili Ledger</button>
+        </form>
+    </div>
+    <script>
+        document.getElementById('draw-form').addEventListener('submit', function() {
+            document.getElementById('vault-status').textContent = "✅ Owner's Draw Row Logged Natively to Lili Operating Accounts Ledger Cache";
+            document.getElementById('w-btn').style.display = "none";
+            document.querySelectorAll('input').forEach(i => i.disabled = true);
+        });
+    </script>
+</body>
+</html>

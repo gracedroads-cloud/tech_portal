@@ -1,0 +1,138 @@
+﻿<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EH Graced Roads - 100-Mile Commercial Breakdown Scanner</title>
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --card-bg: #0f172a;
+            --border-color: #334155;
+            --text-main: #f1f5f9;
+            --accent-orange: #ff9f1c;
+            --accent-blue: #38bdf8;
+            --accent-green: #10b981;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .scanner-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .scanner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: 12px;
+        }
+        .pulse-beacon {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        .incident-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        .incident-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }
+        .corridor-pill {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .distance-pill {
+            background: rgba(255, 159, 28, 0.15);
+            color: var(--accent-orange);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .issue-title { font-size: 14px; font-weight: bold; color: #ffffff; }
+        .issue-details { font-size: 12px; color: #94a3b8; }
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #1e293b;
+            padding-top: 8px;
+        }
+        .quote-rate { font-size: 13px; font-family: monospace; font-weight: bold; color: var(--accent-green); }
+        .dispatch-cta {
+            background: var(--accent-orange);
+            color: #020617;
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanner-container">
+        <div class="scanner-header">
+            <h1><span class="pulse-beacon"></span> 100-Mile Commercial Breakdown Scanner</h1>
+            <div style="font-family: monospace; font-size: 12px; color: var(--accent-green);">RADAR HUB ACTIVE — ZERO-COST PROFILE MAP</div>
+        </div>
+        <div class="incident-grid">
+            <div class="incident-card">
+                <div class="card-top">
+                    <span class="corridor-pill">I-78 WEST • MM 49.2</span>
+                    <span class="distance-pill">26.4 MI FROM HUB</span>
+                </div>
+                <div class="issue-title">🚨 Freightliner Cascadia — Blown Type 30/30 Brake Chamber</div>
+                <div class="issue-details">Disabled on right shoulder near Fogelsville. Locked brakes on trailer axle 2, structural air leakage logged natively.</div>
+                <div class="card-actions">
+                    <span class="quote-rate">Standard Lock: $0.00</span>
+                    <button class="dispatch-cta" onclick="executeTriageRedirect()">Triage Job ➔</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function executeTriageRedirect() {
+            window.location.href = 'grace_dispatch_console.html?carrier=Werner%20Enterprises&location=I-78%20West%20MM%2049.2&serviceKey=brake_chamber_3030&estPrice=0.00';
+        }
+    </script>
+</body>
+</html>
+

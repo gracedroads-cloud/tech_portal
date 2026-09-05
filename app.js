@@ -11,6 +11,8 @@ app.use(express.json());
 // Force the server engine to automatically serve frontend portal files from the root and parent directories
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Mandatory Call Intake Disclaimer Template
 const DISPATCH_DISCLAIMER = "Disclaimer: If this is an active emergency requiring immediate police or medical assistance, please hang up and dial 911 immediately. All calls are recorded and monitored for quality assurance.";
@@ -144,3 +146,9 @@ app.listen(PORT, function() {
     console.log('🌐 Listening safely on endpoint: http://localhost:3000');
     console.log('==================================================');
 });
+// Bulletproof Absolute Fallback Override Rule
+app.get('/business_dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'business_dashboard.html'));
+});
+
+

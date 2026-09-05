@@ -1,0 +1,232 @@
+﻿<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EH Graced Roads - Complete Dispatch & Pricing Console</title>
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --card-bg: #0f172a;
+            --border-color: #334155;
+            --text-main: #f1f5f9;
+            --accent-orange: #ff9f1c;
+            --accent-blue: #38bdf8;
+            --accent-green: #10b981;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 24px;
+        }
+        .panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 16px;
+            text-transform: uppercase;
+            color: var(--accent-orange);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        .bank-strip {
+            background-color: #020617;
+            border-left: 4px solid var(--accent-green);
+            padding: 12px;
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--accent-green);
+            margin-bottom: 16px;
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+        }
+        .policy-tag {
+            background-color: rgba(255, 159, 28, 0.04);
+            border: 1px dashed var(--accent-orange);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+        label {
+            font-size: 11px;
+            color: var(--accent-orange);
+            font-weight: bold;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 6px;
+            margin-top: 16px;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .action-btn {
+            background-color: var(--accent-orange);
+            color: #020617;
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 14px;
+            width: 100%;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 24px;
+            letter-spacing: 0.5px;
+        }
+        .status-banner {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            text-align: center;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+            text-transform: uppercase;
+            margin-top: 16px;
+        }
+        .rate-sheet-view {
+            max-height: 88vh;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .category-header {
+            font-size: 12px;
+            color: var(--accent-blue);
+            font-weight: 800;
+            text-transform: uppercase;
+            background: rgba(56, 189, 248, 0.06);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--accent-blue);
+            letter-spacing: 0.5px;
+        }
+        .rate-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .rate-row {
+            border-bottom: 1px solid #1e293b;
+        }
+        .rate-cell-name {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #cbd5e1;
+            text-align: left;
+        }
+        .rate-cell-price {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: monospace;
+            color: var(--accent-green);
+            font-weight: bold;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .includes-box {
+            background-color: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 16px;
+        }
+        .includes-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--accent-orange);
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .includes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 6px;
+        }
+        .includes-item {
+            font-size: 11px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="panel">
+            <h2>🕹️ Grace Automated Dispatch Desk</h2>
+            <div class="bank-strip">
+                🏢 CAPITAL REMITTANCE: LILI BUSINESS STANDALONE OPERATING HUB<br>
+                📌 ACCOUNT LOCK: RTN 091017138 | ACCT 692101449662
+            </div>
+            <div class="policy-tag">
+                <strong>🛡️ GEOGRAPHIC & OPERATIONAL DISCLOSURES:</strong> Roadside pricing estimations are processed within 3 minutes via System Grace. Physical responses deploy via high-utility Service Vans and Pick-Up Truck mechanic units patrolling Pennsylvania freight corridors. Heavy tractor hauling recovery and off-road winching operations are 100% excluded from all software logic [4f2c0eb].
+            </div>
+            <form onsubmit="event.preventDefault(); document.getElementById('ds-status-banner').style.display='block';">
+                <label>Commercial Carrier Enterprise Name</label>
+                <input type="text" placeholder="e.g., Werner Enterprises, Knight-Swift..." required>
+                <label>1. Select Primary Roadside Repair Triage Classification</label>
+                <select required>
+                    <option value="">-- Choose Aligned Operational Service --</option>
+                    <option value="callout_std">Mobile Service Call / Dispatch (Standard) — $175.00</option>
+                    <option value="callout_prem">Mobile Service Call / Dispatch (Premium) — $250.00</option>
+                    <option value="labor_std">Mobile Labor (Standard Fleet Tier) — $150.00/hr</option>
+                    <option value="labor_emerg">Mobile Labor (Emergency Roadside Tier) — $200.00/hr</option>
+                    <option value="diag_base">Diagnostic Scan (Standard Electronic Clearance) — $150.00</option>
+                    <option value="diag_full">Diagnostic Scan (Full System Code Calibration) — $300.00</option>
+                    <option value="travel_std">Travel Fee (Standard Transportation Corridor) — $3.00/mile</option>
+                    <option value="travel_ext">Travel Fee (Extended Geographic Corridor) — $5.00/mile</option>
+                    <option value="tire_spare">Tire Change (Utilizing On-Chassis Customer Spare) — $250.00</option>
+                    <option value="tire_comm">Commercial Tractor / Trailer Tire Replacement — $550.00</option>
+                    <option value="tire_ss_change">Super Single Tire Change Utility Layout — $325.00</option>
+                    <option value="tire_ss_replace">Super Single Tire Replacement Installation — $950.00</option>
+                    <option value="brake_leak_min">Air Leak Triage Repair (Minor Splicing) — $250.00</option>
+                    <option value="brake_leak_max">Air Leak Triage Repair (Complex Pneumatic Fix) — $800.00</option>
+                    <option value="brake_tank_trailer">Trailer Air Tank Replacement Component — $595.00</option>
+                    <option value="brake_tank_truck">Truck Air Tank Replacement Component — $695.00</option>
+                    <option value="brake_chamber_3030">Type 30/30 Brake Chamber Replacement (Each Unit) — $425.00</option>
+                    <option value="brake_shoes_t1">Trailer Brake Shoes (1 Complete Axle) — $895.00</option>
+                    <option value="brake_shoes_t2">Trailer Brake Shoes (2 Complete Axles) — $1,695.00</option>
+                    <option value="brake_shoes_k1">Truck Brake Shoes (1 Complete Axle Drive) — $995.00</option>
+                    <option value="brake_shoes_k2">Truck Brake Shoes (2 Complete Axles Drive) — $1,895.00</option>
+                    <option value="clamp_intake">Air Intake Clamp Replacement Core — $250.00</option>
+                    <option value="hose_intake_min">Air Intake Hose Replacement (Standard) — $350.00</option>
+                    <option value="hose_intake_max">Air Intake Hose Replacement (Heavy Manifold) — $900.00</option>
+                    <option value="line_air_single">Air Line Structural Cable Replacement (Single) — $250.00</option>
