@@ -1,0 +1,125 @@
+<!-- SYSTEM VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EH GRACED ROADS SOLUTIONS LLC - Unified Master Command Center</title>
+    <style>
+        :root { 
+            --bg-dark: #020617; 
+            --card-bg: #0f172a; 
+            --border-color: #334155; 
+            --text-main: #f1f5f9; 
+            --accent-blue: #38bdf8; 
+            --accent-orange: #ff9f1c; 
+            --accent-green: #10b981; 
+            --accent-red: #ef4444;
+        }
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-main); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px; 
+            margin: 0; 
+            min-height: 100vh; 
+            box-sizing: border-box; 
+        }
+        .hub-container { 
+            max-width: 1750px; 
+            margin: 0 auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
+        .header-main { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid var(--accent-orange); 
+            padding-bottom: 14px; 
+        }
+        .logo-title-group { display: flex; align-items: center; gap: 20px; }
+        .vector-logo-box {
+            width: 75px; height: 75px; background: linear-gradient(135deg, #1e293b 0%, #020617 100%);
+            border: 2px solid var(--accent-orange); border-radius: 12px; position: relative;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 159, 28, 0.2);
+        }
+        .vector-truck-cab { width: 38px; height: 22px; background-color: #ffffff; border-radius: 4px 10px 4px 4px; position: relative; margin-top: -6px; }
+        .vector-truck-cab::after { content: ''; position: absolute; right: -2px; bottom: -6px; width: 14px; height: 8px; background-color: var(--accent-orange); border-radius: 2px; }
+        .vector-wheel-front, .vector-wheel-rear { position: absolute; width: 10px; height: 10px; background-color: #020617; border: 2px solid #94a3b8; border-radius: 50%; bottom: -5px; }
+        .vector-wheel-front { left: 6px; } .vector-wheel-rear { right: 6px; }
+        .vector-road-line { position: absolute; bottom: 16px; width: 50px; height: 2px; background-color: #475569; }
+        .header-title-block h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #ffffff; letter-spacing: 0.5px; font-weight: 900; }
+        .header-title-block p { margin: 4px 0 0 0; font-size: 13px; color: var(--accent-blue); font-weight: bold; text-transform: uppercase; }
+        .clock-widget { background-color: #070b19; border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 8px; font-family: monospace; font-size: 13px; color: var(--accent-orange); font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .pulse-dot { width: 8px; height: 8px; background-color: var(--accent-green); border-radius: 50%; display: inline-block; box-shadow: 0 0 8px var(--accent-green); animation: beaconPulse 1.5s infinite; }
+        @keyframes beaconPulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        .workspace-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; min-height: 700px; }
+        @media (max-width: 1024px) { .workspace-grid { grid-template-columns: 1fr; } }
+        .control-sidebar { display: flex; flex-direction: column; gap: 14px; }
+        .panel-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        h2 { margin-top: 0; font-size: 12px; text-transform: uppercase; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .nav-btn-stack { display: flex; flex-direction: column; gap: 10px; }
+        .nav-link-gate { 
+            background-color: #1e293b; border: 1px solid var(--border-color); border-left: 4px solid var(--border-color);
+            border-radius: 6px; padding: 12px 14px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 11px; 
+            text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; 
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .nav-link-gate:hover { background-color: #24344d; border-color: var(--accent-blue); }
+        .nav-link-gate.active { background-color: #172554; border-color: var(--accent-blue); border-left-color: var(--accent-blue); color: var(--accent-blue); }
+        .nav-orange { border-left-color: var(--accent-orange); }
+        .nav-green { border-left-color: var(--accent-green); }
+        .nav-red { border-left-color: var(--accent-red); }
+        .live-viewscreen-viewport { background-color: #020617; border: 2px solid var(--border-color); border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .viewport-header-bar { background-color: #0f172a; border-bottom: 1px solid var(--border-color); padding: 10px 16px; font-family: monospace; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; }
+        .viewframe-canvas { width: 100%; flex-grow: 1; border: none; background-color: #020617; }
+        .footer-branding { text-align: center; font-size: 11px; color: #475569; border-top: 1px solid var(--border-color); padding-top: 12px; font-family: monospace; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <div class="hub-container">
+        <div class="header-main">
+            <div class="logo-title-group">
+                <div class="vector-logo-box"><div class="vector-road-line"></div><div class="vector-truck-cab"><div class="vector-wheel-front"></div><div class="vector-wheel-rear"></div></div></div>
+                <div class="header-title-block">
+                    <h1>EH GRACED ROADS SOLUTIONS LLC</h1>
+                    <p>24/7 Mobile Truck & Trailer Repair — Master Command Center</p>
+                </div>
+            </div>
+            <div class="clock-widget"><span class="pulse-dot"></span><span id="live-hub-clock">--:--:-- --</span></div>
+        </div>
+        <div class="workspace-grid">
+            <div class="control-sidebar">
+                <div class="panel-card">
+                    <h2>🛞 System Workspace Gates</h2>
+                    <div class="nav-btn-stack">
+                        <div onclick="switchCommandViewport('business_dashboard.html', this)" class="nav-link-gate active"><span>📊 Unified Business Dashboard</span><span>➔</span></div>
+                        <div onclick="switchCommandViewport('breakdown_scanner.html', this)" class="nav-link-gate nav-red"><span>🚨 100-Mi Live Radar Scanner</span><span>➔</span></div>
+                        <div onclick="switchCommandViewport('grace_dispatch_console.html', this)" class="nav-link-gate nav-blue"><span>📱 Grace Dispatch Desk Console</span><span>➔</span></div>
+                        <div onclick="switchCommandViewport('vendor_account_intake.html', this)" class="nav-link-gate nav-green"><span>📋 Corporate Tradeline Portal</span><span>➔</span></div>
+                        <div onclick="switchCommandViewport('cb_radio_monitor.html', this)" class="nav-link-gate nav-orange"><span>📻 Standalone CB-Radio Stream</span><span>➔</span></div>
+                    </div>
+                </div>
+                <div class="panel-card" style="font-family: monospace; font-size: 11px; line-height: 1.5; color: #94a3b8;">
+                    <span style="color: var(--accent-orange); font-weight: bold;">🔒 SECURE OPERATION PERMIT</span><br>
+                    MANAGEMENT: ELIJAH WRIGHT<br>TEL CORE: 215-821-8046<br>DISPATCH: gracedroads@gmail.com
+                </div>
+            </div>
+            <div class="live-viewscreen-viewport">
+                <div class="viewport-header-bar">
+                    <div>🖥️ ACTIVE TERMINAL INTERFACE: <span id="viewport-url-path-label" style="color: #ffffff; font-weight: bold;">business_dashboard.html</span></div>
+                    <div style="color: var(--accent-green); font-weight: bold;">⚡ LOCALHOST NETWORK ACTIVE</div>
+                </div>
+                <iframe id="master-command-frame" src="business_dashboard.html" class="viewframe-canvas"></iframe>
+            </div>
+        </div>
+        <footer class="footer-branding"><div>Fast Response | Expert Repairs • Corporate EIN 39-2615296</div><div>Standalone Operating System Port 3000</div></footer>
+    </div>
+    <script>
+        function runLiveHubClock() {
+            const now = new Date(); let hours = now.getHours(); const minutes = String(now.getMinutes()).padStart(2, '0'); const seconds = String(now.getSeconds()).padStart(2, '0'); const ampm = hours >= 12 ? 'PM' : 'AM'; hours = hours % 12 || 12;
+            document.getElementById('live-hub-clock').textContent = String(hours).padStart(2, '0') + ':' + minutes + ':' + seconds + ' ' + ampm + ' EST';
+        }
+        setInterval(runLiveHubClock, 1000); runLiveHubClock();
