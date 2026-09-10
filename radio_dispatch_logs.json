@@ -8,5 +8,25 @@
     "customerInfo": {},
     "serviceNotes": "Roadside assist initiated via CB radio voice request.",
     "status": "Dispatched"
+  },
+  {
+    "id": "DISPATCH-1789058239620",
+    "timestamp": "2026-09-10T16:37:19.621Z",
+    "channel": "CH-19",
+    "operator": "Elijah Wright",
+    "mode": "GRACE Voice On-Site Assist",
+    "customerInfo": {},
+    "serviceNotes": "Roadside assist initiated via CB radio voice request.",
+    "status": "Dispatched"
+  },
+  {
+    "id": "DISPATCH-1789058271509",
+    "timestamp": "2026-09-10T16:37:51.510Z",
+    "channel": "CH-19",
+    "operator": "Elijah Wright",
+    "mode": "GRACE Voice On-Site Assist",
+    "customerInfo": {},
+    "serviceNotes": "Roadside assist initiated via CB radio voice request.",
+    "status": "Dispatched"
   }
 ]
