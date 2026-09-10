@@ -1,4 +1,4 @@
-// VERIFICATION CODE: 774291
+﻿// VERIFICATION CODE: 774291
 var express = require('express');
 var cors = require('cors');
 var path = require('path');
@@ -62,7 +62,7 @@ app.post('/api/submit-job', function(req, res) {
 
     // CRITICAL ENGINE RULE: Evaluate Subcontractor Skip Parameters
     if (BILLING_SKIP_LIST.includes(customerName)) {
-        console.log(`\n🛑 [SKIP RULE APPLIED] Job logged for subcontractor: ${customerName}`);
+        console.log(`\nðŸ›‘ [SKIP RULE APPLIED] Job logged for subcontractor: ${customerName}`);
         console.log(`Asset ID: ${structuredJob.unitAsset} | Billing Code: BYPASS ZERO-BILL`);
         return res.json({ 
             status: "Success", 
@@ -72,7 +72,7 @@ app.post('/api/submit-job', function(req, res) {
     }
 
     // Standard Client Logic
-    console.log(`\n💵 Processing standard billing triggers for corporate client: ${customerName}`);
+    console.log(`\nðŸ’µ Processing standard billing triggers for corporate client: ${customerName}`);
     console.log(`Ticket: ${structuredJob.ticketId} | Base Cost: $${structuredJob.partCost.toFixed(2)}`);
     res.json({ 
         status: "Billed", 
@@ -94,27 +94,27 @@ app.post('/api/dispatch/incoming', function(req, res) {
     var rawText = smsData.text ? smsData.text.toLowerCase() : "";
    
     dispatchLogs.push(smsData);
-    console.log("\n📥 [NEW DUAL DISPATCH INTAKE DETECTED]");
+    console.log("\nðŸ“¥ [NEW DUAL DISPATCH INTAKE DETECTED]");
     console.log("Client Identifier/ID: " + smsData.sender);
     console.log("Message Content: " + smsData.text);
 
     if (rawText.includes("speak") || rawText.includes("call") || smsData.action === "VOICE_PATCH") {
-        console.log(`📞 [COMMUNICATION BLOCK] Voice patching initiated for Client: ${smsData.sender}`);
+        console.log(`ðŸ“ž [COMMUNICATION BLOCK] Voice patching initiated for Client: ${smsData.sender}`);
         return res.json({
             status: "Voice Connected",
             voice_bridge: true,
-            routing_target: "770-744-7730"
+            routing_target: "215-821-8046"
         });
     }
 
     if (rawText.includes("link") || rawText.includes("digital") || rawText.includes("checkout")) {
         var personalizedFallbackText = `${TEXT_TEMPLATES.digital_checkout_fallback}https://gracedroads.com`;
-        console.log(`🚀 [AUTOMATED SMS FALLBACK] Dispatched to ${smsData.sender}`);
+        console.log(`ðŸš€ [AUTOMATED SMS FALLBACK] Dispatched to ${smsData.sender}`);
         return res.json({ status: "Link Dispatched", script_used: personalizedFallbackText });
     }
 
-    console.log(`📢 [DISPATCH VOICE INTAKE PLAYING]: ${DISPATCH_DISCLAIMER}`);
-    console.log(`📢 [LEGAL ASSURANCE OUT LOUD]: ${TEXT_TEMPLATES.intake_welcome}`);
+    console.log(`ðŸ“¢ [DISPATCH VOICE INTAKE PLAYING]: ${DISPATCH_DISCLAIMER}`);
+    console.log(`ðŸ“¢ [LEGAL ASSURANCE OUT LOUD]: ${TEXT_TEMPLATES.intake_welcome}`);
     res.json({ status: "Voice Call Parsed" });
 });
 
@@ -125,7 +125,7 @@ app.post('/api/dvir/submit', function(req, res) {
     var reportData = req.body;
    
     dvirLogs.push(reportData);
-    console.log("\n📋 [UPGRADED DVIR REPORT RECEIVED]");
+    console.log("\nðŸ“‹ [UPGRADED DVIR REPORT RECEIVED]");
     console.log("Asset ID / Unit: " + (reportData.vehicleInfo || reportData.truckUnit));
     console.log("Inspector: " + (reportData.techName || reportData.inspectorName));
     console.log("Status: " + (reportData.status || reportData.safetyStatus));
@@ -142,13 +142,12 @@ app.get('/api/status', function(req, res) {
 
 app.listen(PORT, function() {
     console.log('==================================================');
-    console.log('🚀 SYSTEM READY: EH Unified API Server Active');
-    console.log('🌐 Listening safely on endpoint: http://localhost:3000');
+    console.log('ðŸš€ SYSTEM READY: EH Unified API Server Active');
+    console.log('ðŸŒ Listening safely on endpoint: http://localhost:3000');
     console.log('==================================================');
 });
 // Bulletproof Absolute Fallback Override Rule
 app.get('/business_dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'business_dashboard.html'));
 });
-
 
