@@ -1,4 +1,4 @@
-﻿// VERIFICATION CODE: 774291
+// VERIFICATION CODE: 774291
 var express = require('express');
 var cors = require('cors');
 var path = require('path');
@@ -142,8 +142,8 @@ app.get('/api/status', function(req, res) {
 
 app.listen(PORT, function() {
     console.log('==================================================');
-    console.log('ðŸš€ SYSTEM READY: EH Unified API Server Active');
-    console.log('ðŸŒ Listening safely on endpoint: http://localhost:3000');
+    console.log('🚀 SYSTEM READY: EH Unified API Server Active');
+    console.log('🌐 Listening safely on endpoint: http://localhost:3000');
     console.log('==================================================');
 });
 // Bulletproof Absolute Fallback Override Rule
