@@ -3,427 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EH Graced Roads - GRACE Enterprise Executive Cockpit</title>
+    <title>Business Dashboard & Dispatch Console | EH Graced Roads Solutions</title>
     <style>
         :root {
-            --bg-dark: #030706;
-            --card-bg: #09120e;
-            --border-color: #10B981;
-            --text-main: #F1F5F9;
-            --accent-blue: #38BDF8;
+            --bg-dark: #020604;
+            --panel-bg: #060e0a;
             --accent-green: #00E676;
-            --accent-red: #EF4444;
-            --accent-yellow: #F59E0B;
-            --accent-purple: #A855F7;
-            --accent-gold: #FFD700;
+            --accent-gold: #FBBF24;
+            --accent-blue: #38BDF8;
+            --border-color: #1e293b;
+            --text-color: #E2E8F0;
         }
 
         body {
             background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
             padding: 20px;
-            margin: 0;
-            min-height: 100vh;
         }
 
-        .hub-container {
-            max-width: 1500px;
+        .dashboard-container {
+            max-width: 1400px;
             margin: 0 auto;
+        }
+
+        /* 150-MILE LIVE BREAKDOWN TICKER BAR */
+        .ticker-wrapper {
+            background: #021a10;
+            border: 2px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ticker-header {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            align-items: center;
+            gap: 12px;
         }
 
-        .header-title {
+        .ticker-badge {
+            background: #EF4444;
+            color: white;
+            padding: 4px 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        marquee {
             color: var(--accent-green);
-            margin: 0;
-            font-size: 2.2rem;
-            letter-spacing: 0.5px;
-        }
-
-        .sub-header {
-            color: #94A3B8;
-            margin-top: 4px;
+            font-family: monospace;
             font-size: 1rem;
         }
 
-        .cockpit-grid {
+        /* GRID LAYOUT */
+        .grid-2col {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
+            margin-bottom: 20px;
         }
 
-        .module-card {
-            background: var(--card-bg);
-            border: 1.5px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0, 230, 118, 0.08);
-        }
-
-        .module-card h3 {
-            margin-top: 0;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .op-card {
+            background: var(--panel-bg);
+            border-radius: 8px;
+            padding: 18px;
         }
 
         .btn-group {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 15px;
         }
 
         .btn {
+            padding: 10px 15px;
             border: none;
-            padding: 12px 18px;
-            font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: opacity 0.2s;
         }
 
-        .btn-ptt { background: var(--accent-red); color: white; width: 100%; padding: 16px; font-size: 1.05rem; }
-        .btn-roadside { background: var(--accent-blue); color: #000; }
-        .btn-lot { background: var(--accent-purple); color: white; }
-        .btn-acct { background: var(--accent-gold); color: #000; }
-        .btn-legal { background: #0284C7; color: white; }
-        .btn-sales { background: var(--accent-green); color: #000; }
-        .btn-hr { background: #E11D48; color: white; }
-
-        .log-box {
-            background: #020503;
-            padding: 16px;
-            border-radius: 8px;
-            border-left: 4px solid var(--accent-green);
-            margin-top: 15px;
-            min-height: 120px;
+        .btn:hover {
+            opacity: 0.85;
         }
 
-        .log-text {
-            margin: 0;
-            font-family: 'Courier New', Courier, monospace;
+        /* TERMINAL LOG */
+        #terminalLog {
+            background: #000;
             color: var(--accent-green);
-            font-size: 0.95rem;
-            line-height: 1.5;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            min-height: 100px;
             white-space: pre-wrap;
-        }
-
-        .transcript-badge {
-            margin-top: 8px;
-            color: var(--accent-blue);
-            font-size: 0.9rem;
-            font-style: italic;
         }
     </style>
 </head>
 <body>
 
-    <div class="hub-container">
-        <div>
-            <h1 class="header-title">⚡ EH Graced Roads Solutions LLC</h1>
-            <p class="sub-header">GRACE Enterprise Suite • Diagnostics, Work Orders, Accounting, Legal, HR & Sales Operations</p>
-        </div>
+<div class="dashboard-container">
 
-        <!-- Master Voice Console -->
-        <div class="module-card" style="border-color: var(--accent-green);">
-            <h3 style="color: var(--accent-green);">🎙️ GRACE Executive AI Voice & Dispatch Console</h3>
-            <button id="ptt-btn" class="btn btn-ptt">🎙️ HOLD TO SPEAK TO GRACE (MASTER AI CORE)</button>
-            <div id="transcript-display" class="transcript-badge"></div>
-        </div>
-
-        <div class="cockpit-grid">
-            <!-- Diagnostics Module -->
-            <div class="module-card" style="border-color: var(--accent-purple);">
-                <h3 style="color: var(--accent-purple);">🧠 Guided Mechanical Diagnostics</h3>
-                <p style="font-size: 0.85rem; color: #94A3B8;">Step-by-step diagnostic workflows for heavy-duty air brakes, Kenworth T680 electrics, and gas engines.</p>
-                <div class="btn-group">
-                    <button id="btn-diag-brakes" class="btn btn-lot">🚛 AIR BRAKE DIAGNOSTIC</button>
-                    <button id="btn-diag-kw" class="btn btn-roadside" style="background:#0284C7; color:white;">⚡ KENWORTH T680 LIGHTS</button>
-                    <button id="btn-diag-gas" class="btn btn-acct" style="background:#D97706; color:white;">⛽ GAS ENGINE MISFIRE</button>
-                </div>
-            </div>
-
-            <!-- Work Order & Dispatch Module -->
-            <div class="module-card">
-                <h3 style="color: var(--accent-blue);">🛠️ Work Orders & Service Dispatch</h3>
-                <p style="font-size: 0.85rem; color: #94A3B8;">Issue instant ticket invoices for roadside dispatch or multi-unit yard lot servicing.</p>
-                <div class="btn-group">
-                    <button id="btn-roadside-wo" class="btn btn-roadside">🚨 ROADSIDE TICKET</button>
-                    <button id="btn-lot-wo" class="btn btn-lot">🏭 YARD LOT WORK ORDER</button>
-                    <button id="btn-maps-nav" class="btn btn-roadside" style="background:#0369A1; color:white;">🗺️ GPS ROUTING</button>
-                </div>
-            </div>
-
-            <!-- Accounting & Billing Module -->
-            <div class="module-card">
-                <h3 style="color: var(--accent-gold);">💰 Master Accounting & Automated Invoicing</h3>
-                <p style="font-size: 0.85rem; color: #94A3B8;">Generate client invoices, process Net-30 terms, and run leak rate calculations.</p>
-                <div class="btn-group">
-                    <button id="btn-gen-invoice" class="btn btn-acct">📄 GENERATE INVOICE</button>
-                    <button id="btn-air-math" class="btn btn-acct" style="background:#B45309; color:white;">🧮 AIR BRAKE LEAK MATH</button>
-                </div>
-            </div>
-
-            <!-- Legal & FMCSA Compliance Module -->
-            <div class="module-card">
-                <h3 style="color: var(--accent-blue);">⚖️ Legal & DOT Compliance Counsel</h3>
-                <p style="font-size: 0.85rem; color: #94A3B8;">Instant FMCSA Regulation advice and commercial repair liability disclaimers.</p>
-                <div class="btn-group">
-                    <button id="btn-fmcsa-audit" class="btn btn-legal">📋 FMCSA SAFETY AUDIT</button>
-                    <button id="btn-contract-clause" class="btn btn-legal" style="background:#4338CA;">📝 LIABILITY CLAUSE</button>
-                </div>
-            </div>
-
-            <!-- HR & Sales Closing Module -->
-            <div class="module-card">
-                <h3 style="color: var(--accent-green);">📈 High-Conversion Sales & HR Engine</h3>
-                <p style="font-size: 0.85rem; color: #94A3B8;">Close new fleet retainer accounts and handle technician onboarding compliance.</p>
-                <div class="btn-group">
-                    <button id="btn-close-sales" class="btn btn-sales">🤝 CLOSE NEW FLEET CLIENT</button>
-                    <button id="btn-hr-onboard" class="btn btn-hr">👤 HR TECH ONBOARDING</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Central Terminal Display -->
-        <div class="log-box">
-            <p class="log-text" id="grace-terminal-log">[SYSTEM READY] GRACE Master Enterprise Operating System Online. All modules ready for input.</p>
+    <!-- 150-MILE LIVE BREAKDOWN TICKER BAR -->
+    <div class="ticker-wrapper">
+        <div class="ticker-header">
+            <span class="ticker-badge">📡 EASTON PA 150-MILE RADAR TICKER</span>
+            <marquee id="breakdown-ticker" behavior="scroll" direction="left" scrollamount="6">
+                [LOADING LIVE 150-MILE BREAKDOWN FEED...]
+            </marquee>
         </div>
     </div>
 
-    <script>
-        const pttBtn = document.getElementById('ptt-btn');
-        const terminalLog = document.getElementById('grace-terminal-log');
-        const transcriptDisplay = document.getElementById('transcript-display');
+    <!-- GRACE LIVE STREAM MONITOR & ADVANCED DISPATCH CONSOLE -->
+    <div class="grid-2col">
 
-        let speechRecognizer = null;
-        let lastTranscript = "";
+        <!-- MODULE 1: GRACE VOICE & CALL STREAM INTERCEPTOR -->
+        <div class="op-card" style="border: 2px solid var(--accent-gold);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-gold); margin: 0; font-size: 1.15rem;">
+                    🎙️ GRACE STREAM MONITOR & VOICE INTERCEPT 2.0
+                </h3>
+                <span id="call-status-badge" style="background: #15803D; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
+                    ● GRACE AI HANDLING
+                </span>
+            </div>
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            speechRecognizer = new SpeechRecognition();
-            speechRecognizer.continuous = false;
-            speechRecognizer.interimResults = true;
-            speechRecognizer.lang = 'en-US';
+            <!-- Caller Info -->
+            <div style="display: flex; gap: 12px; background: #000; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+                <div style="flex: 1.2;">
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: bold;">INCOMING LINE / FLEET</div>
+                    <div id="caller-id-display" style="font-weight: bold; color: var(--accent-blue);">Keystone Freight (+1 610-555-0192)</div>
+                </div>
+                <div style="flex: 0.8;">
+                    <div style="font-size: 0.75rem; color: #64748B; font-weight: bold;">ORIGIN LOCATION</div>
+                    <div id="caller-loc-display" style="font-weight: bold; color: var(--accent-gold);">I-78 Corridor (Easton, PA)</div>
+                </div>
+            </div>
 
-            speechRecognizer.onresult = (event) => {
-                let text = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    text += event.results[i][0].transcript;
+            <!-- Live Transcript Screen -->
+            <div style="font-size: 0.75rem; color: #94A3B8; margin-bottom: 4px; font-weight: bold;">LIVE AUDIO STREAM TRANSCRIPT:</div>
+            <div id="stream-transcript-screen" style="background: #020604; color: #38BDF8; font-family: monospace; padding: 12px; border-radius: 6px; height: 110px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--accent-green); font-size: 0.88rem; line-height: 1.4;">
+                [GRACE AI]: EH Graced Roads Solutions, GRACE speaking. How can we assist your fleet near Easton today?
+            </div>
+
+            <!-- Override Buttons -->
+            <div class="btn-group">
+                <button id="btn-pickup-call" class="btn" style="background: #00E676; color: black; flex: 1;">
+                    📞 PICK UP / OVERRIDE LINE
+                </button>
+                <button id="btn-resume-grace" class="btn" style="background: #334155; color: white; flex: 1;">
+                    🤖 RETURN TO GRACE AI
+                </button>
+                <button id="btn-convert-wo" class="btn" style="background: #FB923C; color: black; flex: 1;">
+                    ⚡ CONVERT TO WORK ORDER
+                </button>
+            </div>
+        </div>
+
+        <!-- MODULE 2: DISPATCH COMMAND CONSOLE -->
+        <div class="op-card" style="border: 2px solid var(--accent-blue);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); margin: 0; font-size: 1.15rem;">
+                    🚨 DISPATCH CONSOLE 2.0 (EASTON BASE)
+                </h3>
+                <span style="background: #0284C7; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
+                    RADAR: 150 MI
+                </span>
+            </div>
+
+            <!-- Fleet Unit Status -->
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #1 (EASTON HQ)</div>
+                    <div style="color: var(--accent-green); font-weight: bold; font-size: 0.88rem;">● DISPATCH READY</div>
+                </div>
+                <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #2 (I-78 EN ROUTE)</div>
+                    <div style="color: var(--accent-gold); font-weight: bold; font-size: 0.88rem;">▲ ON SCENE (BD-101)</div>
+                </div>
+            </div>
+
+            <!-- Dispatch Controls -->
+            <div style="font-size: 0.75rem; color: #94A3B8; margin-bottom: 6px; font-weight: bold;">DIRECT DISPATCH ACTIONS:</div>
+            <div class="btn-group">
+                <button id="pttBtn" class="btn" style="background: #3B82F6; color: white; flex: 1;">
+                    📻 PTT RADIO
+                </button>
+                <button id="dispatchBtn" class="btn" style="background: #10B981; color: white; flex: 1;">
+                    🚨 ROADSIDE DISPATCH
+                </button>
+                <button id="btn-assign-closest" class="btn" style="background: #C084FC; color: black; flex: 1.2;">
+                    📍 DISPATCH CLOSEST
+                </button>
+            </div>
+
+            <div style="margin-top: 12px; background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #94A3B8; border-left: 3px solid var(--accent-blue);">
+                <strong style="color: white;">Base Location:</strong> Easton, PA | GPS: 40.6884, -75.2207
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TERMINAL OUTPUT -->
+    <div class="op-card" style="border: 1px solid var(--border-color);">
+        <h4 style="margin: 0 0 10px 0; color: #94A3B8;">CONSOLE TERMINAL LOG</h4>
+        <div id="graceLog">SYSTEM INITIALIZED - EASTON PA RADAR ONLINE</div>
+    </div>
+
+</div>
+
+<script>
+    // Variable Declarations (Declared ONCE globally at top)
+    const pttBtn = document.getElementById('pttBtn');
+    const dispatchBtn = document.getElementById('dispatchBtn');
+    const graceLog = document.getElementById('graceLog');
+    const statusBadge = document.getElementById('call-status-badge');
+    const transcriptScreen = document.getElementById('stream-transcript-screen');
+    const ticker = document.getElementById('breakdown-ticker');
+
+    // Helper TTS speech wrapper
+    function speakGrace(text) {
+        if ('speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(msg);
+        }
+    }
+
+    // 1. Fetch 150-Mile Radius Breakdowns and Update Ticker
+    function refreshBreakdownTicker() {
+        fetch('/api/breakdowns/scanner?radius=150')
+            .then(res => res.json())
+            .then(data => {
+                if (data.breakdowns && data.breakdowns.length > 0) {
+                    const tickerText = data.breakdowns.map(b => 
+                        `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance} away) - STATUS: ${b.severity}`
+                    ).join('   |   ');
+                    ticker.innerText = tickerText;
+                } else {
+                    ticker.innerText = "NO BREAKDOWNS DETECTED WITHIN 150-MILE RADIUS OF EASTON, PA.";
                 }
-                lastTranscript = text;
-                transcriptDisplay.innerText = `[GRACE Listening]: "${text}"`;
-            };
-        }
-
-        function speakGrace(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.95;
-                utterance.pitch = 1.0;
-
-                const voices = window.speechSynthesis.getVoices();
-                const naturalVoice = voices.find(v => 
-                    v.name.includes('Natural') || 
-                    v.name.includes('Google US English') || 
-                    v.name.includes('Samantha') || 
-                    v.name.includes('Zira')
-                );
-                
-                if (naturalVoice) utterance.voice = naturalVoice;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        // Voice PTT Logic
-        pttBtn.addEventListener('mousedown', () => {
-            pttBtn.style.background = '#10B981';
-            terminalLog.innerText = "[GRACE ONLINE] Listening for executive command or diagnostic query...";
-            lastTranscript = "";
-            transcriptDisplay.innerText = "";
-            speakGrace("I'm ready, Elijah. What is your command?");
-            if (speechRecognizer) { try { speechRecognizer.start(); } catch(e) {} }
-        });
-
-        pttBtn.addEventListener('mouseup', () => {
-            pttBtn.style.background = '#EF4444';
-            terminalLog.innerText = "[PROCESSING] Executing GRACE Logic Core...";
-            if (speechRecognizer) { try { speechRecognizer.stop(); } catch(e) {} }
-
-            setTimeout(() => {
-                const captured = lastTranscript || "Perform general fleet diagnostic check.";
-                fetch('/api/radio/dispatch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ operator: 'Elijah Wright', mode: 'GRACE Command', transcript: captured })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    terminalLog.innerText = `[LOGGED] Instruction: "${captured}" (Record ID: ${data.dispatchId})`;
-                    speakGrace(`Executive instruction recorded and logged under reference ${data.dispatchId.split('-')[1]}.`);
-                });
-            }, 600);
-        });
-
-        // Diagnostic Handler Function
-        function runGraceDiagnostic(systemType, defaultSymptom) {
-            const unitNo = prompt("Enter Vehicle Unit Number:", "Tractor #402");
-            const symptom = prompt("Confirm or specify symptom/fault code:", defaultSymptom);
-
-            if (unitNo) {
-                fetch('/api/diagnostics/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ systemType: systemType, symptom: symptom, unitNo: unitNo })
-                })
-                .then(r => r.json())
-                .then(res => {
-                    const report = res.report;
-                    let outputText = `[DIAGNOSTIC REPORT ${report.diagId}]\nUnit: ${report.unitNo} | Severity: ${report.severity}\n\nDiagnostic Protocol Steps:\n` + report.diagnosticSteps.join('\n');
-                    terminalLog.innerText = outputText;
-                    speakGrace(`Diagnostic protocol ${report.diagId} active for ${report.unitNo}. Step one: ${report.diagnosticSteps[0]}.`);
-                });
-            }
-        }
-
-        document.getElementById('btn-diag-brakes').addEventListener('click', () => runGraceDiagnostic('diesel_air_brakes', 'Trailer air pressure leak / slow build'));
-        document.getElementById('btn-diag-kw').addEventListener('click', () => runGraceDiagnostic('kenworth_electrical', 'Kenworth T680 trailer running light failure'));
-        document.getElementById('btn-diag-gas').addEventListener('click', () => runGraceDiagnostic('gasoline_engine', 'Rough idle / Cylinder misfire code'));
-
-        // Roadside Work Order Button
-        document.getElementById('btn-roadside-wo').addEventListener('click', () => {
-            const client = prompt("Enter Fleet Client Name:", "Apex Logistics");
-            const location = prompt("Enter Roadside Location:", "I-75 Southbound MM 204");
-            const unit = prompt("Enter Vehicle Unit #:", "Tractor #402");
-            const issue = prompt("Enter Mechanical Issue:", "Trailer Belly Air Line Rupture & Brake Lock");
-
-            if (client && location) {
-                fetch('/api/workorders/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'roadside', clientName: client, location: location, unitNo: unit, serviceNeeded: issue, estimatedLaborHours: 2.5, partsCost: 130.00 })
-                })
-                .then(r => r.json())
-                .then(res => {
-                    const wo = res.workOrder;
-                    terminalLog.innerText = `[ROADSIDE TICKET ISSUED]\nID: ${wo.id} | Client: ${wo.clientName} | Location: ${wo.location}\nTotal Estimate: $${wo.billingEstimate.grandTotal}`;
-                    speakGrace(`Roadside ticket ${wo.id} issued for ${wo.clientName}. Total estimate is $${wo.billingEstimate.grandTotal}.`);
-                });
-            }
-        });
-
-        // Lot Work Order Button
-        document.getElementById('btn-lot-wo').addEventListener('click', () => {
-            const client = prompt("Enter Yard Lot Owner / Fleet Name:", "Graced Roads Yard A");
-            const unit = prompt("Enter Unit Numbers Inspected:", "Units #101, #102, #105");
-            const service = prompt("Enter Preventative Maintenance Scope:", "Multi-Unit Fleet Pre-Trip & Brake Adjustment");
-
-            if (client) {
-                fetch('/api/workorders/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'lot', clientName: client, location: 'EH Graced Roads Yard', unitNo: unit, serviceNeeded: service, estimatedLaborHours: 4.0, partsCost: 85.00 })
-                })
-                .then(r => r.json())
-                .then(res => {
-                    const wo = res.workOrder;
-                    terminalLog.innerText = `[YARD LOT WORK ORDER CREATED]\nID: ${wo.id} | Units: ${wo.unitNo}\nTotal Estimated Billing: $${wo.billingEstimate.grandTotal}`;
-                    speakGrace(`Yard Lot work order ${wo.id} generated. Total billing set to $${wo.billingEstimate.grandTotal}.`);
-                });
-            }
-        });
-
-        // Invoice Generator
-        document.getElementById('btn-gen-invoice').addEventListener('click', () => {
-            const client = prompt("Enter Client Name:", "Swift Transport Fleet");
-            const amount = prompt("Enter Invoice Total ($):", "650.00");
-            if (client && amount) {
-                fetch('/api/accounting/invoice', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client: client, amount: amount, description: 'Mobile Fleet Repair Services', paymentTerms: 'Net 30' })
-                })
-                .then(r => r.json())
-                .then(res => {
-                    terminalLog.innerText = `[INVOICE ISSUED]\nInvoice #${res.invoice.invoiceId} | Amount: $${res.invoice.amount} | Client: ${res.invoice.client}`;
-                    speakGrace(`Invoice ${res.invoice.invoiceId} issued for $${res.invoice.amount}. Accounting ledger updated.`);
-                });
-            }
-        });
-
-        // Air Brake Math
-        document.getElementById('btn-air-math').addEventListener('click', () => {
-            const drop = prompt("Enter measured PSI drop per minute:", "3.2");
-            if (drop) {
-                fetch('/api/engineer/calculate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'air_brake_leak', param1: drop, param2: 'combination' })
-                })
-                .then(r => r.json())
-                .then(res => {
-                    terminalLog.innerText = `[LEAK MATH RESULT]\nTest: ${res.calculation} | Value: ${res.value}\nStatus: ${res.status}`;
-                    speakGrace(`Air brake leak rate evaluated as ${res.status}.`);
-                });
-            }
-        });
-
-        // Legal Audits
-        document.getElementById('btn-fmcsa-audit').addEventListener('click', () => {
-            fetch('/api/legal/audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: 'fmcsa' }) })
-            .then(r => r.json())
-            .then(res => {
-                terminalLog.innerText = `[FMCSA LEGAL AUDIT]\n${res.legalVerdict}`;
-                speakGrace("FMCSA Compliance check verified.");
+            })
+            .catch(() => {
+                ticker.innerText = "150-MILE BREAKDOWN TICKER OFFLINE.";
             });
-        });
+    }
 
-        document.getElementById('btn-contract-clause').addEventListener('click', () => {
-            fetch('/api/legal/audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: 'contract' }) })
-            .then(r => r.json())
-            .then(res => {
-                terminalLog.innerText = `[LIABILITY CLAUSE]\n${res.legalVerdict}`;
-                speakGrace("Commercial liability agreement clause loaded.");
-            });
-        });
+    // 2. Call Intercept (Pickup)
+    document.getElementById('btn-pickup-call').addEventListener('click', () => {
+        fetch('/api/stream/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'pickup' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            statusBadge.innerText = "● HUMAN OPERATOR OVERRIDE ACTIVE";
+            statusBadge.style.background = "#DC2626";
 
-        // Sales Closer Button
-        document.getElementById('btn-close-sales').addEventListener('click', () => {
-            const prospect = prompt("Enter Prospect Name:", "John Director");
-            const size = prompt("Enter Fleet Size:", "12 Trucks");
-            if (prospect) {
-                fetch('/api/sales/close', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospectName: prospect, fleetSize: size }) })
-                .then(r => r.json())
-                .then(res => {
-                    terminalLog.innerText = `[CLOSING SCRIPT]\n"${res.closingScript}"`;
-                    speakGrace(`Sales closing script generated for ${prospect}.`);
-                });
+            transcriptScreen.innerText += "\n\n[HUMAN INTERCEPT]: Elijah Wright picked up the active call. GRACE AI muted.";
+            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
+
+            graceLog.innerText = "[STREAM INTERCEPT] Active line transferred to operator headset.";
+            speakGrace("Call override engaged. You are now live on the call line.");
+        });
+    });
+
+    // 3. Return Control to GRACE AI
+    document.getElementById('btn-resume-grace').addEventListener('click', () => {
+        fetch('/api/stream/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'resume_grace' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            statusBadge.innerText = "● GRACE AI HANDLING";
+            statusBadge.style.background = "#15803D";
+
+            transcriptScreen.innerText += "\n\n[GRACE RESUMED]: Control returned to GRACE AI Core.";
+            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
+
+            graceLog.innerText = "[STREAM CONTROL] GRACE AI Core resumed primary line monitoring.";
+            speakGrace("GRACE AI core back online on the call line.");
+        });
+    });
+
+    // 4. Dispatch Closest Breakdown
+    document.getElementById('btn-assign-closest').addEventListener('click', () => {
+        fetch('/api/breakdowns/scanner?radius=150')
+        .then(r => r.json())
+        .then(data => {
+            if (data.breakdowns && data.breakdowns.length > 0) {
+                const closest = data.breakdowns[0];
+                graceLog.innerText = `[DISPATCHING CLOSEST UNIT]\nTarget: ${closest.id}\nVehicle: ${closest.vehicle}\nLocation: ${closest.location} (${closest.distance} from Easton)\nIssue: ${closest.issue}`;
+                speakGrace(`Dispatching mobile service van to ${closest.vehicle} at ${closest.location}.`);
             }
         });
+    });
 
-        // HR Tech Onboarding
-        document.getElementById('btn-hr-onboard').addEventListener('click', () => {
-            const name = prompt("Enter Technician Name:", "Marcus Vance");
-            if (name) {
-                terminalLog.innerText = `[HR ONBOARDING COMPLETE]\nTechnician: ${name}\nCertifications: ASE Heavy Duty, Safety Compliance verified. Service Van assigned.`;
-                speakGrace(`HR onboarding completed for technician ${name}.`);
-            }
-        });
+    // Initial load & 30-second ticker interval
+    refreshBreakdownTicker();
+    setInterval(refreshBreakdownTicker, 30000);
+</script>
 
-        // Navigation
-        document.getElementById('btn-maps-nav').addEventListener('click', () => {
-            const dest = prompt("Enter Service Destination:", "I-75 Exit 200");
-            if (dest) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}`, '_blank');
-                speakGrace(`Opening route navigation to ${dest}.`);
-            }
-        });
-    </script>
 </body>
 </html>
