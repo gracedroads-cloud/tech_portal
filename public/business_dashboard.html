@@ -72,3 +72,106 @@
         }
     });
 </script>
+<!-- CB RADIO & GRACE VOICE DISPATCH CONSOLE -->
+<div class="cb-dispatch-card" style="border: 2px solid #00E676; padding: 20px; background: #0a0a0a; border-radius: 8px; color: #fff; margin-top: 20px;">
+    <h3 style="color: #00E676; margin-top: 0;">📻 CB Radio CH-19 & GRACE Voice Controller</h3>
+    
+    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <button id="ptt-btn" style="background: #e53935; color: white; border: none; padding: 12px 24px; font-weight: bold; border-radius: 5px; cursor: pointer;">
+            🎙️ HOLD TO TALK TO GRACE (PTT)
+        </button>
+        <button id="dispatch-unit-btn" style="background: #1e88e5; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 5px; cursor: pointer;">
+            🚛 DISPATCH SERVICE UNIT
+        </button>
+    </div>
+
+    <div style="background: #111; padding: 12px; border-radius: 5px; border-left: 4px solid #00E676;">
+        <p style="margin: 0; font-family: monospace; color: #00E676;" id="grace-status-log">
+            [CH-19 STANDBY] GRACE Listening... Press "Hold to Talk" for roadside customer intake or manual dispatch.
+        </p>
+    </div>
+</div>
+
+<script>
+    const pttBtn = document.getElementById('ptt-btn');
+    const dispatchBtn = document.getElementById('dispatch-unit-btn');
+    const graceLog = document.getElementById('grace-status-log');
+
+    // Speech Synthesis for GRACE Voice Response
+    function speakGrace(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            
+            const voices = window.speechSynthesis.getVoices();
+            const graceVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google US English') || v.name.includes('Zira'));
+            if (graceVoice) {
+                utterance.voice = graceVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Push-To-Talk (PTT) Press
+    pttBtn.addEventListener('mousedown', () => {
+        pttBtn.style.background = '#43a047';
+        graceLog.innerText = "[CHANNEL ACTIVE] Transmitting to GRACE... Speak driver status or customer details.";
+        speakGrace("GRACE channel open. Go ahead with customer details.");
+    });
+
+    // Push-To-Talk (PTT) Release
+    pttBtn.addEventListener('mouseup', () => {
+        pttBtn.style.background = '#e53935';
+        graceLog.innerText = "[PROCESSING] GRACE analyzing voice transcript and persisting customer intake record...";
+        
+        fetch('/api/radio/dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                channel: 'CH-19',
+                operator: 'Elijah Wright',
+                mode: 'GRACE Voice On-Site Assist',
+                serviceNotes: 'Roadside assist initiated via CB radio voice request.'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const shortId = data.dispatchId.split('-')[1];
+            graceLog.innerText = `[SUCCESS] GRACE Intake Complete! Dispatch ID: ${data.dispatchId}`;
+            speakGrace(`Customer intake complete. Dispatch ID registered as ${shortId}. You are clear to begin service.`);
+        })
+        .catch(err => {
+            graceLog.innerText = `[ERROR] Failed to contact GRACE backend server.`;
+            speakGrace("System alert. Connection to dispatch server failed.");
+        });
+    });
+
+    // Manual Dispatch Action
+    dispatchBtn.addEventListener('click', () => {
+        const notes = prompt("Enter service dispatch details (e.g. Unit #, location, issue):");
+        if (notes) {
+            graceLog.innerText = "[PROCESSING] Dispatching service unit...";
+            speakGrace("Processing service unit dispatch request.");
+
+            fetch('/api/radio/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    channel: 'DISPATCH-DIRECT',
+                    operator: 'Elijah Wright',
+                    mode: 'Direct Intake',
+                    serviceNotes: notes
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const shortId = data.dispatchId.split('-')[1];
+                graceLog.innerText = `[DISPATCHED] Unit queued successfully! Dispatch ID: ${data.dispatchId}`;
+                speakGrace(`Service unit queued and dispatched. Record locked under ID ${shortId}.`);
+            });
+        }
+    });
+</script>
