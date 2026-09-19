@@ -2,50 +2,201 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const {
+    DEFAULT_WATCH_CENTER_RADIUS_MILES,
+    DEFAULT_WATCH_CENTER_STALE_MS,
+    LEHIGH_VALLEY_FALLBACK_CENTER,
+    createWatchCenterStore
+} = require('./watch-center');
 
-const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname)); // Serves root-level files like index.html
-
-// Ensure local data directory exists for JSON backups
 const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+const WATCH_CENTER_OPERATOR_TOKEN = process.env.WATCH_CENTER_OPERATOR_TOKEN || 'local-operator-access';
+const WATCH_CENTER_RADIUS_MILES = Number(process.env.WATCH_CENTER_RADIUS_MILES || DEFAULT_WATCH_CENTER_RADIUS_MILES);
+const WATCH_CENTER_STALE_MS = Number(process.env.WATCH_CENTER_STALE_MS || DEFAULT_WATCH_CENTER_STALE_MS);
+const LEHIGH_VALLEY_CENTER = {
+    ...LEHIGH_VALLEY_FALLBACK_CENTER,
+    latitude: Number(process.env.LEHIGH_VALLEY_LAT || LEHIGH_VALLEY_FALLBACK_CENTER.latitude),
+    longitude: Number(process.env.LEHIGH_VALLEY_LNG || LEHIGH_VALLEY_FALLBACK_CENTER.longitude)
+};
+
+const BREAKDOWN_FEED = [
+    {
+        id: 'BD-101',
+        vehicle: 'Freightliner Cascadia',
+        issue: 'Blown Type 30/30 Brake Chamber',
+        location: 'I-78 West MM 49.2 near Fogelsville',
+        corridor: 'I-78 WEST • MM 49.2',
+        latitude: 40.5667,
+        longitude: -75.6317,
+        severity: 'HIGH',
+        quoteRate: '$0.00'
+    },
+    {
+        id: 'BD-214',
+        vehicle: 'Kenworth T680',
+        issue: 'Trailer belly-line air leak',
+        location: 'I-78 East MM 71 near Bethlehem',
+        corridor: 'I-78 EAST • MM 71',
+        latitude: 40.6514,
+        longitude: -75.3557,
+        severity: 'MEDIUM',
+        quoteRate: '$150.00/hr'
+    },
+    {
+        id: 'BD-330',
+        vehicle: 'Volvo VNL 760',
+        issue: 'Starter circuit no-crank diagnosis',
+        location: 'Carlisle Pike freight yard',
+        corridor: 'YARD LOT',
+        latitude: 40.201,
+        longitude: -77.1881,
+        severity: 'LOW',
+        quoteRate: '$175.00'
+    },
+    {
+        id: 'BD-901',
+        vehicle: 'Peterbilt 579',
+        issue: 'DEF dosing fault',
+        location: 'Richmond, VA freight corridor',
+        corridor: 'OUT OF FILTER',
+        latitude: 37.5407,
+        longitude: -77.436,
+        severity: 'HIGH',
+        quoteRate: '$250.00'
+    }
+];
+
+function ensureDataDir() {
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
 }
 
-// DVIR API Endpoint
-app.post('/api/dvir', (req, res) => {
-    try {
-        const dvirData = req.body;
-        const filePath = path.join(dataDir, `dvir_${Date.now()}.json`);
-        fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
-        res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
-    } catch (error) {
-        console.error('Error saving DVIR:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+function requireOperatorAuth(expectedToken) {
+    return (req, res, next) => {
+        const authorizationHeader = req.get('authorization') || '';
+        const providedToken = authorizationHeader.startsWith('Bearer ')
+            ? authorizationHeader.slice('Bearer '.length).trim()
+            : '';
 
-// System Status / Breakdown Ticker Endpoint
-app.get('/api/status', (req, res) => {
-    res.json({
-        status: 'ONLINE',
-        base: 'Lehigh Valley, PA',
-        port: PORT,
-        timestamp: new Date().toISOString()
+        if (!providedToken) {
+            return res.status(401).json({ success: false, error: 'Operator authorization is required.' });
+        }
+
+        if (providedToken !== expectedToken) {
+            return res.status(403).json({ success: false, error: 'Operator authorization is invalid.' });
+        }
+
+        return next();
+    };
+}
+
+function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN } = {}) {
+    ensureDataDir();
+
+    const app = express();
+    const watchCenterStore = createWatchCenterStore({
+        fallbackCenter: LEHIGH_VALLEY_CENTER,
+        radiusMiles: WATCH_CENTER_RADIUS_MILES,
+        staleMs: WATCH_CENTER_STALE_MS,
+        now
     });
-});
 
-// Start Server
-app.listen(PORT, () => {
-    console.log('=======================================================');
-    console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
-    console.log('📍 OPERATING BASE: LEHIGH VALLEY, PA (150-MILE RADAR LIVE)');
-    console.log('=======================================================');
-});
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.use(cors());
+    app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.static(__dirname));
+
+    app.post('/api/dvir', (req, res) => {
+        try {
+            const dvirData = req.body;
+            const filePath = path.join(dataDir, `dvir_${now()}.json`);
+            fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
+            res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
+        } catch (error) {
+            console.error('Error saving DVIR:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    app.get('/api/status', (req, res) => {
+        res.json({
+            status: 'ONLINE',
+            base: 'Based in Lehigh Valley',
+            service: 'mobile diesel repair for tractor-trailers and heavy-duty trucks',
+            port: PORT,
+            timestamp: new Date(now()).toISOString(),
+            watchCenter: watchCenterStore.getCenter(now())
+        });
+    });
+
+    app.get('/api/watch-center', (req, res) => {
+        res.json(watchCenterStore.getCenter(now()));
+    });
+
+    app.post('/api/watch-center/location', requireOperatorAuth(operatorToken), (req, res) => {
+        try {
+            const watchCenter = watchCenterStore.updateLiveLocation({
+                latitude: req.body.latitude,
+                longitude: req.body.longitude,
+                recordedAt: req.body.recordedAt
+            });
+
+            res.status(200).json({ success: true, watchCenter });
+        } catch (error) {
+            res.status(400).json({ success: false, error: error.message });
+        }
+    });
+
+    app.get('/api/breakdowns/scanner', (req, res) => {
+        const { watchCenter, breakdowns } = watchCenterStore.filterBreakdowns(BREAKDOWN_FEED, now());
+
+        res.json({
+            radiusMiles: watchCenter.radiusMiles,
+            watchCenter,
+            breakdowns,
+            timestamp: new Date(now()).toISOString()
+        });
+    });
+
+    app.post('/api/stream/override', (req, res) => {
+        res.json({
+            success: true,
+            action: req.body.action || 'noop',
+            timestamp: new Date(now()).toISOString()
+        });
+    });
+
+    return {
+        app,
+        watchCenterStore
+    };
+}
+
+function createServer(options = {}) {
+    const { app } = createApp(options);
+    const port = options.port || PORT;
+
+    return app.listen(port, () => {
+        console.log('=======================================================');
+        console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${port}`);
+        console.log(`🏢 BASED IN ${LEHIGH_VALLEY_CENTER.label.toUpperCase()} - ${WATCH_CENTER_RADIUS_MILES}-MILE WATCH FILTER READY`);
+        console.log('=======================================================');
+    });
+}
+
+if (require.main === module) {
+    createServer();
+}
+
+module.exports = {
+    BREAKDOWN_FEED,
+    createApp,
+    createServer,
+    LEHIGH_VALLEY_CENTER,
+    WATCH_CENTER_OPERATOR_TOKEN,
+    WATCH_CENTER_RADIUS_MILES,
+    WATCH_CENTER_STALE_MS
+};
