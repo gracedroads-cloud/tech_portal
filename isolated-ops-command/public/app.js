@@ -60,7 +60,16 @@ function parseSseChunk(rawChunk) {
 }
 
 function statusBadge(status) {
-  return `<span class="status-badge">${status}</span>`;
+  return `<span class="status-badge">${escapeHtml(status)}</span>`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function renderSnapshot(snapshot) {
@@ -74,47 +83,47 @@ function renderSnapshot(snapshot) {
     .map(([key, monitor]) => `
       <article class="monitor-card" data-status="${monitor.status}">
         <div class="panel-title-row">
-          <strong>${monitor.label}</strong>
+          <strong>${escapeHtml(monitor.label)}</strong>
           ${statusBadge(monitor.status)}
         </div>
-        <p>${monitor.detail}</p>
-        <p class="meta">${key} • ${new Date(monitor.lastUpdatedAt).toLocaleString()}</p>
+        <p>${escapeHtml(monitor.detail)}</p>
+        <p class="meta">${escapeHtml(key)} • ${escapeHtml(new Date(monitor.lastUpdatedAt).toLocaleString())}</p>
       </article>
     `).join('');
 
   incidentFeed.innerHTML = snapshot.incidents.length ? snapshot.incidents.slice().reverse().map((incident) => `
     <div class="feed-item">
-      <strong>${incident.incidentId}</strong>
-      <div>${incident.description}</div>
-      <div class="meta">${incident.status} • ${incident.serviceType} • ${incident.origin} • ${new Date(incident.createdAt).toLocaleString()}</div>
+      <strong>${escapeHtml(incident.incidentId)}</strong>
+      <div>${escapeHtml(incident.description)}</div>
+      <div class="meta">${escapeHtml(incident.status)} • ${escapeHtml(incident.serviceType)} • ${escapeHtml(incident.origin)} • ${escapeHtml(new Date(incident.createdAt).toLocaleString())}</div>
     </div>
   `).join('') : '<div class="feed-item">No incidents yet.</div>';
 
   dispatchQueue.innerHTML = snapshot.dispatchQueue.length ? snapshot.dispatchQueue.slice().reverse().map((item) => `
     <div class="queue-card">
       <div class="panel-title-row">
-        <strong>${item.recommendedServiceType}</strong>
+        <strong>${escapeHtml(item.recommendedServiceType)}</strong>
         ${statusBadge(item.status)}
       </div>
-      <div>${item.description}</div>
-      <div class="meta">Priority ${item.priority} • Human approval ${item.requiresHumanApproval ? 'required' : 'not required'}</div>
+      <div>${escapeHtml(item.description)}</div>
+      <div class="meta">Priority ${escapeHtml(item.priority)} • Human approval ${item.requiresHumanApproval ? 'required' : 'not required'}</div>
       ${item.status === 'awaiting_human_approval' ? `<button data-approve="${item.id}" type="button">Approve Dispatch</button>` : ''}
     </div>
   `).join('') : '<div class="feed-item">No queue items.</div>';
 
   policyRejections.innerHTML = snapshot.policyRejections.length ? snapshot.policyRejections.slice().reverse().map((item) => `
     <div class="feed-item">
-      <strong>${item.incidentId}</strong>
-      <div>${item.rejection.message}</div>
-      <div class="meta">Referral: ${item.routedTo} • ${new Date(item.at).toLocaleString()}</div>
+      <strong>${escapeHtml(item.incidentId)}</strong>
+      <div>${escapeHtml(item.rejection.message)}</div>
+      <div class="meta">Referral: ${escapeHtml(item.routedTo)} • ${escapeHtml(new Date(item.at).toLocaleString())}</div>
     </div>
   `).join('') : '<div class="feed-item">No policy rejections recorded.</div>';
 
   auditFeed.innerHTML = snapshot.auditTail.length ? snapshot.auditTail.slice().reverse().map((event) => `
     <div class="feed-item">
-      <strong>${event.type}</strong>
-      <div class="meta">${new Date(event.at).toLocaleString()}</div>
-      <pre>${JSON.stringify(event.detail, null, 2)}</pre>
+      <strong>${escapeHtml(event.type)}</strong>
+      <div class="meta">${escapeHtml(new Date(event.at).toLocaleString())}</div>
+      <pre>${escapeHtml(JSON.stringify(event.detail, null, 2))}</pre>
     </div>
   `).join('') : '<div class="feed-item">No audit events yet.</div>';
 
@@ -122,13 +131,13 @@ function renderSnapshot(snapshot) {
     const sessionUrl = state.sessionLaunchUrls[session.id] || '';
     const iframe = session.mode === 'iframe'
       ? (sessionUrl
-        ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts" src="${sessionUrl}" data-fallback-url="${sessionUrl}" title="Secure session ${session.hostname}"></iframe></div>`
+        ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts" src="${sessionUrl}" data-fallback-url="${sessionUrl}" title="Secure session ${escapeHtml(session.hostname)}"></iframe></div>`
         : '<div class="media-preview">Refresh-safe state hides the full launch URL. Re-launch to embed again, or use the protected-tab flow.</div>')
       : '<div class="media-preview">Destination opened in protected tab or window. Embedding may be blocked by policy headers.</div>';
     return `
       <div class="session-card">
-        <strong>${session.hostname}</strong>
-        <div class="meta">${session.origin} • expires ${new Date(session.expiresAt).toLocaleTimeString()}</div>
+        <strong>${escapeHtml(session.hostname)}</strong>
+        <div class="meta">${escapeHtml(session.origin)} • expires ${escapeHtml(new Date(session.expiresAt).toLocaleTimeString())}</div>
         ${iframe}
         <div class="session-actions">
           ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${sessionUrl}">Open protected tab</button>` : ''}
@@ -143,18 +152,18 @@ function renderSnapshot(snapshot) {
     const sourceUrl = state.mediaLaunchUrls[source.id] || '';
     const status = `${source.simulated ? 'SIMULATED' : source.state.toUpperCase()}`;
     const preview = source.simulated || !sourceUrl
-      ? `<div class="media-preview">${source.kind.toUpperCase()} ${status}<br>${source.name}</div>`
+      ? `<div class="media-preview">${escapeHtml(source.kind.toUpperCase())} ${escapeHtml(status)}<br>${escapeHtml(source.name)}</div>`
       : source.type === 'EMBED'
-        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="${source.name}"></iframe></div>`
-        : `<div class="media-preview">Authorized ${source.type} source configured for operator-managed playback.<br>${source.displayOrigin || 'configured source'}</div>`;
+        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="${escapeHtml(source.name)}"></iframe></div>`
+        : `<div class="media-preview">Authorized ${escapeHtml(source.type)} source configured for operator-managed playback.<br>${escapeHtml(source.displayOrigin || 'configured source')}</div>`;
     return `
       <article class="media-card" data-status="${source.state}">
         <div class="panel-title-row">
-          <strong>${source.name}</strong>
+          <strong>${escapeHtml(source.name)}</strong>
           ${statusBadge(source.state)}
         </div>
-        <div class="meta">${source.kind} • ${source.type} • ${source.displayOrigin || 'simulated/local only'} • ${new Date(source.lastUpdatedAt).toLocaleString()}</div>
-        ${source.error ? `<p class="state-danger">${source.error}</p>` : ''}
+        <div class="meta">${escapeHtml(source.kind)} • ${escapeHtml(source.type)} • ${escapeHtml(source.displayOrigin || 'simulated/local only')} • ${escapeHtml(new Date(source.lastUpdatedAt).toLocaleString())}</div>
+        ${source.error ? `<p class="state-danger">${escapeHtml(source.error)}</p>` : ''}
         ${preview}
         <div class="media-actions">
           <button class="secondary" type="button" data-mute="${sourceKey}">${muted ? 'Unmute' : 'Mute'}</button>
