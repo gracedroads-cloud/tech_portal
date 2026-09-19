@@ -30,6 +30,7 @@ if (!fs.existsSync(graceDataDir)) {
 
 const auditFilePath = path.join(dataDir, 'grace_audit.log');
 const graceCalls = new Map();
+const operatorToken = process.env.GRACE_OPERATOR_TOKEN || 'grace-operator';
 const writeRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -94,6 +95,19 @@ function audit(call, action, details = {}) {
   });
 }
 
+function recordStateEvent(call, action, nextState, metadata = {}) {
+  const stateEvent = {
+    timestamp: new Date().toISOString(),
+    action,
+    from: call.state,
+    to: nextState,
+    metadata
+  };
+  call.state = nextState;
+  call.stateHistory.push(stateEvent);
+  return stateEvent;
+}
+
 function respondWithCall(res, call, extras = {}, statusCode = 200) {
   return res.status(statusCode).json({
     success: true,
@@ -103,6 +117,14 @@ function respondWithCall(res, call, extras = {}, statusCode = 200) {
     dispatch: call.dispatch,
     ...extras
   });
+}
+
+function requireOperatorAuth(req, res, next) {
+  const provided = req.headers['x-operator-token'];
+  if (provided !== operatorToken) {
+    return res.status(401).json({ success: false, error: 'Operator authorization required.' });
+  }
+  return next();
 }
 
 function generateSecurePaymentLink(callId) {
@@ -143,7 +165,7 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-app.get('/api/grace/calls/:callId', (req, res) => {
+app.get('/api/grace/calls/:callId', requireOperatorAuth, (req, res) => {
   try {
     const call = getCallOrThrow(req.params.callId);
     return respondWithCall(res, call, { call: sanitizeForStorage(call) });
@@ -198,7 +220,8 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
     call.gates.scopeApproved = decision.approved;
 
     if (!decision.approved) {
-      audit(call, 'scope_check_rejected', { decision });
+      const rejectedStateEvent = recordStateEvent(call, 'scope_check_rejected', FLOW_STATES.SCOPE_REJECTED, { decision });
+      audit(call, 'scope_check_rejected', rejectedStateEvent);
       persistCall(call);
       return res.status(422).json({
         success: false,
@@ -297,7 +320,8 @@ app.post('/api/grace/technician_acceptance', writeRateLimit, (req, res) => {
     const call = getCallOrThrow(req.body.callId);
 
     if (!req.body.accepted) {
-      audit(call, 'technician_acceptance_denied', { accepted: false });
+      const deniedEvent = recordStateEvent(call, 'technician_acceptance_denied', call.state, { accepted: false });
+      audit(call, 'technician_acceptance_denied', deniedEvent);
       persistCall(call);
       return res.status(409).json({ success: false, callId: call.callId, error: 'Dispatch remains estimate-only until technician acceptance.' });
     }

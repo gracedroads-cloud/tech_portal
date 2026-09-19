@@ -77,6 +77,10 @@ test('rejects out-of-scope requests (towing/winching/passenger vehicle)', async 
   const scoped = await request('POST', '/api/grace/scope_check', { callId });
   assert.equal(scoped.status, 422);
   assert.equal(scoped.body.outOfScope, true);
+
+  const persisted = JSON.parse(fs.readFileSync(path.join(graceDataDir, `${callId}.json`), 'utf8'));
+  assert.equal(persisted.state, 'scope_rejected');
+  assert.equal(persisted.stateHistory.at(-1).action, 'scope_check_rejected');
 });
 
 test('accepts in-scope heavy-duty diesel request', async () => {

@@ -18,6 +18,8 @@
     <p>Use this to inspect audit-friendly state transitions and approval gates.</p>
     <label for="callId">Call ID</label>
     <input id="callId" placeholder="Enter callId from dispatch console" style="width:65%;">
+    <label for="operatorToken">Operator Token</label>
+    <input id="operatorToken" value="grace-operator" style="width:65%;">
     <button onclick="loadState()">Load Call State</button>
     <pre id="stateOutput" role="status" aria-live="polite">No call loaded.</pre>
   </div>
@@ -25,8 +27,11 @@
   <script>
     async function loadState() {
       const callId = document.getElementById('callId').value.trim();
+      const operatorToken = document.getElementById('operatorToken').value.trim();
       if (!callId) return;
-      const response = await fetch(`/api/grace/calls/${encodeURIComponent(callId)}`);
+      const response = await fetch(`/api/grace/calls/${encodeURIComponent(callId)}`, {
+        headers: { 'x-operator-token': operatorToken }
+      });
       const json = await response.json();
       document.getElementById('stateOutput').textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
     }
