@@ -151,7 +151,7 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
             status: 'ONLINE',
             base: 'Based in Lehigh Valley',
             service: 'mobile diesel repair for tractor-trailers and heavy-duty trucks',
-            port: PORT,
+            port: req.socket && req.socket.localPort ? req.socket.localPort : PORT,
             timestamp: new Date(now()).toISOString(),
             watchCenter: watchCenterStore.getCenter(now())
         });

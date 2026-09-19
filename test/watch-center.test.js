@@ -34,11 +34,16 @@ test('haversine distance and 150-mile boundary behavior use the active watch cen
         latitude: LEHIGH_VALLEY_CENTER.latitude + (151 / 69.172),
         longitude: LEHIGH_VALLEY_CENTER.longitude
     };
+    const invalidBreakdown = {
+        id: 'invalid',
+        latitude: 999,
+        longitude: LEHIGH_VALLEY_CENTER.longitude
+    };
 
     assert.ok(haversineMiles(LEHIGH_VALLEY_CENTER, insideBoundary) < 150, 'expected inside point to be within 150 miles');
     assert.ok(haversineMiles(LEHIGH_VALLEY_CENTER, outsideBoundary) > 150, 'expected outside point to be beyond 150 miles');
 
-    const filtered = store.filterBreakdowns([insideBoundary, outsideBoundary]);
+    const filtered = store.filterBreakdowns([insideBoundary, outsideBoundary, invalidBreakdown]);
 
     assert.equal(filtered.watchCenter.sourceMode, 'lehigh_valley_fallback');
     assert.deepEqual(filtered.breakdowns.map((breakdown) => breakdown.id), ['inside']);

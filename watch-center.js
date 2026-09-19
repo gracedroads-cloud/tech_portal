@@ -125,14 +125,19 @@ function createWatchCenterStore({
             const watchCenter = buildSnapshot(referenceTimeMs);
             const filteredBreakdowns = breakdowns
                 .map((breakdown) => {
-                    const distanceMiles = haversineMiles(watchCenter, breakdown);
+                    try {
+                        const distanceMiles = haversineMiles(watchCenter, breakdown);
 
-                    return {
-                        ...breakdown,
-                        distanceMiles,
-                        distance: `${distanceMiles.toFixed(1)} mi`
-                    };
+                        return {
+                            ...breakdown,
+                            distanceMiles,
+                            distance: `${distanceMiles.toFixed(1)} mi`
+                        };
+                    } catch (error) {
+                        return null;
+                    }
                 })
+                .filter(Boolean)
                 .filter((breakdown) => breakdown.distanceMiles <= radiusMiles)
                 .sort((left, right) => left.distanceMiles - right.distanceMiles);
 
