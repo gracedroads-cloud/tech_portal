@@ -202,6 +202,43 @@ test('supports automation pause and reports it in state', async () => {
   }
 });
 
+test('auto-dispatches only low-risk approved services when explicitly enabled', async () => {
+  const aiServer = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      summary: 'Low-risk battery assist approved for auto dispatch',
+      recommendedServiceType: 'battery_electrical_help',
+      priority: 'low',
+      requiresHumanApproval: false,
+      allowedActions: ['draft_dispatch']
+    }));
+  });
+  await new Promise((resolve) => aiServer.listen(0, resolve));
+  const aiPort = aiServer.address().port;
+  const ctx = await startTestServer({
+    autoDispatchEnabled: true,
+    graceAiEndpoint: `http://127.0.0.1:${aiPort}/classify`,
+    graceAiApiKey: 'fake-key'
+  });
+
+  try {
+    const created = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ description: 'Battery restart needed at depot', serviceType: 'battery_electrical_help' })
+    });
+    assert.equal(created.response.status, 202);
+    assert.equal(created.body.queueItem.status, 'auto_dispatched');
+    assert.equal(created.body.queueItem.requiresHumanApproval, false);
+
+    const audit = await jsonRequest(ctx.baseUrl, '/api/audit', { headers: { 'x-ops-token': 'test-token' } });
+    assert.ok(audit.body.events.some((event) => event.type === 'dispatch.auto_dispatched'));
+  } finally {
+    aiServer.close();
+    await ctx.stop();
+  }
+});
+
 test('rejects malformed JSON payloads', async () => {
   const ctx = await startTestServer();
   try {

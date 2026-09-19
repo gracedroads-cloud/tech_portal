@@ -1,7 +1,9 @@
 const state = {
   config: null,
   snapshot: null,
-  mediaMute: {}
+  mediaMute: {},
+  mediaLaunchUrls: {},
+  sessionLaunchUrls: {}
 };
 
 const monitorGrid = document.getElementById('monitorGrid');
@@ -82,9 +84,9 @@ function renderSnapshot(snapshot) {
 
   incidentFeed.innerHTML = snapshot.incidents.length ? snapshot.incidents.slice().reverse().map((incident) => `
     <div class="feed-item">
-      <strong>${incident.customer}</strong>
+      <strong>${incident.incidentId}</strong>
       <div>${incident.description}</div>
-      <div class="meta">${incident.status} • ${incident.serviceType} • ${new Date(incident.createdAt).toLocaleString()}</div>
+      <div class="meta">${incident.status} • ${incident.serviceType} • ${incident.origin} • ${new Date(incident.createdAt).toLocaleString()}</div>
     </div>
   `).join('') : '<div class="feed-item">No incidents yet.</div>';
 
@@ -117,8 +119,11 @@ function renderSnapshot(snapshot) {
   `).join('') : '<div class="feed-item">No audit events yet.</div>';
 
   secureSessions.innerHTML = snapshot.secureBrowserSessions.length ? snapshot.secureBrowserSessions.map((session) => {
+    const sessionUrl = state.sessionLaunchUrls[session.id] || '';
     const iframe = session.mode === 'iframe'
-      ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts allow-same-origin" src="${session.url}" data-fallback-url="${session.url}" title="Secure session ${session.hostname}"></iframe></div>`
+      ? (sessionUrl
+        ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts" src="${sessionUrl}" data-fallback-url="${sessionUrl}" title="Secure session ${session.hostname}"></iframe></div>`
+        : '<div class="media-preview">Refresh-safe state hides the full launch URL. Re-launch to embed again, or use the protected-tab flow.</div>')
       : '<div class="media-preview">Destination opened in protected tab or window. Embedding may be blocked by policy headers.</div>';
     return `
       <div class="session-card">
@@ -126,7 +131,7 @@ function renderSnapshot(snapshot) {
         <div class="meta">${session.origin} • expires ${new Date(session.expiresAt).toLocaleTimeString()}</div>
         ${iframe}
         <div class="session-actions">
-          <button class="secondary" type="button" data-open-session="${session.url}">Open protected tab</button>
+          ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${sessionUrl}">Open protected tab</button>` : ''}
         </div>
       </div>
     `;
@@ -135,25 +140,26 @@ function renderSnapshot(snapshot) {
   mediaGrid.innerHTML = snapshot.mediaSources.length ? snapshot.mediaSources.map((source) => {
     const sourceKey = `${source.kind}-${source.id}`;
     const muted = state.mediaMute[sourceKey] !== false;
+    const sourceUrl = state.mediaLaunchUrls[source.id] || '';
     const status = `${source.simulated ? 'SIMULATED' : source.state.toUpperCase()}`;
-    const preview = source.simulated || !source.url
+    const preview = source.simulated || !sourceUrl
       ? `<div class="media-preview">${source.kind.toUpperCase()} ${status}<br>${source.name}</div>`
       : source.type === 'EMBED'
-        ? `<div class="media-preview"><iframe sandbox="allow-scripts allow-same-origin" src="${source.url}" title="${source.name}"></iframe></div>`
-        : `<div class="media-preview">Authorized ${source.type} source configured for operator-managed playback.<br>${source.url}</div>`;
+        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="${source.name}"></iframe></div>`
+        : `<div class="media-preview">Authorized ${source.type} source configured for operator-managed playback.<br>${source.displayOrigin || 'configured source'}</div>`;
     return `
       <article class="media-card" data-status="${source.state}">
         <div class="panel-title-row">
           <strong>${source.name}</strong>
           ${statusBadge(source.state)}
         </div>
-        <div class="meta">${source.kind} • ${source.type} • ${new Date(source.lastUpdatedAt).toLocaleString()}</div>
+        <div class="meta">${source.kind} • ${source.type} • ${source.displayOrigin || 'simulated/local only'} • ${new Date(source.lastUpdatedAt).toLocaleString()}</div>
         ${source.error ? `<p class="state-danger">${source.error}</p>` : ''}
         ${preview}
         <div class="media-actions">
           <button class="secondary" type="button" data-mute="${sourceKey}">${muted ? 'Unmute' : 'Mute'}</button>
           <button class="secondary" type="button" data-reconnect="${source.id}">Reconnect</button>
-          ${source.url ? `<button class="secondary" type="button" data-open-source="${source.url}">Open Source</button>` : ''}
+          ${sourceUrl ? `<button class="secondary" type="button" data-open-source="${sourceUrl}">Open Source</button>` : ''}
         </div>
       </article>
     `;
@@ -270,8 +276,13 @@ document.getElementById('browserForm').addEventListener('submit', async (event) 
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   try {
-    await api('/api/secure-browser/launch', { method: 'POST', body: JSON.stringify(Object.fromEntries(form.entries())) });
+    const result = await api('/api/secure-browser/launch', { method: 'POST', body: JSON.stringify(Object.fromEntries(form.entries())) });
+    state.sessionLaunchUrls[result.session.id] = result.session.url;
+    if (result.session.mode === 'external_window') {
+      window.open(result.session.url, '_blank', 'noopener,noreferrer');
+    }
     setMessage('Secure browser session launched.');
+    await refresh();
   } catch (error) {
     setMessage(error.message);
   }
@@ -280,6 +291,7 @@ document.getElementById('browserForm').addEventListener('submit', async (event) 
 document.getElementById('clearSessionsButton').addEventListener('click', async () => {
   try {
     await api('/api/secure-browser/clear', { method: 'POST', body: '{}' });
+    state.sessionLaunchUrls = {};
     setMessage('Secure browser sessions cleared.');
   } catch (error) {
     setMessage(error.message);
@@ -295,8 +307,12 @@ document.getElementById('mediaForm').addEventListener('submit', async (event) =>
     payload.url = '';
   }
   try {
-    await api('/api/media/sources', { method: 'POST', body: JSON.stringify(payload) });
+    const result = await api('/api/media/sources', { method: 'POST', body: JSON.stringify(payload) });
+    if (result.source.url) {
+      state.mediaLaunchUrls[result.source.id] = result.source.url;
+    }
     setMessage('Media source registered.');
+    await refresh();
   } catch (error) {
     setMessage(error.message);
   }
@@ -344,9 +360,7 @@ document.getElementById('fullscreenButton').addEventListener('click', async () =
   }
 });
 
-tokenInput.value = localStorage.getItem('isolatedOpsToken') || '';
 tokenInput.addEventListener('change', async () => {
-  localStorage.setItem('isolatedOpsToken', tokenInput.value);
   try {
     await refresh();
     await connectEvents();
