@@ -15,6 +15,9 @@ if (!fs.existsSync(dataDir)) {
 function createApp(options = {}) {
     const app = express();
     const activeDataDir = options.dataDir || dataDir;
+    if (!fs.existsSync(activeDataDir)) {
+        fs.mkdirSync(activeDataDir, { recursive: true });
+    }
     const graceDispatch = new GraceDispatchStore({
         dataDir: activeDataDir,
         seedDemoCall: options.seedDemoCall !== false
@@ -48,14 +51,46 @@ function createApp(options = {}) {
     ];
 
     let streamControl = 'grace_ai_handling';
+    const dvirWritesByIp = new Map();
+    const dvirWindowMs = 60 * 1000;
+    const dvirMaxWritesPerWindow = 10;
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(cors());
     app.use(express.static(path.join(__dirname, 'public')));
-    app.use(express.static(__dirname)); // Serves root-level files like index.html
 
-    app.post('/api/dvir', (req, res) => {
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+
+    app.get('/index.html', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+
+    app.get('/no_tow_authorization.html', (req, res) => {
+        res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+    });
+
+    function applyDvirRateLimit(req, res, next) {
+        const now = Date.now();
+        const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        const attempts = (dvirWritesByIp.get(key) || []).filter((time) => now - time < dvirWindowMs);
+
+        if (attempts.length >= dvirMaxWritesPerWindow) {
+            res.status(429).json({
+                success: false,
+                error: 'DVIR write rate limit exceeded. Please retry in a minute.'
+            });
+            return;
+        }
+
+        attempts.push(now);
+        dvirWritesByIp.set(key, attempts);
+        next();
+    }
+
+    app.post('/api/dvir', applyDvirRateLimit, (req, res) => {
         try {
             const dvirData = req.body;
             const filePath = path.join(activeDataDir, `dvir_${Date.now()}.json`);

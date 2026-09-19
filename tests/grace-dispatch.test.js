@@ -18,7 +18,10 @@ async function startTestServer() {
 
     async function request(url, options = {}) {
         const response = await fetch(`${baseUrl}${url}`, options);
-        const body = await response.json();
+        const contentType = response.headers.get('content-type') || '';
+        const body = contentType.includes('application/json')
+            ? await response.json()
+            : await response.text();
         return { response, body };
     }
 
@@ -262,4 +265,36 @@ test('Business dashboard includes the Grace dispatch progress monitor pane', asy
     assert.match(dashboardHtml, /summary-blocked/i);
     assert.match(dashboardHtml, /summary-complete/i);
     assert.match(dashboardHtml, /progress-stage-list/i);
+});
+
+test('Server only exposes explicit root pages and rate-limits DVIR writes', async () => {
+    const server = await startTestServer();
+
+    try {
+        const home = await server.request('/');
+        assert.equal(home.response.status, 200);
+
+        const sourceExposure = await server.request('/app.js');
+        assert.equal(sourceExposure.response.status, 404);
+
+        for (let index = 0; index < 10; index += 1) {
+            const allowed = await server.request('/api/dvir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inspection: index })
+            });
+            assert.equal(allowed.response.status, 200);
+        }
+
+        const blocked = await server.request('/api/dvir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inspection: 'blocked' })
+        });
+
+        assert.equal(blocked.response.status, 429);
+        assert.match(blocked.body.error, /rate limit/i);
+    } finally {
+        await server.close();
+    }
 });
