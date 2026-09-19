@@ -1,0 +1,11 @@
+{
+  "name": "isolated-ops-command",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated EH Graced Roads Operations Command learning and governance module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/**/*.test.js"
+  }
+}
