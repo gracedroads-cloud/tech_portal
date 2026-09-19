@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const crypto = require('crypto');
+const https = require('https');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -87,6 +88,13 @@ const AUDIT_RETENTION = 400;
 const FIELD_SESSION_TTL_MS = 1000 * 60 * 60 * 8;
 const FIELD_LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const FIELD_LOGIN_MAX_ATTEMPTS = 8;
+const TEAMS_WEBHOOK_URL = String(process.env.TEAMS_WEBHOOK_URL || '').trim();
+const teamsIntegration = {
+    enabled: TEAMS_WEBHOOK_URL.length > 0,
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    lastError: null
+};
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
 const fieldTechnicians = [
@@ -254,6 +262,28 @@ function publishEvent(channel, event) {
             auditTrail.splice(0, auditTrail.length - AUDIT_RETENTION);
         }
     }
+    if (channel === CHANNELS.BREAKDOWN_ALERTS) {
+        notifyTeamsEvent({
+            title: '🚨 Breakdown Alert',
+            text: `${event.vehicle || 'Unit'} • ${event.location || 'Unknown location'}`,
+            sections: [
+                {
+                    facts: [
+                        { name: 'Cause', value: event.cause || 'Unknown' },
+                        { name: 'Priority', value: event.priority || 'normal' },
+                        { name: 'Distance', value: `${event.distanceFromBaseMiles || '--'} miles` }
+                    ]
+                }
+            ]
+        });
+    }
+    if (channel === CHANNELS.DISPATCH && ['Cancelled', 'Completed'].includes(event.type)) {
+        notifyTeamsEvent({
+            title: `📡 Dispatch ${event.type}`,
+            text: event.text || 'Dispatch status update',
+            sections: [{ facts: [{ name: 'Operator', value: event.operator || 'Unknown' }] }]
+        });
+    }
     io.emit(channel, event);
 }
 
@@ -376,6 +406,79 @@ function readFieldDvirReports() {
 
 function writeFieldDvirReports(reports) {
     fs.writeFileSync(fieldDvirPath, JSON.stringify(reports, null, 2));
+}
+
+function sanitizeTeamsStatus() {
+    return {
+        enabled: teamsIntegration.enabled,
+        webhookConfigured: teamsIntegration.enabled,
+        lastAttemptAt: teamsIntegration.lastAttemptAt,
+        lastSuccessAt: teamsIntegration.lastSuccessAt,
+        lastError: teamsIntegration.lastError
+    };
+}
+
+function sendTeamsMessage({ title, text, sections = [] }) {
+    if (!teamsIntegration.enabled) {
+        return Promise.resolve({ sent: false, reason: 'Teams webhook not configured' });
+    }
+
+    const webhook = new URL(TEAMS_WEBHOOK_URL);
+    const body = JSON.stringify({
+        '@type': 'MessageCard',
+        '@context': 'https://schema.org/extensions',
+        summary: title,
+        themeColor: '0076D7',
+        title,
+        text,
+        sections
+    });
+
+    teamsIntegration.lastAttemptAt = new Date().toISOString();
+
+    return new Promise((resolve, reject) => {
+        const request = https.request(
+            {
+                protocol: webhook.protocol,
+                hostname: webhook.hostname,
+                port: webhook.port || 443,
+                path: `${webhook.pathname}${webhook.search}`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(body)
+                },
+                timeout: 7000
+            },
+            (response) => {
+                if (response.statusCode >= 200 && response.statusCode < 300) {
+                    teamsIntegration.lastSuccessAt = new Date().toISOString();
+                    teamsIntegration.lastError = null;
+                    resolve({ sent: true });
+                    return;
+                }
+                const error = new Error(`Teams webhook failed with status ${response.statusCode}`);
+                teamsIntegration.lastError = error.message;
+                reject(error);
+            }
+        );
+
+        request.on('timeout', () => {
+            request.destroy(new Error('Teams webhook timeout'));
+        });
+        request.on('error', (error) => {
+            teamsIntegration.lastError = error.message;
+            reject(error);
+        });
+        request.write(body);
+        request.end();
+    });
+}
+
+function notifyTeamsEvent(payload) {
+    sendTeamsMessage(payload).catch((error) => {
+        console.error('Teams notification error:', error.message);
+    });
 }
 
 function sanitizeFieldJob(job) {
@@ -776,6 +879,20 @@ app.post('/api/field/dvir', requireFieldTechnician, (req, res) => {
         policy: 'field_dvir_required'
     });
 
+    notifyTeamsEvent({
+        title: '🧾 Field DVIR Submitted',
+        text: `${req.fieldTechnician.name} submitted DVIR for ${report.vehicleId}`,
+        sections: [
+            {
+                facts: [
+                    { name: 'Safe to operate', value: report.safeToOperate ? 'Yes' : 'No' },
+                    { name: 'Odometer', value: report.odometer },
+                    { name: 'Submitted', value: report.submittedAt }
+                ]
+            }
+        ]
+    });
+
     return res.status(201).json({ report });
 });
 
@@ -903,6 +1020,20 @@ app.post('/api/field/jobs/:jobId/complete', requireFieldTechnician, (req, res) =
         policy: 'completion_proof_enforced'
     });
 
+    notifyTeamsEvent({
+        title: '✅ Field Job Completed',
+        text: `${job.id} completed by ${req.fieldTechnician.name}`,
+        sections: [
+            {
+                facts: [
+                    { name: 'Customer', value: job.customer },
+                    { name: 'Unit', value: job.unit },
+                    { name: 'Location', value: job.location.label }
+                ]
+            }
+        ]
+    });
+
     return res.json({ job: sanitizeFieldJob(job) });
 });
 
@@ -968,6 +1099,33 @@ app.get('/api/mastersuite/kpis', (req, res) => {
         cancellationRate,
         uptimeSeconds
     });
+});
+
+app.get('/api/integrations/teams/status', (req, res) => {
+    res.json(sanitizeTeamsStatus());
+});
+
+app.post('/api/integrations/teams/test', (req, res) => {
+    sendTeamsMessage({
+        title: '🧪 Grace Teams Integration Test',
+        text: 'Microsoft Teams integration test triggered from MasterSuite.',
+        sections: [
+            {
+                facts: [
+                    { name: 'Environment', value: 'localhost' },
+                    { name: 'Timestamp', value: new Date().toISOString() }
+                ]
+            }
+        ]
+    })
+        .then((result) => res.json({ success: true, ...result, status: sanitizeTeamsStatus() }))
+        .catch((error) =>
+            res.status(500).json({
+                success: false,
+                error: error.message,
+                status: sanitizeTeamsStatus()
+            })
+        );
 });
 
 app.get('/api/security/posture', (req, res) => {
