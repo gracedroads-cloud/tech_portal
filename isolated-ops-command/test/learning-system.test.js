@@ -103,7 +103,33 @@ test('learning pause blocks ingestion and is visible in monitor', async () => {
     });
 
     assert.equal(ingest.response.status, 400);
-    assert.equal(ingest.json.error, 'learning_paused');
+    assert.equal(ingest.json.code, 'learning_paused');
+
+    const resumed = await jsonFetch(baseUrl, '/api/ops/learning/resume', {
+      method: 'POST',
+      headers: headers('reviewer', { 'idempotency-key': 'pause-3' }),
+      body: JSON.stringify({})
+    });
+
+    assert.equal(resumed.response.status, 200);
+
+    const monitorAfterResume = await jsonFetch(baseUrl, '/api/ops/intelligence/monitor', {
+      headers: headers('operator')
+    });
+
+    assert.equal(monitorAfterResume.json.visibleLearningIndicator, 'ACTIVE');
+
+    const ingestAfterResume = await jsonFetch(baseUrl, '/api/ops/events', {
+      method: 'POST',
+      headers: headers('operator', { 'idempotency-key': 'pause-4' }),
+      body: JSON.stringify({
+        type: 'incident.lifecycle',
+        consent: { authorized: true },
+        data: { summary: 'accepted after resume' }
+      })
+    });
+
+    assert.equal(ingestAfterResume.response.status, 202);
   } finally {
     await cleanup();
   }
@@ -242,7 +268,7 @@ test('prompt-injection and no-tow/no-winching policies are non-bypassable', asyn
     });
 
     assert.equal(blockedByInjection.response.status, 400);
-    assert.equal(blockedByInjection.json.error, 'untrusted_source_action_blocked');
+    assert.equal(blockedByInjection.json.code, 'untrusted_source_action_blocked');
 
     const blockedNoTow = await jsonFetch(baseUrl, '/api/ops/recommendations/validate', {
       method: 'POST',
@@ -257,7 +283,7 @@ test('prompt-injection and no-tow/no-winching policies are non-bypassable', asyn
     });
 
     assert.equal(blockedNoTow.response.status, 400);
-    assert.equal(blockedNoTow.json.error, 'policy_no_tow_no_winch');
+    assert.equal(blockedNoTow.json.code, 'policy_no_tow_no_winch');
   } finally {
     await cleanup();
   }
@@ -271,14 +297,14 @@ test('action allowlist violations trigger degraded mode circuit breaker', async 
       headers: headers('operator', { 'idempotency-key': 'cb-1' }),
       body: JSON.stringify({
         response: {
-          actions: [{ type: 'dispatch_commitment' }]
+          actions: [{ type: 'open_unapproved_tool' }]
         },
         retrievedDocuments: []
       })
     });
 
     assert.equal(blocked.response.status, 400);
-    assert.equal(blocked.json.error, 'action_not_allowlisted');
+    assert.equal(blocked.json.code, 'action_not_allowlisted');
 
     const monitor = await jsonFetch(baseUrl, '/api/ops/intelligence/monitor', {
       headers: headers('operator')
@@ -408,4 +434,59 @@ test('evaluation persistence and restart recovery keep auditable state', async (
 
   await new Promise((resolve) => secondServer.close(resolve));
   second.close();
+});
+
+test('restore preserves audit chain and legal-hold runtime controls', async () => {
+  const { baseUrl, headers, cleanup } = await startTestServer();
+  try {
+    await jsonFetch(baseUrl, '/api/ops/governance/legal-hold', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'restore-1' }),
+      body: JSON.stringify({ enabled: true, reason: 'investigation' })
+    });
+
+    await jsonFetch(baseUrl, '/api/ops/events', {
+      method: 'POST',
+      headers: headers('operator', { 'idempotency-key': 'restore-2' }),
+      body: JSON.stringify({
+        type: 'incident.lifecycle',
+        incidentId: 'INC-RESTORE',
+        consent: { authorized: true },
+        data: { summary: 'event before restore' }
+      })
+    });
+
+    const before = await jsonFetch(baseUrl, '/api/ops/governance/export', {
+      headers: headers('admin')
+    });
+    const beforeAuditLength = before.json.data.audit.length;
+
+    const restore = await jsonFetch(baseUrl, '/api/ops/governance/restore', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'restore-3' }),
+      body: JSON.stringify({
+        data: {
+          observations: [],
+          feedback: [],
+          lessons: [],
+          evaluations: [],
+          knowledgeBases: {},
+          runtime: { legalHold: false, legalHoldReason: null, retentionDays: 5 },
+          audit: [{ fake: true, hash: 'x', previousHash: null }]
+        }
+      })
+    });
+
+    assert.equal(restore.response.status, 200);
+
+    const after = await jsonFetch(baseUrl, '/api/ops/governance/export', {
+      headers: headers('admin')
+    });
+
+    assert.equal(after.json.data.runtime.legalHold, true);
+    assert.equal(after.json.data.runtime.retentionDays, 5);
+    assert.equal(after.json.data.audit.length, beforeAuditLength + 1);
+  } finally {
+    await cleanup();
+  }
 });

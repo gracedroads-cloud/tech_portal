@@ -29,6 +29,14 @@ const ACTION_ALLOWLIST = new Set([
   'create_recommendation_note',
   'escalate_to_human'
 ]);
+const REVIEW_REQUIRED_ACTIONS = new Set([
+  'dispatch_commitment',
+  'safety_critical_diagnostic',
+  'financial_action',
+  'legal_conclusion',
+  'accounting_entry',
+  'policy_change'
+]);
 
 const SENSITIVE_PATTERN = /token|password|secret|credential|bank|account|iban|routing|ssn|audio|video|cookie|authorization|api[_-]?key/i;
 
@@ -260,13 +268,13 @@ class LearningSystem {
     }
 
     for (const action of sanitizedResponse.actions) {
+      if (REVIEW_REQUIRED_ACTIONS.has(action.type)) {
+        throw new Error('human_approval_required');
+      }
+
       if (!ACTION_ALLOWLIST.has(action.type)) {
         this.store.setDegradedMode(true, 'action_allowlist_violation', 'system');
         throw new Error('action_not_allowlisted');
-      }
-
-      if (['dispatch_commitment', 'safety_critical_diagnostic', 'financial_action', 'legal_conclusion', 'accounting_entry', 'policy_change'].includes(action.type)) {
-        throw new Error('human_approval_required');
       }
     }
 
@@ -290,7 +298,9 @@ class LearningSystem {
       }
     }
 
-    this.store.setDegradedMode(false, null, 'system');
+    if (this.store.state.runtime.degradedReason === 'action_allowlist_violation') {
+      this.store.setDegradedMode(false, null, 'system');
+    }
 
     return {
       actions: sanitizedResponse.actions,
@@ -303,9 +313,6 @@ class LearningSystem {
 
   reviewLesson(lessonId, decision, actor, note) {
     const lesson = this.store.reviewLesson(lessonId, decision, actor, note);
-    if (!lesson) {
-      throw new Error('lesson_not_found');
-    }
     this.publishMonitor('lesson_reviewed', {
       lessonId,
       decision,

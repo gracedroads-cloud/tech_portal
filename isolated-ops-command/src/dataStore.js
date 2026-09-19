@@ -246,7 +246,7 @@ class DataStore {
   reviewLesson(lessonId, decision, actor, note) {
     const lesson = this.state.lessons.find((item) => item.id === lessonId);
     if (!lesson) {
-      return null;
+      throw new Error('lesson_not_found');
     }
 
     const now = this.nowIso();
@@ -261,13 +261,13 @@ class DataStore {
       lesson.rejectionReason = note || 'Rejected by reviewer';
     } else if (decision === 'rollback') {
       if (lesson.approvalState !== 'approved') {
-        return null;
+        throw new Error('rollback_requires_approved_lesson');
       }
       lesson.approvalState = 'rolled_back';
       lesson.lastReviewedDate = now;
       lesson.rollbackReason = note || 'Rolled back by reviewer';
     } else {
-      return null;
+      throw new Error('invalid_review_decision');
     }
 
     this.addAudit({

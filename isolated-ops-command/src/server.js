@@ -29,9 +29,31 @@ function createServer(options = {}) {
   });
 
   function redactError(error) {
+    const safeCodes = new Set([
+      'idempotency_key_required',
+      'unauthorized',
+      'forbidden',
+      'not_found',
+      'event_type_not_authorized',
+      'learning_paused',
+      'consent_required',
+      'invalid_feedback_verdict',
+      'action_not_allowlisted',
+      'human_approval_required',
+      'policy_no_tow_no_winch',
+      'untrusted_source_action_blocked',
+      'lesson_not_found',
+      'invalid_review_decision',
+      'rollback_requires_approved_lesson',
+      'evaluation_not_found',
+      'invalid_restore_payload',
+      'legal_hold_active',
+      'incident_id_required'
+    ]);
+    const safeCode = safeCodes.has(error.message) ? error.message : 'invalid_request';
     return {
-      error: error.message,
-      code: error.message
+      error: 'request_failed',
+      code: safeCode
     };
   }
 
@@ -229,8 +251,15 @@ function createServer(options = {}) {
     }
 
     const data = req.body.data;
-    const previousAuditLength = store.state.audit.length;
+    const preservedAudit = [...store.state.audit];
+    const previousAuditLength = preservedAudit.length;
     const previousRuntime = { ...store.state.runtime };
+    if (Array.isArray(data.audit) && data.audit.length) {
+      const chainValid = data.audit.every((entry, index) => index === 0 || entry.previousHash === data.audit[index - 1].hash);
+      if (!chainValid) {
+        throw new Error('invalid_restore_payload');
+      }
+    }
     store.state.observations = Array.isArray(data.observations) ? data.observations : [];
     store.state.feedback = Array.isArray(data.feedback) ? data.feedback : [];
     store.state.lessons = Array.isArray(data.lessons) ? data.lessons : [];
@@ -256,6 +285,7 @@ function createServer(options = {}) {
     store.state.runtime.learningPaused = previousRuntime.learningPaused;
     store.state.runtime.legalHold = previousRuntime.legalHold;
     store.state.runtime.legalHoldReason = previousRuntime.legalHoldReason;
+    store.state.audit = preservedAudit;
 
     store.addAudit({
       action: 'governance.restore',
@@ -264,7 +294,8 @@ function createServer(options = {}) {
       actor,
       details: {
         restored: true,
-        preservedAuditEvents: previousAuditLength
+        preservedAuditEvents: previousAuditLength,
+        importedAuditEvents: Array.isArray(data.audit) ? data.audit.length : 0
       }
     });
     store.persistAll();
@@ -321,18 +352,38 @@ function createServer(options = {}) {
     }
 
     const before = store.state.observations.length;
+    const removedObservationIds = new Set(
+      store.state.observations
+        .filter((item) => item.incidentId === incidentId)
+        .map((item) => item.id)
+    );
+
     store.state.observations = store.state.observations.filter((item) => item.incidentId !== incidentId);
     const removed = before - store.state.observations.length;
+    const feedbackBefore = store.state.feedback.length;
+    store.state.feedback = store.state.feedback.filter((item) => item.incidentId !== incidentId);
+    const removedFeedback = feedbackBefore - store.state.feedback.length;
+
+    const lessonsBefore = store.state.lessons.length;
+    store.state.lessons = store.state.lessons.filter((item) => !removedObservationIds.has(item.source?.reference));
+    const removedLessons = lessonsBefore - store.state.lessons.length;
 
     store.addAudit({
       action: 'governance.delete_incident',
       entityType: 'governance',
       entityId: incidentId,
       actor,
-      details: { removedObservations: removed }
+      details: {
+        removedObservations: removed,
+        removedFeedback,
+        removedLessons
+      }
     });
     store.persistAll();
-    return { status: 200, body: { deleted: true, removedObservations: removed } };
+    return {
+      status: 200,
+      body: { deleted: true, removedObservations: removed, removedFeedback, removedLessons }
+    };
   }));
 
   app.post('/api/ops/governance/legal-hold', requireAuth, requireRole('admin'), mutation((req) => {
