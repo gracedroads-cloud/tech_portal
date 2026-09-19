@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { rateLimit } = require('express-rate-limit');
 const { GraceDispatchStore } = require('./grace-dispatch');
 
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,8 @@ const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
+const rootIndexHtml = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+const noTowAuthorizationHtml = fs.readFileSync(path.join(__dirname, 'no_tow_authorization.html'), 'utf8');
 
 function createApp(options = {}) {
     const app = express();
@@ -51,9 +54,16 @@ function createApp(options = {}) {
     ];
 
     let streamControl = 'grace_ai_handling';
-    const dvirWritesByIp = new Map();
-    const dvirWindowMs = 60 * 1000;
-    const dvirMaxWritesPerWindow = 10;
+    const dvirRateLimit = rateLimit({
+        windowMs: 60 * 1000,
+        limit: 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: {
+            success: false,
+            error: 'DVIR write rate limit exceeded. Please retry in a minute.'
+        }
+    });
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
@@ -61,36 +71,18 @@ function createApp(options = {}) {
     app.use(express.static(path.join(__dirname, 'public')));
 
     app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'index.html'));
+        res.type('html').send(rootIndexHtml);
     });
 
     app.get('/index.html', (req, res) => {
-        res.sendFile(path.join(__dirname, 'index.html'));
+        res.type('html').send(rootIndexHtml);
     });
 
     app.get('/no_tow_authorization.html', (req, res) => {
-        res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+        res.type('html').send(noTowAuthorizationHtml);
     });
 
-    function applyDvirRateLimit(req, res, next) {
-        const now = Date.now();
-        const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-        const attempts = (dvirWritesByIp.get(key) || []).filter((time) => now - time < dvirWindowMs);
-
-        if (attempts.length >= dvirMaxWritesPerWindow) {
-            res.status(429).json({
-                success: false,
-                error: 'DVIR write rate limit exceeded. Please retry in a minute.'
-            });
-            return;
-        }
-
-        attempts.push(now);
-        dvirWritesByIp.set(key, attempts);
-        next();
-    }
-
-    app.post('/api/dvir', applyDvirRateLimit, (req, res) => {
+    app.post('/api/dvir', dvirRateLimit, (req, res) => {
         try {
             const dvirData = req.body;
             const filePath = path.join(activeDataDir, `dvir_${Date.now()}.json`);
