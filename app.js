@@ -14,12 +14,16 @@ const {
 const PORT = process.env.PORT || 3000;
 const dataDir = path.join(__dirname, 'data');
 const WATCH_CENTER_OPERATOR_TOKEN = process.env.WATCH_CENTER_OPERATOR_TOKEN || null;
-const WATCH_CENTER_RADIUS_MILES = Number(process.env.WATCH_CENTER_RADIUS_MILES || DEFAULT_WATCH_CENTER_RADIUS_MILES);
-const WATCH_CENTER_STALE_MS = Number(process.env.WATCH_CENTER_STALE_MS || DEFAULT_WATCH_CENTER_STALE_MS);
+const parseConfiguredNumber = (value, fallback, isValid = Number.isFinite) => {
+    const parsed = Number(value);
+    return isValid(parsed) ? parsed : fallback;
+};
+const WATCH_CENTER_RADIUS_MILES = parseConfiguredNumber(process.env.WATCH_CENTER_RADIUS_MILES, DEFAULT_WATCH_CENTER_RADIUS_MILES, (value) => Number.isFinite(value) && value > 0);
+const WATCH_CENTER_STALE_MS = parseConfiguredNumber(process.env.WATCH_CENTER_STALE_MS, DEFAULT_WATCH_CENTER_STALE_MS, (value) => Number.isFinite(value) && value > 0);
 const LEHIGH_VALLEY_CENTER = {
     ...LEHIGH_VALLEY_FALLBACK_CENTER,
-    latitude: Number(process.env.LEHIGH_VALLEY_LAT || LEHIGH_VALLEY_FALLBACK_CENTER.latitude),
-    longitude: Number(process.env.LEHIGH_VALLEY_LNG || LEHIGH_VALLEY_FALLBACK_CENTER.longitude)
+    latitude: parseConfiguredNumber(process.env.LEHIGH_VALLEY_LAT, LEHIGH_VALLEY_FALLBACK_CENTER.latitude, (value) => Number.isFinite(value) && value >= -90 && value <= 90),
+    longitude: parseConfiguredNumber(process.env.LEHIGH_VALLEY_LNG, LEHIGH_VALLEY_FALLBACK_CENTER.longitude, (value) => Number.isFinite(value) && value >= -180 && value <= 180)
 };
 
 const BREAKDOWN_FEED = [
@@ -124,14 +128,15 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(cors());
+    app.use((req, res, next) => (req.path.startsWith('/api/') ? next() : pageReadRateLimit(req, res, next)));
     app.use(express.static(path.join(__dirname, 'public')));
-    app.get('/', pageReadRateLimit, (req, res) => {
+    app.get('/', (req, res) => {
         res.sendFile(path.join(__dirname, 'index.html'));
     });
-    app.get('/index.html', pageReadRateLimit, (req, res) => {
+    app.get('/index.html', (req, res) => {
         res.sendFile(path.join(__dirname, 'index.html'));
     });
-    app.get('/no_tow_authorization.html', pageReadRateLimit, (req, res) => {
+    app.get('/no_tow_authorization.html', (req, res) => {
         res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
     });
 

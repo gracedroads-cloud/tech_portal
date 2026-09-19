@@ -74,6 +74,48 @@ test('watch-center API rejects invalid coordinates for authorized updates', asyn
     });
 });
 
+test('watch-center API enforces operator authorization branches', async () => {
+    await withServer({ operatorToken: 'test-token' }, async (baseUrl) => {
+        let response = await fetch(`${baseUrl}/api/watch-center/location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: 40.7, longitude: -75.1 })
+        });
+        let payload = await response.json();
+
+        assert.equal(response.status, 401);
+        assert.match(payload.error, /required/);
+
+        response = await fetch(`${baseUrl}/api/watch-center/location`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': ['Bearer', 'wrong-token'].join(' ')
+            },
+            body: JSON.stringify({ latitude: 40.7, longitude: -75.1 })
+        });
+        payload = await response.json();
+
+        assert.equal(response.status, 403);
+        assert.match(payload.error, /invalid/);
+    });
+
+    await withServer({ operatorToken: null }, async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/api/watch-center/location`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': ['Bearer', 'test-token'].join(' ')
+            },
+            body: JSON.stringify({ latitude: 40.7, longitude: -75.1 })
+        });
+        const payload = await response.json();
+
+        assert.equal(response.status, 503);
+        assert.match(payload.error, /not configured/);
+    });
+});
+
 test('watch center falls back to Lehigh Valley when live GPS is absent or stale', async () => {
     let currentNow = Date.parse('2026-09-19T18:00:00.000Z');
 

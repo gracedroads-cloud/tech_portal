@@ -1,10 +1,15 @@
 const EARTH_RADIUS_MILES = 3958.7613;
-const DEFAULT_WATCH_CENTER_RADIUS_MILES = Number(process.env.WATCH_CENTER_RADIUS_MILES || 150);
-const DEFAULT_WATCH_CENTER_STALE_MS = Number(process.env.WATCH_CENTER_STALE_MS || 5 * 60 * 1000);
+function parseConfiguredNumber(value, fallback, isValid = Number.isFinite) {
+    const parsed = Number(value);
+    return isValid(parsed) ? parsed : fallback;
+}
+
+const DEFAULT_WATCH_CENTER_RADIUS_MILES = parseConfiguredNumber(process.env.WATCH_CENTER_RADIUS_MILES, 150, (value) => Number.isFinite(value) && value > 0);
+const DEFAULT_WATCH_CENTER_STALE_MS = parseConfiguredNumber(process.env.WATCH_CENTER_STALE_MS, 5 * 60 * 1000, (value) => Number.isFinite(value) && value > 0);
 const LEHIGH_VALLEY_FALLBACK_CENTER = {
     label: 'Lehigh Valley',
-    latitude: Number(process.env.LEHIGH_VALLEY_LAT || 40.6259),
-    longitude: Number(process.env.LEHIGH_VALLEY_LNG || -75.3705)
+    latitude: parseConfiguredNumber(process.env.LEHIGH_VALLEY_LAT, 40.6259, (value) => Number.isFinite(value) && value >= -90 && value <= 90),
+    longitude: parseConfiguredNumber(process.env.LEHIGH_VALLEY_LNG, -75.3705, (value) => Number.isFinite(value) && value >= -180 && value <= 180)
 };
 
 function toRadians(value) {
