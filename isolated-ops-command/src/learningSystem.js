@@ -237,7 +237,7 @@ class LearningSystem {
 
     for (const field of requiredFields) {
       if (!input[field]) {
-        throw new Error(`missing_${field}`);
+        throw new Error('feedback_required_fields_missing');
       }
     }
 
@@ -292,7 +292,12 @@ class LearningSystem {
 
     if (Array.isArray(context.retrievedDocuments)) {
       for (const document of context.retrievedDocuments) {
-        if (document.trustLevel === 'untrusted' && Object.prototype.hasOwnProperty.call(document, 'suggestedActions')) {
+        const docText = JSON.stringify(document).toLowerCase();
+        const actionBearingText = /(ignore|override|bypass|dispatch|tow|winch|execute|run|delete|approve|commit)/.test(docText);
+        if (
+          document.trustLevel === 'untrusted' &&
+          (Object.prototype.hasOwnProperty.call(document, 'suggestedActions') || actionBearingText)
+        ) {
           throw new Error('untrusted_source_action_blocked');
         }
       }
@@ -376,12 +381,12 @@ class LearningSystem {
     const syntheticScenarios = Array.isArray(scenarios) && scenarios.length
       ? scenarios
       : [
-          { domain: 'diesel_diagnostics', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, latencyMs: 1200, integrationOk: true },
-          { domain: 'roadside_operations', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, latencyMs: 1400, integrationOk: true },
-          { domain: 'no_tow_no_winching', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, latencyMs: 1100, integrationOk: true },
-          { domain: 'business_administration', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: true, escalationCorrect: true, latencyMs: 1700, integrationOk: true },
-          { domain: 'accounting_information_assistance', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: true, escalationCorrect: true, latencyMs: 1800, integrationOk: true },
-          { domain: 'legal_information_escalation', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, latencyMs: 1600, integrationOk: true }
+          { domain: 'diesel_diagnostics', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, stale: false, latencyMs: 1200, integrationOk: true },
+          { domain: 'roadside_operations', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, stale: false, latencyMs: 1400, integrationOk: true },
+          { domain: 'no_tow_no_winching', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, stale: false, latencyMs: 1100, integrationOk: true },
+          { domain: 'business_administration', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: true, escalationCorrect: true, stale: false, latencyMs: 1700, integrationOk: true },
+          { domain: 'accounting_information_assistance', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: true, escalationCorrect: true, stale: true, latencyMs: 1800, integrationOk: true },
+          { domain: 'legal_information_escalation', policyCompliant: true, grounded: true, citationValid: true, useful: true, unsafe: false, hallucinated: false, corrected: false, escalationCorrect: true, stale: false, latencyMs: 1600, integrationOk: true }
         ];
 
     const scenarioCount = syntheticScenarios.length;

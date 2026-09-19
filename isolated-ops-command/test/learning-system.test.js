@@ -404,6 +404,8 @@ test('evaluation persistence and restart recovery keep auditable state', async (
   const evaluationId = evalRun.json.evaluation.id;
   assert.equal(evalRun.json.evaluation.synthetic, true);
   assert.ok(evalRun.json.evaluation.metrics.policyComplianceRate >= 0);
+  assert.ok(evalRun.json.evaluation.metrics.freshnessPassRate > 0);
+  assert.ok(evalRun.json.evaluation.metrics.freshnessPassRate < 1);
 
   await new Promise((resolve) => firstServer.close(resolve));
   first.close();

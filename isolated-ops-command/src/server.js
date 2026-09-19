@@ -48,7 +48,8 @@ function createServer(options = {}) {
       'evaluation_not_found',
       'invalid_restore_payload',
       'legal_hold_active',
-      'incident_id_required'
+      'incident_id_required',
+      'feedback_required_fields_missing'
     ]);
     const safeCode = safeCodes.has(error.message) ? error.message : 'invalid_request';
     return {
@@ -82,7 +83,7 @@ function createServer(options = {}) {
   }
 
   function mutation(handler) {
-    return (req, res) => {
+    return async (req, res) => {
       const key = req.headers['idempotency-key'];
       if (!key) {
         return res.status(400).json({ error: 'idempotency_key_required' });
@@ -95,7 +96,7 @@ function createServer(options = {}) {
       }
 
       try {
-        const result = handler(req, res);
+        const result = await handler(req, res);
         if (!result || res.headersSent) {
           return result;
         }
@@ -237,9 +238,10 @@ function createServer(options = {}) {
   });
 
   app.get('/api/ops/governance/export', requireAuth, requireRole('admin'), (_req, res) => {
+    const { idempotency, ...exportData } = store.state;
     res.json({
       exportedAt: new Date().toISOString(),
-      data: store.state,
+      data: exportData,
       note: 'Synthetic prototype export. Use documented backup/restore and legal hold procedures before production use.'
     });
   });
@@ -267,7 +269,7 @@ function createServer(options = {}) {
       ? data.knowledgeBases
       : store.state.knowledgeBases;
     store.state.evaluations = Array.isArray(data.evaluations) ? data.evaluations : [];
-    store.state.idempotency = data.idempotency && typeof data.idempotency === 'object' ? data.idempotency : {};
+    store.state.idempotency = {};
     if (data.runtime && typeof data.runtime === 'object') {
       if (typeof data.runtime.retentionDays === 'number' && data.runtime.retentionDays > 0) {
         store.state.runtime.retentionDays = Math.floor(data.runtime.retentionDays);
