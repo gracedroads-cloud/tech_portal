@@ -252,3 +252,18 @@ test('Q&A and suggestions department accepts submissions and lists them', async 
     assert.equal(listed.data.totalSubmissions, 1);
     assert.equal(listed.data.submissions[0].message, 'Can we schedule a monthly cross-department coordination review?');
 });
+
+test('Q&A suggestions endpoint rejects invalid payloads', async () => {
+    const invalidContact = await postJson('/api/departments/qa-suggestions', {
+        fromName: 'Ops Team',
+        contact: '<script>alert(1)</script>',
+        category: 'suggestion',
+        message: 'This message is valid length but contact should fail.'
+    });
+    assert.equal(invalidContact.response.status, 400);
+
+    const tooShort = await postJson('/api/departments/qa-suggestions', {
+        message: 'bad'
+    });
+    assert.equal(tooShort.response.status, 400);
+});

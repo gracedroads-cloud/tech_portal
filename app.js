@@ -26,6 +26,8 @@ const RATE_CARD = {
 
 const blockedScopeTerms = ['tow', 'towing', 'winch', 'winching', 'recovery', 'passenger', 'light-duty', 'light duty'];
 const restrictedPaymentFields = ['cardnumber', 'cvv', 'cvc', 'expiry', 'exp', 'routingnumber', 'accountnumber'];
+const safeNamePattern = /^[a-zA-Z0-9 .,'-]{0,120}$/;
+const safeContactPattern = /^[a-zA-Z0-9@+().\-_\s]{0,180}$/;
 
 const callControl = {
     mode: 'grace_ai',
@@ -494,15 +496,27 @@ app.get('/api/departments', (_req, res) => {
     });
 });
 
-app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
+app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 5 * 60 * 1000, maxRequests: 8 }), (req, res) => {
     const fromName = String(req.body.fromName || '').trim();
     const contact = String(req.body.contact || '').trim();
     const message = String(req.body.message || '').trim();
     const category = String(req.body.category || 'suggestion').trim().toLowerCase();
 
-    if (!message || message.length < 5) {
+    if (!message || message.length < 5 || message.length > 1200) {
         return res.status(400).json({
-            error: 'A message with at least 5 characters is required.'
+            error: 'A message between 5 and 1200 characters is required.'
+        });
+    }
+
+    if (fromName && !safeNamePattern.test(fromName)) {
+        return res.status(400).json({
+            error: 'Name contains unsupported characters.'
+        });
+    }
+
+    if (contact && !safeContactPattern.test(contact)) {
+        return res.status(400).json({
+            error: 'Contact field contains unsupported characters.'
         });
     }
 

@@ -59,7 +59,12 @@
       data.departments.forEach((department) => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `<h3>${department.name}</h3><p>${department.focus}</p>`;
+        const title = document.createElement('h3');
+        title.textContent = department.name;
+        const focus = document.createElement('p');
+        focus.textContent = department.focus;
+        card.appendChild(title);
+        card.appendChild(focus);
         grid.appendChild(card);
       });
     }

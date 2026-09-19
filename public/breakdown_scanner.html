@@ -38,19 +38,42 @@ async function refresh() {
     list.innerHTML = '';
 
     if (!scanner.breakdowns || scanner.breakdowns.length === 0) {
-      list.innerHTML = '<div class="card">No active breakdowns within server-side watch filter.</div>';
+      const empty = document.createElement('div');
+      empty.className = 'card';
+      empty.textContent = 'No active breakdowns within server-side watch filter.';
+      list.appendChild(empty);
       return;
     }
 
     scanner.breakdowns.forEach((b) => {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `<div class="row"><strong>${b.id} • ${b.vehicle}</strong><span>${b.distance}</span></div><div class="item">${b.issue} @ ${b.location} • severity: ${b.severity}</div>`;
-      list.appendChild(div);
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const row = document.createElement('div');
+      row.className = 'row';
+      const strong = document.createElement('strong');
+      strong.textContent = `${b.id} • ${b.vehicle}`;
+      const distance = document.createElement('span');
+      distance.textContent = b.distance;
+      row.appendChild(strong);
+      row.appendChild(distance);
+
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.textContent = `${b.issue} @ ${b.location} • severity: ${b.severity}`;
+
+      card.appendChild(row);
+      card.appendChild(item);
+      list.appendChild(card);
     });
   } catch (error) {
     document.getElementById('watchMeta').textContent = 'Watch-center lookup failed. Retrying...';
-    document.getElementById('list').innerHTML = `<div class=\"card\">Scanner temporarily offline: ${error.message}</div>`;
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    const offline = document.createElement('div');
+    offline.className = 'card';
+    offline.textContent = `Scanner temporarily offline: ${error.message}`;
+    list.appendChild(offline);
   }
 }
 
@@ -58,7 +81,12 @@ refresh();
 setInterval(() => {
   refresh().catch((error) => {
     document.getElementById('watchMeta').textContent = 'Watch-center lookup failed. Retrying...';
-    document.getElementById('list').innerHTML = `<div class=\"card\">Scanner temporarily offline: ${error.message}</div>`;
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    const offline = document.createElement('div');
+    offline.className = 'card';
+    offline.textContent = `Scanner temporarily offline: ${error.message}`;
+    list.appendChild(offline);
   });
 }, 30000);
 </script>
