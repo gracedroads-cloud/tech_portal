@@ -18,7 +18,10 @@ function readJson(filePath, fallback) {
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
-    return fallback;
+    if (error.code === 'ENOENT') {
+      return fallback;
+    }
+    throw new Error(`Unable to parse persisted JSON state at ${filePath}: ${error.message}`);
   }
 }
 

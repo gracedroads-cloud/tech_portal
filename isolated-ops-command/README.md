@@ -55,6 +55,7 @@ Copy `.env.example` and set the values you control:
 - `ISOLATED_OPS_MEDIA_ALLOWLIST` — comma-separated `origin` allowlist for video/TV sources
 - `ISOLATED_OPS_SECURE_BROWSER_ALLOWLIST` — comma-separated `origin` allowlist for secure-browser sessions
 - `ISOLATED_OPS_CSP_FRAME_SRC` / `ISOLATED_OPS_CSP_MEDIA_SRC` — CSP source allowlists
+- `ISOLATED_OPS_TRUST_PROXY` — set `true` only behind a trusted reverse proxy before honoring `x-forwarded-for`
 - `GRACE_AI_ENDPOINT` / `GRACE_AI_API_KEY` — optional customer-owned AI endpoint and credential
 - `TEAMS_WEBHOOK_URL` / `TEAMS_INBOUND_TOKEN` — optional customer-owned Teams workflow endpoint and inbound auth token
 

@@ -86,6 +86,7 @@ function loadConfig(overrides = {}) {
     teamsBackoffMs: Number(overrides.teamsBackoffMs ?? process.env.TEAMS_BACKOFF_MS ?? 250),
     teamsRetries: Number(overrides.teamsRetries ?? process.env.TEAMS_RETRIES ?? 2),
     teamsWebhookUrl: overrides.teamsWebhookUrl || process.env.TEAMS_WEBHOOK_URL || '',
+    trustProxy: parseBoolean(overrides.trustProxy ?? process.env.ISOLATED_OPS_TRUST_PROXY, false),
     tvRegistry: overrides.tvRegistry || parseJsonList(process.env.ISOLATED_OPS_TV_REGISTRY, []),
     videoRegistry: overrides.videoRegistry || parseJsonList(process.env.ISOLATED_OPS_VIDEO_REGISTRY, [])
   };
@@ -160,9 +161,9 @@ function refreshMonitors(state, config, teamsHealth) {
   return state;
 }
 
-function getClientIp(req) {
+function getClientIp(req, config) {
   const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
+  if (config.trustProxy && forwarded) {
     return String(forwarded).split(',')[0].trim();
   }
   return req.socket.remoteAddress || 'unknown';
@@ -273,6 +274,17 @@ function validateAuth(req, config) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : req.headers['x-ops-token'];
   return token === config.opsToken;
+}
+
+function sanitizeUrlOrigin(url) {
+  if (!url) {
+    return '';
+  }
+  try {
+    return new URL(url).origin;
+  } catch (error) {
+    return '';
+  }
 }
 
 function validateIncident(body = {}) {
@@ -418,13 +430,56 @@ function createServer(overrides = {}) {
       automationPauseReason: state.automationPauseReason,
       lastUpdatedAt: state.lastUpdatedAt,
       monitors: state.monitors,
-      incidents: state.incidents.slice(-10),
-      dispatchQueue: state.dispatchQueue.slice(-10),
+      incidents: state.incidents.slice(-10).map((incident) => ({
+        incidentId: incident.incidentId,
+        description: incident.description,
+        status: incident.status,
+        serviceType: incident.serviceType,
+        source: incident.source,
+        origin: incident.origin,
+        createdAt: incident.createdAt
+      })),
+      dispatchQueue: state.dispatchQueue.slice(-10).map((item) => ({
+        id: item.id,
+        incidentId: item.incidentId,
+        description: item.description,
+        recommendedServiceType: item.recommendedServiceType,
+        priority: item.priority,
+        createdAt: item.createdAt,
+        requiresHumanApproval: item.requiresHumanApproval,
+        status: item.status,
+        approvedBy: item.approvedBy,
+        approvedAt: item.approvedAt
+      })),
       activeUnits: state.activeUnits,
-      policyRejections: state.policyRejections.slice(-10),
+      policyRejections: state.policyRejections.slice(-10).map((item) => ({
+        id: item.id,
+        incidentId: item.incidentId,
+        at: item.at,
+        routedTo: item.routedTo,
+        rejection: item.rejection
+      })),
       auditTail: state.auditTail,
-      mediaSources: state.mediaSources,
-      secureBrowserSessions: state.secureBrowserSessions,
+      mediaSources: state.mediaSources.map((source) => ({
+        id: source.id,
+        kind: source.kind,
+        name: source.name,
+        type: source.type,
+        simulated: source.simulated,
+        state: source.state,
+        lastUpdatedAt: source.lastUpdatedAt,
+        error: source.error,
+        displayOrigin: sanitizeUrlOrigin(source.url)
+      })),
+      secureBrowserSessions: state.secureBrowserSessions.map((session) => ({
+        id: session.id,
+        origin: session.origin,
+        hostname: session.hostname,
+        mode: session.mode,
+        state: session.state,
+        launchedAt: session.launchedAt,
+        expiresAt: session.expiresAt
+      })),
       teamsHealth: teams.getHealth(),
       lastGraceAiDecision: state.lastGraceAiDecision,
       supportedServices: SUPPORTED_SERVICES,
@@ -685,12 +740,17 @@ function createServer(overrides = {}) {
       return;
     }
 
-    if (!rateLimiter.check(getClientIp(req))) {
+    if (!rateLimiter.check(getClientIp(req, config))) {
       toJson(res, 429, { error: 'Rate limit exceeded' });
       return;
     }
 
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const requiresApiAuth = url.pathname.startsWith('/api/') && url.pathname !== '/api/teams/events';
+    if (requiresApiAuth && !validateAuth(req, config)) {
+      toJson(res, 401, { error: 'Unauthorized' });
+      return;
+    }
 
     if (assets[url.pathname] && req.method === 'GET') {
       const asset = assets[url.pathname];
@@ -728,28 +788,16 @@ function createServer(overrides = {}) {
     }
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
-      if (!validateAuth(req, config)) {
-        toJson(res, 401, { error: 'Unauthorized' });
-        return;
-      }
       toJson(res, 200, getPublicState());
       return;
     }
 
     if (url.pathname === '/api/audit' && req.method === 'GET') {
-      if (!validateAuth(req, config)) {
-        toJson(res, 401, { error: 'Unauthorized' });
-        return;
-      }
       toJson(res, 200, { events: state.auditTail });
       return;
     }
 
     if (url.pathname === '/api/events' && req.method === 'GET') {
-      if (!validateAuth(req, config)) {
-        toJson(res, 401, { error: 'Unauthorized' });
-        return;
-      }
       res.writeHead(200, {
         'content-type': 'text/event-stream; charset=utf-8',
         connection: 'keep-alive',
@@ -758,12 +806,6 @@ function createServer(overrides = {}) {
       res.write(`data: ${JSON.stringify({ type: 'snapshot', at: now(), payload: getPublicState() })}\n\n`);
       sseClients.add(res);
       req.on('close', () => sseClients.delete(res));
-      return;
-    }
-
-    const requiresAuth = req.method === 'POST' && url.pathname !== '/api/teams/events';
-    if (requiresAuth && !validateAuth(req, config)) {
-      toJson(res, 401, { error: 'Unauthorized' });
       return;
     }
 
