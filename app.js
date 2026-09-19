@@ -65,6 +65,15 @@ const FEATURE_FLAGS = {
     governance_approval_gate: true
 };
 
+const FIELD_JOB_STATES = ['Assigned', 'En Route', 'On Scene', 'Work In Progress', 'Completed'];
+const FIELD_STATE_TRANSITIONS = {
+    Assigned: ['En Route'],
+    'En Route': ['On Scene'],
+    'On Scene': ['Work In Progress'],
+    'Work In Progress': ['Completed'],
+    Completed: []
+};
+
 const SLO_POLICY = Object.freeze({
     eventDeliveryP95Ms: 1200,
     apiLatencyP95Ms: 250,
@@ -74,6 +83,56 @@ const SLO_POLICY = Object.freeze({
 
 const auditTrail = [];
 const AUDIT_RETENTION = 400;
+const FIELD_SESSION_TTL_MS = 1000 * 60 * 60 * 8;
+const fieldSessions = new Map();
+const fieldTechnicians = [
+    { techId: 'tech-101', name: 'Elijah Wright', pin: '1101', role: 'field_technician' },
+    { techId: 'tech-202', name: 'Jordan Miles', pin: '2202', role: 'field_technician' }
+];
+const fieldJobs = [
+    {
+        id: 'JOB-1001',
+        assignedTo: 'tech-101',
+        customer: 'Keystone Freight',
+        unit: 'Freightliner Cascadia 145',
+        location: { label: 'I-78 EB MM 71, Easton PA', lat: 40.6823, lng: -75.2415 },
+        cause: 'Air brake pressure loss',
+        state: 'Assigned',
+        acceptedAt: null,
+        enRouteAt: null,
+        onSceneAt: null,
+        workStartedAt: null,
+        completedAt: null,
+        diagnostics: '',
+        workPerformed: '',
+        partsUsed: '',
+        laborMinutes: '',
+        signature: '',
+        photos: [],
+        stateProof: {}
+    },
+    {
+        id: 'JOB-1002',
+        assignedTo: 'tech-202',
+        customer: 'Valley Haul Logistics',
+        unit: 'Kenworth T680',
+        location: { label: 'US-22 WB near Bethlehem PA', lat: 40.647, lng: -75.3752 },
+        cause: 'Trailer tire blowout',
+        state: 'Assigned',
+        acceptedAt: null,
+        enRouteAt: null,
+        onSceneAt: null,
+        workStartedAt: null,
+        completedAt: null,
+        diagnostics: '',
+        workPerformed: '',
+        partsUsed: '',
+        laborMinutes: '',
+        signature: '',
+        photos: [],
+        stateProof: {}
+    }
+];
 const LEHIGH_VALLEY_BASE = Object.freeze({
     label: 'Lehigh Valley, PA',
     lat: 40.6884,
@@ -219,6 +278,91 @@ function getReplaySince(channel, since) {
     return (eventBus[channel] || []).filter((event) => new Date(event.timestamp).getTime() > sinceTs);
 }
 
+function toIsoTimestamp(value) {
+    const asDate = value ? new Date(value) : new Date();
+    if (Number.isNaN(asDate.getTime())) {
+        return new Date().toISOString();
+    }
+    return asDate.toISOString();
+}
+
+function isValidCoordinates(lat, lng) {
+    return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+function writeAuditEntry(entry) {
+    auditTrail.push({
+        id: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: new Date().toISOString(),
+        ...entry
+    });
+    if (auditTrail.length > AUDIT_RETENTION) {
+        auditTrail.splice(0, auditTrail.length - AUDIT_RETENTION);
+    }
+}
+
+function createFieldToken(techId) {
+    return `field-${techId}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function sanitizeFieldJob(job) {
+    return {
+        id: job.id,
+        customer: job.customer,
+        unit: job.unit,
+        location: job.location,
+        cause: job.cause,
+        state: job.state,
+        diagnostics: job.diagnostics,
+        workPerformed: job.workPerformed,
+        partsUsed: job.partsUsed,
+        laborMinutes: job.laborMinutes,
+        signaturePresent: Boolean(job.signature),
+        photosCount: job.photos.length,
+        acceptedAt: job.acceptedAt,
+        enRouteAt: job.enRouteAt,
+        onSceneAt: job.onSceneAt,
+        workStartedAt: job.workStartedAt,
+        completedAt: job.completedAt
+    };
+}
+
+function requireFieldTechnician(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (!token) {
+        return res.status(401).json({ error: 'Missing field technician token' });
+    }
+    const session = fieldSessions.get(token);
+    if (!session) {
+        return res.status(401).json({ error: 'Invalid session token' });
+    }
+    if (Date.now() > session.expiresAt) {
+        fieldSessions.delete(token);
+        return res.status(401).json({ error: 'Session expired' });
+    }
+    const technician = fieldTechnicians.find((tech) => tech.techId === session.techId);
+    if (!technician || technician.role !== 'field_technician') {
+        return res.status(403).json({ error: 'Field technician access required' });
+    }
+    req.fieldSession = session;
+    req.fieldTechnician = technician;
+    return next();
+}
+
+function getAssignedJobOrError(req, res) {
+    const job = fieldJobs.find((entry) => entry.id === req.params.jobId);
+    if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return null;
+    }
+    if (job.assignedTo !== req.fieldTechnician.techId) {
+        res.status(403).json({ error: 'Job is not assigned to this technician' });
+        return null;
+    }
+    return job;
+}
+
 function createBreakdownAlert(overrides = {}) {
     const candidate = BREAKDOWN_LOCATIONS[Math.floor(Math.random() * BREAKDOWN_LOCATIONS.length)];
     const cause = BREAKDOWN_CAUSES[Math.floor(Math.random() * BREAKDOWN_CAUSES.length)];
@@ -355,6 +499,16 @@ app.get('/api/events/model', (req, res) => {
             lng: 'number',
             cause: 'string',
             distanceFromBaseMiles: 'number'
+        },
+        fieldJobPayloadSchema: {
+            id: 'string',
+            state: FIELD_JOB_STATES.join(' | '),
+            diagnostics: 'string',
+            workPerformed: 'string',
+            partsUsed: 'string',
+            laborMinutes: 'string',
+            signaturePresent: 'boolean',
+            photosCount: 'number'
         }
     });
 });
@@ -383,6 +537,207 @@ app.get('/api/location/base', (req, res) => {
         base: LEHIGH_VALLEY_BASE,
         defaultRadiusMiles: 150
     });
+});
+
+app.post('/api/field/auth/login', (req, res) => {
+    const techId = String(req.body.techId || '').trim();
+    const pin = String(req.body.pin || '').trim();
+    const technician = fieldTechnicians.find((tech) => tech.techId === techId && tech.pin === pin);
+    if (!technician) {
+        return res.status(401).json({ error: 'Invalid technician credentials' });
+    }
+
+    const token = createFieldToken(technician.techId);
+    const expiresAt = Date.now() + FIELD_SESSION_TTL_MS;
+    fieldSessions.set(token, { techId: technician.techId, role: technician.role, expiresAt });
+
+    writeAuditEntry({
+        actor: technician.techId,
+        action: 'field_login',
+        channel: 'field.jobs',
+        summary: 'Technician authenticated on mobile app',
+        policy: 'short_lived_device_session'
+    });
+
+    return res.json({
+        token,
+        expiresAt: new Date(expiresAt).toISOString(),
+        technician: {
+            techId: technician.techId,
+            name: technician.name,
+            role: technician.role
+        }
+    });
+});
+
+app.post('/api/field/auth/logout', requireFieldTechnician, (req, res) => {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    fieldSessions.delete(token);
+    writeAuditEntry({
+        actor: req.fieldTechnician.techId,
+        action: 'field_logout',
+        channel: 'field.jobs',
+        summary: 'Technician logged out from mobile app',
+        policy: 'session_revoked'
+    });
+    res.json({ success: true });
+});
+
+app.get('/api/field/jobs', requireFieldTechnician, (req, res) => {
+    const jobs = fieldJobs
+        .filter((job) => job.assignedTo === req.fieldTechnician.techId)
+        .map((job) => sanitizeFieldJob(job));
+    res.json({
+        technician: { techId: req.fieldTechnician.techId, name: req.fieldTechnician.name },
+        jobs
+    });
+});
+
+app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
+    res.json({
+        role: 'field_technician',
+        allowed: [
+            'job acceptance and workflow state updates',
+            'navigation and location proof',
+            'diagnostics, parts/labor notes, photos, signature',
+            'job completion submission'
+        ],
+        denied: [
+            'payroll administration',
+            'billing controls',
+            'system configuration',
+            'mastersuite governance endpoints',
+            'company secrets and codes'
+        ]
+    });
+});
+
+app.patch('/api/field/jobs/:jobId/state', requireFieldTechnician, (req, res) => {
+    const job = getAssignedJobOrError(req, res);
+    if (!job) {
+        return;
+    }
+    const nextState = String(req.body.state || '').trim();
+    const lat = toNumber(req.body.lat, Number.NaN);
+    const lng = toNumber(req.body.lng, Number.NaN);
+    const timestamp = toIsoTimestamp(req.body.timestamp);
+
+    if (!FIELD_JOB_STATES.includes(nextState)) {
+        return res.status(400).json({ error: 'Invalid state value' });
+    }
+    if (!FIELD_STATE_TRANSITIONS[job.state].includes(nextState)) {
+        return res.status(400).json({ error: `Invalid transition from ${job.state} to ${nextState}` });
+    }
+    if (!isValidCoordinates(lat, lng)) {
+        return res.status(400).json({ error: 'Valid GPS coordinates are required for state transitions' });
+    }
+
+    job.state = nextState;
+    job.stateProof[nextState] = { timestamp, lat, lng };
+
+    if (nextState === 'En Route') {
+        job.acceptedAt = job.acceptedAt || timestamp;
+        job.enRouteAt = timestamp;
+    }
+    if (nextState === 'On Scene') {
+        job.onSceneAt = timestamp;
+    }
+    if (nextState === 'Work In Progress') {
+        job.workStartedAt = timestamp;
+    }
+    if (nextState === 'Completed') {
+        job.completedAt = timestamp;
+    }
+
+    writeAuditEntry({
+        actor: req.fieldTechnician.techId,
+        action: 'field_state_update',
+        channel: 'field.jobs',
+        summary: `${job.id} moved to ${nextState}`,
+        policy: 'gps_and_timestamp_required'
+    });
+
+    return res.json({ job: sanitizeFieldJob(job) });
+});
+
+app.patch('/api/field/jobs/:jobId/proof', requireFieldTechnician, (req, res) => {
+    const job = getAssignedJobOrError(req, res);
+    if (!job) {
+        return;
+    }
+    const diagnostics = String(req.body.diagnostics || '').trim();
+    const workPerformed = String(req.body.workPerformed || '').trim();
+    const partsUsed = String(req.body.partsUsed || '').trim();
+    const laborMinutes = String(req.body.laborMinutes || '').trim();
+    const signature = String(req.body.signature || '').trim();
+    const photos = Array.isArray(req.body.photos) ? req.body.photos.map((item) => String(item).trim()).filter(Boolean) : [];
+
+    if (diagnostics) job.diagnostics = diagnostics;
+    if (workPerformed) job.workPerformed = workPerformed;
+    if (partsUsed) job.partsUsed = partsUsed;
+    if (laborMinutes) job.laborMinutes = laborMinutes;
+    if (signature) job.signature = signature;
+    if (photos.length > 0) {
+        job.photos = photos.slice(0, 10);
+    }
+
+    writeAuditEntry({
+        actor: req.fieldTechnician.techId,
+        action: 'field_proof_update',
+        channel: 'field.jobs',
+        summary: `${job.id} proof data updated`,
+        policy: 'field_completion_evidence'
+    });
+
+    return res.json({ job: sanitizeFieldJob(job) });
+});
+
+app.post('/api/field/jobs/:jobId/complete', requireFieldTechnician, (req, res) => {
+    const job = getAssignedJobOrError(req, res);
+    if (!job) {
+        return;
+    }
+    const requiredMissing = [];
+    if (job.state !== 'Work In Progress') requiredMissing.push('state must be Work In Progress before completion');
+    if (!job.diagnostics) requiredMissing.push('diagnostics');
+    if (!job.workPerformed) requiredMissing.push('workPerformed');
+    if (!job.partsUsed) requiredMissing.push('partsUsed');
+    if (!job.laborMinutes) requiredMissing.push('laborMinutes');
+    if (!job.signature) requiredMissing.push('signature');
+    if (!job.photos.length) requiredMissing.push('at least one photo');
+
+    const completionLat = toNumber(req.body.lat, Number.NaN);
+    const completionLng = toNumber(req.body.lng, Number.NaN);
+    if (!isValidCoordinates(completionLat, completionLng)) {
+        requiredMissing.push('valid completion GPS');
+    }
+
+    if (requiredMissing.length) {
+        return res.status(400).json({
+            error: 'Completion blocked. Required fields missing.',
+            missing: requiredMissing
+        });
+    }
+
+    const completedAt = toIsoTimestamp(req.body.timestamp);
+    job.state = 'Completed';
+    job.completedAt = completedAt;
+    job.stateProof.Completed = {
+        timestamp: completedAt,
+        lat: completionLat,
+        lng: completionLng
+    };
+
+    writeAuditEntry({
+        actor: req.fieldTechnician.techId,
+        action: 'field_job_completed',
+        channel: 'field.jobs',
+        summary: `${job.id} completed with required evidence`,
+        policy: 'completion_proof_enforced'
+    });
+
+    return res.json({ job: sanitizeFieldJob(job) });
 });
 
 app.get('/api/mastersuite/contracts', (req, res) => {
