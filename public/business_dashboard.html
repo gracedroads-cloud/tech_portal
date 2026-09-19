@@ -52,10 +52,15 @@
             white-space: nowrap;
         }
 
-        marquee {
+        .ticker-feed {
             color: var(--accent-green);
             font-family: monospace;
             font-size: 1rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-height: 22px;
+            line-height: 22px;
         }
 
         .grid-2col {
@@ -196,9 +201,9 @@
     <div class="ticker-wrapper">
         <div class="ticker-header">
             <span class="ticker-badge">📡 WATCH FILTER: 150-MILE OPERATIONAL SCAN</span>
-            <marquee id="breakdown-ticker" behavior="scroll" direction="left" scrollamount="6">
+            <div id="breakdown-ticker" class="ticker-feed" role="status" aria-live="polite">
                 [LOADING SERVER-FILTERED BREAKDOWNS...]
-            </marquee>
+            </div>
         </div>
     </div>
 
