@@ -1,0 +1,977 @@
+<!-- VERIFICATION CODE: 774291 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EH Graced Roads Solutions LLC - Master Suite</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#020617">
+    <style>
+        body { background-color: #020617; color: #f1f5f9; font-family: sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; margin: 0; box-sizing: border-box; }
+        *, *:before, *:after { box-sizing: inherit; }
+        .dashboard-container { width: 100%; max-width: 1100px; background-color: #0f172a; border: 1px solid #334155; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        header { background: linear-gradient(90deg, rgba(2, 6, 23, 0.88), rgba(2, 6, 23, 0.64)), url('/assets/eh-graced-roads-logo.jpeg') top / cover; border-bottom: 1px solid #1e293b; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .header-brand { align-items: center; display: flex; gap: 12px; }
+        .badge-247 { background-color: #020617; border: 1px solid #334155; color: #f59e0b; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 8px; }
+        .brand-title { font-weight: 900; font-size: 16px; color: #ffffff; margin: 0; }
+        .brand-sub { font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-top: 2px; }
+        .company-email { color: #f59e0b; display: block; font-size: 11px; font-weight: bold; margin-top: 4px; text-decoration: none; }
+        .dispatcher-box { display: flex; align-items: center; gap: 12px; background-color: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 8px 12px; }
+        label { font-size: 12px; color: #94a3b8; font-weight: bold; white-space: nowrap; }
+        input[type="text"], input[type="number"] { width: 100%; background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 6px 10px; font-size: 13px; color: #f59e0b; font-weight: bold; outline: none; }
+        .grid-viewport { padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; background: linear-gradient(to bottom, #0f172a, #020617); }
+        section { background-color: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 16px; padding: 20px; }
+        .section-header { font-size: 11px; font-weight: bold; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .pulse-indicator { width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; }
+        .inner-log-card { background-color: rgba(2, 6, 23, 0.6); border: 1px solid #1e293b; border-radius: 12px; padding: 16px; }
+        .ledger-item { display: flex; justify-content: space-between; align-items: center; background-color: rgba(2, 6, 23, 0.4); padding: 12px; border-radius: 12px; border: 1px solid #1e293b; font-size: 13px; }
+        .amt-positive { color: #10b981; font-family: monospace; font-weight: bold; }
+        .block-label { font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
+        .tier-box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+        .tier-card { background-color: #020617; padding: 10px; border-radius: 8px; border: 1px solid #1e293b; font-family: monospace; }
+        .tier-label { color: #64748b; font-size: 9px; display: block; font-family: sans-serif; font-weight: bold; }
+        .tier-price { color: #10b981; font-weight: bold; font-size: 14px; }
+        .dispatch-history { grid-column: 1 / -1; }
+        .history-table-container { overflow-x: auto; border: 1px solid #1e293b; border-radius: 12px; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
+        .history-table th { background-color: #020617; color: #94a3b8; font-size: 10px; text-align: left; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; }
+        .history-table td { border-top: 1px solid #1e293b; color: #e2e8f0; padding: 12px 16px; }
+        .history-table tr:hover td { background-color: rgba(30, 41, 59, 0.45); }
+        .history-table .history-total { color: #10b981; font-family: monospace; font-weight: bold; }
+        .history-table .history-priority { color: #f59e0b; font-family: monospace; font-weight: bold; }
+        .history-message { color: #94a3b8 !important; font-style: italic; text-align: center; }
+        .history-controls { display: flex; gap: 16px; align-items: stretch; margin-bottom: 16px; }
+        .revenue-summary { display: grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 12px; flex: 1; }
+        .revenue-card { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; }
+        .revenue-card span { color: #94a3b8; display: block; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .revenue-card strong { color: #10b981; display: block; font-family: monospace; font-size: 18px; margin-top: 4px; }
+        .history-search { min-width: 280px; color: #f1f5f9 !important; }
+        .print-invoice-button { background: #f59e0b; border: 0; border-radius: 6px; color: #020617; cursor: pointer; font-size: 11px; font-weight: bold; padding: 7px 10px; }
+        .print-invoice-button:hover { background: #fbbf24; }
+        .corridor-panel, .inspection-panel { grid-column: 1 / -1; }
+        .corridor-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .corridor-route { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 14px; }
+        .corridor-route strong { color: #f1f5f9; display: block; font-family: monospace; }
+        .corridor-route span { color: #94a3b8; display: block; font-size: 11px; margin-top: 8px; }
+        .corridor-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+        .corridor-pill { background: #1e293b; border: 1px solid #475569; border-radius: 999px; color: #f1f5f9; cursor: pointer; font-size: 11px; font-weight: bold; padding: 7px 12px; }
+        .corridor-pill:hover, .corridor-pill.active { background: #f59e0b; border-color: #f59e0b; color: #020617; }
+        .inspection-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .inspection-grid .full-width { grid-column: 1 / -1; }
+        .inspection-grid select, .inspection-grid textarea { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #f1f5f9; font: inherit; padding: 8px 10px; width: 100%; }
+        .inspection-grid textarea { min-height: 70px; resize: vertical; }
+        .inspection-submit { background: #10b981; border: 0; border-radius: 8px; color: #022c22; cursor: pointer; font-weight: bold; padding: 10px 14px; }
+        .inspection-status { color: #94a3b8; font-size: 11px; margin: 10px 0 0; }
+        .voice-panel { grid-column: 1 / -1; }
+        .voice-consent { align-items: center; color: #cbd5e1; cursor: pointer; display: flex; font-size: 12px; gap: 8px; margin: 12px 0; }
+        .voice-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+        .voice-record-button { background: #334155; border: 0; border-radius: 8px; color: #94a3b8; cursor: not-allowed; font-weight: bold; padding: 10px 14px; }
+        .voice-record-button.enabled { background: #dc2626; color: #fff; cursor: pointer; }
+        .voice-record-button.recording { background: #f59e0b; color: #020617; cursor: pointer; }
+        .voice-status { color: #94a3b8; font-size: 12px; }
+        .voice-review-modal { align-items: center; background: rgba(2, 6, 23, 0.85); display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 10; }
+        .voice-review-modal.is-hidden { display: none; }
+        .voice-review-dialog { background: #0f172a; border: 1px solid #475569; border-radius: 16px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); max-width: 560px; padding: 24px; width: 100%; }
+        .voice-transcript { background: #020617; border: 1px solid #334155; border-radius: 8px; color: #cbd5e1; font-size: 13px; line-height: 1.5; margin: 12px 0; padding: 12px; }
+        .voice-review-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+        .voice-review-actions button { border: 0; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 9px 12px; }
+        .voice-discard { background: #334155; color: #f1f5f9; }
+        .voice-commit { background: #10b981; color: #022c22; }
+        .vision-panel, .maintenance-panel { grid-column: span 1; }
+        .vision-input-row, .maintenance-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+        .vision-input-row input[type="file"] { color: #cbd5e1; font-size: 12px; max-width: 100%; }
+        .vision-button, .maintenance-button, .apply-cost-button { border: 0; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 9px 12px; }
+        .vision-button, .maintenance-button { background: #f59e0b; color: #020617; }
+        .apply-cost-button { background: #10b981; color: #022c22; }
+        .apply-cost-button:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+        .vision-status, .maintenance-status { color: #94a3b8; font-size: 11px; margin: 10px 0 0; }
+        .vision-results, .maintenance-results { background: rgba(2, 6, 23, 0.6); border: 1px solid #1e293b; border-radius: 10px; color: #cbd5e1; font-size: 12px; line-height: 1.45; margin-top: 12px; min-height: 42px; padding: 12px; }
+        .analysis-list { list-style: none; margin: 0; padding: 0; }
+        .analysis-list li { border-bottom: 1px solid #1e293b; padding: 7px 0; }
+        .analysis-list li:last-child { border-bottom: 0; }
+        .analysis-key { color: #94a3b8; font-weight: bold; margin-right: 6px; text-transform: capitalize; }
+        .analysis-value { color: #e2e8f0; overflow-wrap: anywhere; }
+        @media (max-width: 700px) {
+            .history-controls { flex-direction: column; }
+            .history-search { min-width: 0; }
+            .corridor-map, .inspection-grid { grid-template-columns: 1fr; }
+            .inspection-grid .full-width { grid-column: auto; }
+            .vision-panel, .maintenance-panel { grid-column: 1 / -1; }
+        }
+        .legal-footer-disclaimer { grid-column: 1 / -1; background-color: rgba(239, 68, 68, 0.05); border: 1px dashed #ef4444; border-radius: 12px; padding: 12px 16px; margin-top: 8px; font-size: 11px; line-height: 1.5; color: #cbd5e1; }
+        footer { background-color: #020617; border-top: 1px solid #1e293b; padding: 14px 24px; display: flex; justify-content: space-between; font-family: monospace; font-size: 11px; color: #64748b; }
+        .footer-hotline { color: #f59e0b; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="header-brand">
+                <div class="badge-247">24/7</div>
+                <div class="brand-text-block">
+                    <h1 class="brand-title">EH GRACED ROADS</h1>
+                    <span class="brand-sub">Solutions LLC â€¢ Safe & Dependable Response Times</span>
+                    <a class="company-email" href="mailto:graceroads@outlook.com">graceroads@outlook.com</a>
+                </div>
+            </div>
+            <div class="dispatcher-box"><label>Active Dispatcher:</label><input type="text" id="master-dispatcher" value="Elijah Wright"></div>
+        </header>
+        <div class="grid-viewport">
+            <section>
+                <div class="section-header"><span>Live Field Feed Monitor</span><span class="pulse-indicator"></span></div>
+                <div class="inner-log-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span style="background:rgba(245,158,11,0.1); padding:2px 8px; border-radius:4px; font-size:10px; color:#f59e0b; font-weight:bold;">Active Ticket</span><input type="text" value="#GRS-1082" style="max-width:110px; text-align:right; font-family:monospace; border:none; background:none; color:#f59e0b;"></div>
+                    <div style="margin-bottom: 10px;"><span class="block-label">Customer / Carrier Enterprise</span><input type="text" id="master-carrier-input" value="Werner Enterprises" style="color: #ffffff;"></div>
+                    <div style="margin-bottom: 10px;"><span class="block-label">Assigned Fleet Unit / Asset</span><input type="text" value="Fleet Van #201" style="color: #ffffff;"></div>
+                    <div><span class="block-label">Breakdown Scene Target Location</span><input type="text" value="I-78 Eastbound MM 42.5" style="color: #ffffff;"></div>
+                </div>
+            </section>
+            <section>
+                <div class="section-header"><span>Financial Ledger Balance</span><span style="color: #f59e0b; font-family: monospace; font-size: 10px;">Internal System Ledger</span></div>
+                <div class="ledger-item"><div><div id="ledger-title-sync" style="font-weight:600;">Werner Repair Deposit</div><div style="font-size:10px; color:#64748b; margin-top:2px;">Live Synchronized Link Status</div></div><span class="amt-positive">+$240.00</span></div>
+            </section>
+            <section>
+                <div class="section-header"><span>Automated Price Sourcing</span><span style="background-color: #f59e0b; color: #020617; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px;">BACK OFFICE CTRL</span></div>
+                <div style="background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 14px; border-radius: 12px;">
+                    <div style="border-bottom:1px solid #1e293b; padding-bottom:10px; margin-bottom:10px;"><span class="block-label">Sourced Field Item Label</span><input type="text" value="Brake Chamber (Type 3030)" style="color:#fff;"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><span style="font-size:12px; color:#94a3b8; font-weight:bold;">Reported Tech Cost Base:</span><div style="display:flex; align-items:center; gap:2px; max-width:90px;"><span style="color:#64748b; font-family:monospace;">$</span><input type="number" id="master-base-cost" value="45.00" step="0.01" style="text-align:right;"></div></div>
+                    <div class="tier-box-grid">
+                        <div class="tier-card"><span class="tier-label">25% Fleet Price</span><span id="master-tier-25" class="tier-price">$56.25</span></div>
+                        <div class="tier-card"><span class="tier-label">35% Retail Price</span><span id="master-tier-35" class="tier-price">$60.75</span></div>
+                    </div>
+                </div>
+            </section>
+            <section class="vision-panel">
+                <div class="section-header"><span>Vision Part Analysis</span><span>Camera / Image</span></div>
+                <form id="vision-analysis-form">
+                    <label for="vision-image-input">Part image</label>
+                    <div class="vision-input-row">
+                        <input id="vision-image-input" name="image" type="file" accept="image/*" capture="environment" required>
+                        <button class="vision-button" type="submit">Analyze Part</button>
+                        <button id="apply-suggested-cost-button" class="apply-cost-button" type="button" disabled>Apply Suggested Cost</button>
+                    </div>
+                </form>
+                <p id="vision-status" class="vision-status" aria-live="polite">Capture or select a part image for analysis.</p>
+                <div id="vision-results" class="vision-results" aria-live="polite">No part analysis available.</div>
+            </section>
+            <section class="maintenance-panel">
+                <div class="section-header"><span>Predictive Maintenance</span><span>Fleet Insights</span></div>
+                <div class="maintenance-controls">
+                    <button id="load-maintenance-button" class="maintenance-button" type="button">Refresh Insights</button>
+                </div>
+                <p id="maintenance-status" class="maintenance-status" aria-live="polite">Load maintenance insights for recent fleet activity.</p>
+                <div id="maintenance-results" class="maintenance-results" aria-live="polite">No predictive-maintenance insights loaded.</div>
+            </section>
+            <section class="corridor-panel">
+                <div class="section-header"><span>PA Corridor Activity Map</span><span>Recent Dispatch Activity</span></div>
+                <div class="corridor-map">
+                    <div class="corridor-route"><strong>I-78</strong><span id="corridor-i-78-count">0 recent incidents</span></div>
+                    <div class="corridor-route"><strong>I-81</strong><span id="corridor-i-81-count">0 recent incidents</span></div>
+                    <div class="corridor-route"><strong>PA Turnpike</strong><span id="corridor-pa-turnpike-count">0 recent incidents</span></div>
+                </div>
+                <div class="corridor-filters" aria-label="PA corridor filters">
+                    <button class="corridor-pill" type="button" data-corridor="">All Corridors</button>
+                    <button class="corridor-pill" type="button" data-corridor="I-78">I-78</button>
+                    <button class="corridor-pill" type="button" data-corridor="I-81">I-81</button>
+                    <button class="corridor-pill" type="button" data-corridor="PA Turnpike">PA Turnpike</button>
+                </div>
+            </section>
+            <section class="inspection-panel">
+                <div class="section-header"><span>Digital DVIR & Inspection</span><span id="inspection-status">Select a completed dispatch to attach inspection metrics.</span></div>
+                <form id="inspection-form" class="inspection-grid">
+                    <div class="full-width"><label for="inspection-dispatch-id">Active Dispatch Record</label><select id="inspection-dispatch-id" required><option value="">No completed dispatches loaded</option></select></div>
+                    <div><label for="brake-pad-measurements">Brake Pad Measurements</label><input id="brake-pad-measurements" name="brakePadMeasurements" type="text" placeholder="e.g., 12 mm front / 10 mm rear" required></div>
+                    <div><label for="push-rod-travel">Push-Rod Travel</label><input id="push-rod-travel" name="pushRodTravel" type="text" placeholder="e.g., 1.5 in" required></div>
+                    <div><label for="tire-tread-depths">Tire Tread Depths</label><input id="tire-tread-depths" name="tireTreadDepths" type="text" placeholder="e.g., 8/32 in steer" required></div>
+                    <div><label for="fluid-leak-check">Fluid Leak Check</label><select id="fluid-leak-check" name="fluidLeakCheck" required><option value="No leaks observed">No leaks observed</option><option value="Leak observed - containment required">Leak observed - containment required</option></select></div>
+                    <div class="full-width"><label for="inspection-notes">Mechanic Notes</label><textarea id="inspection-notes" name="notes" placeholder="Optional inspection notes"></textarea></div>
+                    <div class="full-width"><button class="inspection-submit" type="submit">Save Inspection to Dispatch</button></div>
+                </form>
+            </section>
+            <section class="voice-panel">
+                <div class="section-header"><span>Hands-Free Voice Field Logger</span><span>Max 60s / transient audio mode</span></div>
+                <p style="color:#cbd5e1; font-size:13px; margin:0;">Dictate inspection measurements hands-free. The transcript must be reviewed and approved before it is attached to the work order.</p>
+                <label class="voice-consent"><input id="voice-consent" type="checkbox"> I consent to temporary voice recording for inspection transcription.</label>
+                <div class="voice-controls">
+                    <button id="voice-record-button" class="voice-record-button" type="button" disabled>Start Voice Note</button>
+                    <span id="voice-status" class="voice-status">Confirm consent to enable recording.</span>
+                </div>
+            </section>
+            <section class="dispatch-history">
+                <div class="section-header"><span>Dispatch History</span><span id="history-status">Loading recent incidents...</span></div>
+                <div class="history-controls">
+                    <div class="revenue-summary" aria-label="Revenue Analytics">
+                        <div class="revenue-card"><span>Total Gross Revenue</span><strong id="total-gross-revenue">$0.00</strong></div>
+                        <div class="revenue-card"><span>Total Service Calls</span><strong id="total-service-calls">0</strong></div>
+                    </div>
+                    <input class="history-search" id="dispatch-history-search" type="search" placeholder="Search carrier or PA corridor" aria-label="Search dispatch history">
+                </div>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Carrier</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Urgency</th>
+                                <th scope="col">Estimated Total</th>
+                                <th scope="col">Work Order</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatch-history-body">
+                            <tr><td class="history-message" colspan="5">Loading recent dispatches...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <div class="legal-footer-disclaimer">
+                <strong>ðŸ›¡ï¸ SYSTEM LIABILITY PROTECTIONS ACTIVE:</strong> We provide safe and dependable response times. ETAs are estimated times of arrival factoring technician availability and location. When there's a breakdown, we provide solutions. All routing calculations adhere strictly to variable conditional triage parameters.
+            </div>
+        </div>
+        <footer><span>Support Hotline: <span class="footer-hotline">215-821-8046</span></span><span>Â© 2026 EH Graced Roads Solutions LLC</span></footer>
+    </div>
+    <div id="voice-review-modal" class="voice-review-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="voice-review-title">
+        <div class="voice-review-dialog">
+            <h2 id="voice-review-title" style="color:#f59e0b; font-size:18px; margin:0;">Review Voice-Parsed Inspection</h2>
+            <p style="color:#94a3b8; font-size:12px;">Verify every measurement before saving it to the selected dispatch work order.</p>
+            <div id="voice-transcript" class="voice-transcript"></div>
+            <div class="inspection-grid">
+                <div><label for="voice-review-brake">Brake Pad Thickness</label><input id="voice-review-brake" type="text"></div>
+                <div><label for="voice-review-pushrod">Push-Rod Travel</label><input id="voice-review-pushrod" type="text"></div>
+                <div><label for="voice-review-tread">Tire Tread Depth</label><input id="voice-review-tread" type="text"></div>
+                <div><label for="voice-review-leak">Containment / Leak Status</label><input id="voice-review-leak" type="text"></div>
+            </div>
+            <div class="voice-review-actions">
+                <button id="voice-discard-button" class="voice-discard" type="button">Discard</button>
+                <button id="voice-commit-button" class="voice-commit" type="button">Approve & Commit</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const baseInput = document.getElementById('master-base-cost'); const t25 = document.getElementById('master-tier-25'); const t35 = document.getElementById('master-tier-35');
+        const carrierInput = document.getElementById('master-carrier-input'); const ledgerTitleSync = document.getElementById('ledger-title-sync');
+        baseInput.addEventListener('input', () => { const val = parseFloat(baseInput.value) || 0; t25.textContent = `$${(val * 1.25).toFixed(2)}`; t35.textContent = `$${(val * 1.35).toFixed(2)}`; });
+        carrierInput.addEventListener('input', () => { ledgerTitleSync.textContent = `${carrierInput.value.trim() || 'Client'} Repair Deposit`; });
+
+        const historyBody = document.getElementById('dispatch-history-body');
+        const historyStatus = document.getElementById('history-status');
+        const historySearch = document.getElementById('dispatch-history-search');
+        const totalGrossRevenue = document.getElementById('total-gross-revenue');
+        const totalServiceCalls = document.getElementById('total-service-calls');
+        const inspectionForm = document.getElementById('inspection-form');
+        const inspectionDispatchId = document.getElementById('inspection-dispatch-id');
+        const inspectionStatus = document.getElementById('inspection-status');
+        const corridorPills = [...document.querySelectorAll('.corridor-pill')];
+        const voiceConsent = document.getElementById('voice-consent');
+        const voiceRecordButton = document.getElementById('voice-record-button');
+        const voiceStatus = document.getElementById('voice-status');
+        const voiceReviewModal = document.getElementById('voice-review-modal');
+        const voiceTranscript = document.getElementById('voice-transcript');
+        const voiceReviewBrake = document.getElementById('voice-review-brake');
+        const voiceReviewPushrod = document.getElementById('voice-review-pushrod');
+        const voiceReviewTread = document.getElementById('voice-review-tread');
+        const voiceReviewLeak = document.getElementById('voice-review-leak');
+        const voiceDiscardButton = document.getElementById('voice-discard-button');
+        const voiceCommitButton = document.getElementById('voice-commit-button');
+        const visionAnalysisForm = document.getElementById('vision-analysis-form');
+        const visionImageInput = document.getElementById('vision-image-input');
+        const visionStatus = document.getElementById('vision-status');
+        const visionResults = document.getElementById('vision-results');
+        const applySuggestedCostButton = document.getElementById('apply-suggested-cost-button');
+        const maintenanceStatus = document.getElementById('maintenance-status');
+        const maintenanceResults = document.getElementById('maintenance-results');
+        const loadMaintenanceButton = document.getElementById('load-maintenance-button');
+        const apiKeyFromUrl = new URLSearchParams(window.location.search).get('apiKey');
+        if (apiKeyFromUrl) {
+            sessionStorage.setItem('graceApiKey', apiKeyFromUrl);
+        }
+        const apiKey = sessionStorage.getItem('graceApiKey');
+        const apiHeaders = apiKey ? { 'X-API-Key': apiKey } : {};
+        let dispatchLogs = [];
+        let mediaRecorder;
+        let recordingStream;
+        let recordingTimeout;
+        let isRecording = false;
+        let activeTranscript = '';
+        let suggestedPartCost = null;
+
+        const offlineQueueDatabaseName = 'grace-dispatch-offline';
+        const offlineQueueStoreName = 'mutations';
+
+        function openOfflineQueueDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(offlineQueueDatabaseName, 1);
+                request.onupgradeneeded = () => {
+                    const database = request.result;
+                    if (!database.objectStoreNames.contains(offlineQueueStoreName)) {
+                        database.createObjectStore(offlineQueueStoreName, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function withOfflineQueueStore(mode, operation) {
+            const database = await openOfflineQueueDatabase();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction(offlineQueueStoreName, mode);
+                const store = transaction.objectStore(offlineQueueStoreName);
+                let result;
+                try {
+                    result = operation(store);
+                } catch (error) {
+                    database.close();
+                    reject(error);
+                    return;
+                }
+                transaction.oncomplete = () => {
+                    database.close();
+                    resolve(result && result.result);
+                };
+                transaction.onerror = () => {
+                    database.close();
+                    reject(transaction.error);
+                };
+            });
+        }
+
+        function queueOfflineMutation(url, body) {
+            return withOfflineQueueStore('readwrite', store => store.add({
+                url,
+                body,
+                queuedAt: new Date().toISOString()
+            }));
+        }
+
+        function getQueuedMutations() {
+            return withOfflineQueueStore('readonly', store => store.getAll());
+        }
+
+        function removeQueuedMutation(id) {
+            return withOfflineQueueStore('readwrite', store => store.delete(id));
+        }
+
+        async function isSuccessfulMutationResponse(response) {
+            if (!response.ok) {
+                return false;
+            }
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                return true;
+            }
+            try {
+                const payload = await response.clone().json();
+                return payload.success !== false && payload.status !== 'ERROR';
+            } catch (error) {
+                return true;
+            }
+        }
+
+        async function replayOfflineMutations() {
+            if (!navigator.onLine) {
+                return;
+            }
+
+            try {
+                const mutations = await getQueuedMutations();
+                for (const mutation of mutations) {
+                    let response;
+                    try {
+                        response = await fetch(mutation.url, {
+                            method: 'POST',
+                            headers: { ...apiHeaders, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(mutation.body)
+                        });
+                    } catch (error) {
+                        console.warn('Offline mutation replay paused:', error);
+                        break;
+                    }
+
+                    if (!await isSuccessfulMutationResponse(response)) {
+                        console.warn(`Offline mutation replay failed with status ${response.status}.`);
+                        break;
+                    }
+                    await removeQueuedMutation(mutation.id);
+                }
+                await loadDispatchHistory();
+            } catch (error) {
+                console.error('Unable to replay offline mutations:', error);
+            }
+        }
+
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(error => {
+                    console.warn('Service worker registration failed:', error);
+                });
+            }
+        }
+
+        function setHistoryMessage(message) {
+            historyBody.replaceChildren();
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 5;
+            cell.className = 'history-message';
+            cell.textContent = message;
+            row.appendChild(cell);
+            historyBody.appendChild(row);
+        }
+
+        function connectEventStream() {
+            const eventUrl = apiKey ? `/api/events?apiKey=${encodeURIComponent(apiKey)}` : '/api/events';
+            const eventSource = new EventSource(eventUrl);
+            eventSource.addEventListener('dispatch-created', loadDispatchHistory);
+            eventSource.addEventListener('dispatch-updated', loadDispatchHistory);
+            eventSource.onerror = () => console.warn('Live dispatch updates are temporarily unavailable.');
+        }
+
+        function getTaskData(log) {
+            return Array.isArray(log.input) ? (log.input[0] || {}) : (log.input || {});
+        }
+
+        function getLogDetails(log) {
+            const taskData = getTaskData(log);
+            const output = log.output || {};
+            const billing = output.billing || {};
+
+            return {
+                billing,
+                carrier: billing.carrierAccount || taskData.carrier || 'STANDARD FLEET',
+                location: output.location || output.breakdownLocation || taskData.location || taskData.breakdownLocation || 'Not recorded',
+                priority: output.priority || taskData.priority || '2',
+                total: billing.estimatedTotal || 'Not available'
+            };
+        }
+
+        function appendHistoryRow(log) {
+            const details = getLogDetails(log);
+            const row = document.createElement('tr');
+            const values = [
+                details.carrier,
+                details.location,
+                details.priority,
+                details.total
+            ];
+
+            values.forEach((value, index) => {
+                const cell = document.createElement('td');
+                if (index === 2) {
+                    cell.className = 'history-priority';
+                } else if (index === 3) {
+                    cell.className = 'history-total';
+                }
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+
+            const actionCell = document.createElement('td');
+            const printButton = document.createElement('button');
+            printButton.type = 'button';
+            printButton.className = 'print-invoice-button';
+            printButton.textContent = 'Print Invoice';
+            printButton.addEventListener('click', () => printInvoice(log));
+            actionCell.appendChild(printButton);
+            row.appendChild(actionCell);
+            historyBody.appendChild(row);
+        }
+
+        function updateRevenueAnalytics(logs) {
+            const total = logs.reduce((sum, log) => {
+                const amount = Number(String(getLogDetails(log).total).replace(/[^0-9.-]/g, ''));
+                return sum + (Number.isFinite(amount) ? amount : 0);
+            }, 0);
+
+            totalGrossRevenue.textContent = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(total);
+            totalServiceCalls.textContent = String(logs.length);
+        }
+
+        function updateCorridorMap(logs) {
+            const corridors = [
+                ['I-78', 'corridor-i-78-count'],
+                ['I-81', 'corridor-i-81-count'],
+                ['PA Turnpike', 'corridor-pa-turnpike-count']
+            ];
+
+            corridors.forEach(([corridor, elementId]) => {
+                const incidentCount = logs.filter(log => getLogDetails(log).location.toLowerCase().includes(corridor.toLowerCase())).length;
+                document.getElementById(elementId).textContent = `${incidentCount} recent incident${incidentCount === 1 ? '' : 's'}`;
+            });
+        }
+
+        function populateInspectionDispatches(logs) {
+            const selectedDispatchId = inspectionDispatchId.value;
+            inspectionDispatchId.replaceChildren();
+
+            if (logs.length === 0) {
+                const option = new Option('No completed dispatches loaded', '');
+                inspectionDispatchId.appendChild(option);
+                return;
+            }
+
+            logs.forEach(log => {
+                const details = getLogDetails(log);
+                const option = new Option(`${log.id} - ${details.carrier} / ${details.location}`, log.id);
+                inspectionDispatchId.appendChild(option);
+            });
+            inspectionDispatchId.value = logs.some(log => log.id === selectedDispatchId) ? selectedDispatchId : logs[0].id;
+        }
+
+        function renderHistory(logs, emptyMessage) {
+            historyBody.replaceChildren();
+            if (logs.length === 0) {
+                setHistoryMessage(emptyMessage);
+                return;
+            }
+            logs.forEach(appendHistoryRow);
+        }
+
+        function filterHistory() {
+            const searchTerm = historySearch.value.trim().toLowerCase();
+            const filteredLogs = dispatchLogs.filter(log => {
+                const details = getLogDetails(log);
+                return `${details.carrier} ${details.location}`.toLowerCase().includes(searchTerm);
+            });
+
+            renderHistory(
+                filteredLogs,
+                searchTerm ? 'No dispatches match this carrier or PA corridor.' : 'No completed dispatches have been recorded yet.'
+            );
+            historyStatus.textContent = searchTerm
+                ? `${filteredLogs.length} matching incident${filteredLogs.length === 1 ? '' : 's'}`
+                : `${dispatchLogs.length} recent incident${dispatchLogs.length === 1 ? '' : 's'}`;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
+        function printInvoice(log) {
+            const details = getLogDetails(log);
+            const billing = details.billing;
+            const issueDate = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Not recorded';
+            const lineItems = Object.entries(billing.lineItems || {}).map(([label, value]) => `
+                <tr><td>${escapeHtml(label.replace(/([A-Z])/g, ' $1').trim())}</td><td>${escapeHtml(value)}</td></tr>
+            `).join('') || '<tr><td colspan="2">Itemized billing is not available for this dispatch.</td></tr>';
+            const invoiceWindow = window.open('', '_blank');
+
+            if (!invoiceWindow) {
+                window.alert('Unable to open the invoice window. Please allow pop-ups and try again.');
+                return;
+            }
+
+            invoiceWindow.document.open();
+            invoiceWindow.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Invoice ${escapeHtml(log.id || 'Dispatch')}</title>
+<style>
+body { color: #172033; font-family: Arial, sans-serif; margin: 48px; }
+header { border-bottom: 3px solid #d97706; display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; }
+h1 { color: #b45309; font-size: 28px; margin: 0 0 6px; } h2 { font-size: 18px; margin-top: 28px; }
+.muted { color: #526075; font-size: 13px; } .meta { text-align: right; }
+table { border-collapse: collapse; width: 100%; } th, td { border-bottom: 1px solid #d7dde7; padding: 12px; text-align: left; } th { background: #f5f7fa; font-size: 12px; text-transform: uppercase; }
+.total { font-size: 20px; font-weight: bold; text-align: right; } .terms { margin-top: 28px; }
+@media print { body { margin: 24px; } }
+</style></head><body>
+<header><div><h1>EH Graced Roads Solutions LLC</h1><div class="muted">PA Mobile Fleet Ops</div></div>
+<div class="meta"><strong>Commercial Invoice & Work Order</strong><br><span class="muted">Dispatch ID: ${escapeHtml(log.id || 'Not recorded')}<br>${escapeHtml(issueDate)}</span></div></header>
+<table><tr><th>Carrier Account</th><td>${escapeHtml(details.carrier)}</td></tr><tr><th>Location / PA Corridor</th><td>${escapeHtml(details.location)}</td></tr><tr><th>Urgency Level</th><td>${escapeHtml(details.priority)}</td></tr></table>
+<h2>Itemized Billing Breakdown</h2><table><thead><tr><th>Service</th><th>Amount</th></tr></thead><tbody>${lineItems}</tbody></table>
+<p class="total">Estimated Total: ${escapeHtml(details.total)}</p><p class="terms"><strong>Payment Terms:</strong> ${escapeHtml(billing.paymentTerms || 'Net 30 / Fleet Direct Billing')}</p>
+</body></html>`);
+            invoiceWindow.document.close();
+            invoiceWindow.focus();
+            invoiceWindow.print();
+        }
+
+        async function loadDispatchHistory() {
+            try {
+                const response = await fetch('/api/automation/logs', { headers: apiHeaders });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success || !Array.isArray(payload.logs)) {
+                    throw new Error(payload.error || 'Unable to retrieve dispatch history.');
+                }
+
+                dispatchLogs = payload.logs;
+                updateRevenueAnalytics(dispatchLogs);
+                updateCorridorMap(dispatchLogs);
+                populateInspectionDispatches(dispatchLogs);
+                filterHistory();
+            } catch (error) {
+                console.error('Error loading dispatch history:', error);
+                setHistoryMessage('Dispatch history is temporarily unavailable.');
+                historyStatus.textContent = 'History unavailable';
+            }
+        }
+
+        async function saveInspection(event) {
+            event.preventDefault();
+            const dispatchId = inspectionDispatchId.value;
+            if (!dispatchId) {
+                inspectionStatus.textContent = 'Select a completed dispatch before saving an inspection.';
+                return;
+            }
+
+            const inspection = Object.fromEntries(new FormData(inspectionForm).entries());
+            const inspectionUrl = `/api/automation/logs/${encodeURIComponent(dispatchId)}/inspection`;
+            if (!navigator.onLine) {
+                try {
+                    await queueOfflineMutation(inspectionUrl, inspection);
+                    inspectionStatus.textContent = `Offline: inspection queued for ${dispatchId}.`;
+                } catch (error) {
+                    console.error('Unable to queue offline inspection:', error);
+                    inspectionStatus.textContent = 'Offline inspection could not be queued on this device.';
+                }
+                return;
+            }
+            inspectionStatus.textContent = 'Saving inspection metrics...';
+
+            try {
+                const response = await fetch(inspectionUrl, {
+                    method: 'POST',
+                    headers: { ...apiHeaders, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(inspection)
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || 'Unable to save inspection.');
+                }
+
+                const localRecord = dispatchLogs.find(log => log.id === dispatchId);
+                if (localRecord) {
+                    localRecord.inspection = payload.record.inspection;
+                }
+                inspectionStatus.textContent = `Inspection saved to ${dispatchId}.`;
+            } catch (error) {
+                console.error('Error saving inspection:', error);
+                inspectionStatus.textContent = 'Inspection could not be saved. Please try again.';
+            }
+        }
+
+        function formatAnalysisKey(key) {
+            return String(key).replace(/([A-Z])/g, ' $1').replace(/[_-]+/g, ' ').trim();
+        }
+
+        function appendSafeAnalysisValue(parent, value, key) {
+            const item = document.createElement('li');
+            if (key) {
+                const label = document.createElement('span');
+                label.className = 'analysis-key';
+                label.textContent = `${formatAnalysisKey(key)}:`;
+                item.appendChild(label);
+            }
+            if (value && typeof value === 'object') {
+                const nested = document.createElement('ul');
+                nested.className = 'analysis-list';
+                const entries = Array.isArray(value) ? value.entries() : Object.entries(value);
+                for (const [nestedKey, nestedValue] of entries) {
+                    appendSafeAnalysisValue(nested, nestedValue, Array.isArray(value) ? '' : nestedKey);
+                }
+                item.appendChild(nested);
+            } else {
+                const text = document.createElement('span');
+                text.className = 'analysis-value';
+                text.textContent = value == null ? 'Not provided' : String(value);
+                item.appendChild(text);
+            }
+            parent.appendChild(item);
+        }
+
+        function renderSafeAnalysis(container, data, emptyMessage) {
+            container.replaceChildren();
+            if (data == null || (typeof data === 'object' && Object.keys(data).length === 0)) {
+                container.textContent = emptyMessage;
+                return;
+            }
+            const list = document.createElement('ul');
+            list.className = 'analysis-list';
+            if (typeof data === 'object') {
+                const entries = Array.isArray(data) ? data.entries() : Object.entries(data);
+                for (const [key, value] of entries) {
+                    appendSafeAnalysisValue(list, value, Array.isArray(data) ? '' : key);
+                }
+            } else {
+                appendSafeAnalysisValue(list, data, '');
+            }
+            container.appendChild(list);
+        }
+
+        function findSuggestedPartCost(data) {
+            if (!data || typeof data !== 'object') {
+                return null;
+            }
+            for (const [key, value] of Object.entries(data)) {
+                if (/suggested.*(part )?cost|estimated.*part.*cost|part.*cost/i.test(key)) {
+                    const numericValue = Number(String(value).replace(/[^0-9.-]/g, ''));
+                    if (Number.isFinite(numericValue) && numericValue >= 0) {
+                        return numericValue;
+                    }
+                }
+                if (value && typeof value === 'object') {
+                    const nestedCost = findSuggestedPartCost(value);
+                    if (nestedCost !== null) {
+                        return nestedCost;
+                    }
+                }
+            }
+            return null;
+        }
+
+        async function analyzePartImage(event) {
+            event.preventDefault();
+            const image = visionImageInput.files[0];
+            if (!image) {
+                visionStatus.textContent = 'Select or capture a part image first.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', image, image.name || 'part-image.jpg');
+            visionStatus.textContent = 'Analyzing part image...';
+            applySuggestedCostButton.disabled = true;
+            try {
+                const response = await fetch('/api/vision/analyze-part', {
+                    method: 'POST',
+                    headers: apiHeaders,
+                    body: formData
+                });
+                const payload = await response.json();
+                if (!response.ok || payload.success === false) {
+                    throw new Error(payload.error || 'Unable to analyze this part image.');
+                }
+                const analysis = payload.analysis || payload.result || payload;
+                suggestedPartCost = findSuggestedPartCost(analysis);
+                renderSafeAnalysis(visionResults, analysis, 'No analysis details were returned.');
+                applySuggestedCostButton.disabled = suggestedPartCost === null;
+                visionStatus.textContent = suggestedPartCost === null
+                    ? 'Part analysis complete. No suggested cost was returned.'
+                    : `Part analysis complete. Suggested cost: $${suggestedPartCost.toFixed(2)}.`;
+            } catch (error) {
+                console.error('Part analysis error:', error);
+                suggestedPartCost = null;
+                renderSafeAnalysis(visionResults, null, 'Part analysis is temporarily unavailable.');
+                visionStatus.textContent = error.message || 'Part analysis could not be completed.';
+            }
+        }
+
+        function applySuggestedPartCost() {
+            if (suggestedPartCost === null) {
+                return;
+            }
+            baseInput.value = suggestedPartCost.toFixed(2);
+            baseInput.dispatchEvent(new Event('input', { bubbles: true }));
+            visionStatus.textContent = `Applied $${suggestedPartCost.toFixed(2)} to the base cost and updated price tiers.`;
+        }
+
+        async function loadPredictiveMaintenance() {
+            maintenanceStatus.textContent = 'Loading predictive-maintenance insights...';
+            loadMaintenanceButton.disabled = true;
+            try {
+                const response = await fetch('/api/analytics/predictive-maintenance', { headers: apiHeaders });
+                const payload = await response.json();
+                if (!response.ok || payload.success === false) {
+                    throw new Error(payload.error || 'Unable to load predictive-maintenance insights.');
+                }
+                const insights = payload.insights || payload.data || payload;
+                renderSafeAnalysis(maintenanceResults, insights, 'No maintenance insights are currently available.');
+                maintenanceStatus.textContent = 'Predictive-maintenance insights updated.';
+            } catch (error) {
+                console.error('Predictive-maintenance error:', error);
+                renderSafeAnalysis(maintenanceResults, null, 'Predictive-maintenance insights are temporarily unavailable.');
+                maintenanceStatus.textContent = error.message || 'Unable to load predictive-maintenance insights.';
+            } finally {
+                loadMaintenanceButton.disabled = false;
+            }
+        }
+
+        function updateVoiceRecorderState() {
+            const consented = voiceConsent.checked;
+            voiceRecordButton.disabled = !consented;
+            voiceRecordButton.classList.toggle('enabled', consented && !isRecording);
+            if (!consented && !isRecording) {
+                voiceStatus.textContent = 'Confirm consent to enable recording.';
+            } else if (consented && !isRecording) {
+                voiceStatus.textContent = 'Ready to record a voice note (60 second maximum).';
+            }
+        }
+
+        async function toggleVoiceRecording() {
+            if (isRecording) {
+                clearTimeout(recordingTimeout);
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceRecordButton.classList.remove('recording');
+                voiceRecordButton.textContent = 'Start Voice Note';
+                return;
+            }
+
+            if (!voiceConsent.checked || !navigator.mediaDevices || !window.MediaRecorder) {
+                voiceStatus.textContent = 'Microphone recording is unavailable in this browser.';
+                return;
+            }
+
+            try {
+                recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const chunks = [];
+                mediaRecorder = new MediaRecorder(recordingStream);
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                });
+                mediaRecorder.addEventListener('stop', async () => {
+                    recordingStream.getTracks().forEach(track => track.stop());
+                    const audioBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    await createVoiceDraft(audioBlob);
+                });
+                mediaRecorder.start();
+                isRecording = true;
+                voiceRecordButton.classList.add('recording');
+                voiceRecordButton.textContent = 'Stop Recording';
+                voiceStatus.textContent = 'Recording securely in memory...';
+                recordingTimeout = setTimeout(() => {
+                    if (isRecording) {
+                        toggleVoiceRecording();
+                        voiceStatus.textContent = '60-second recording limit reached; preparing your draft.';
+                    }
+                }, 60000);
+            } catch (error) {
+                console.error('Microphone access error:', error);
+                voiceStatus.textContent = 'Microphone access was denied or is unavailable.';
+            }
+        }
+
+        async function createVoiceDraft(audioBlob) {
+            if (audioBlob.size === 0 || audioBlob.size > 5 * 1024 * 1024) {
+                voiceStatus.textContent = 'Voice note is empty or exceeds the 5 MB limit.';
+                return;
+            }
+
+            voiceStatus.textContent = 'Processing voice note securely...';
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'inspection.webm');
+            try {
+                const response = await fetch('/api/voice/transcribe-draft', {
+                    method: 'POST',
+                    headers: apiHeaders,
+                    body: formData
+                });
+                const payload = await response.json();
+                if (!response.ok || payload.status !== 'DRAFT_READY') {
+                    throw new Error(payload.error || 'Unable to prepare voice draft.');
+                }
+
+                activeTranscript = payload.transcript;
+                voiceTranscript.textContent = payload.transcript;
+                voiceReviewBrake.value = payload.draftMetrics.brakePadThickness || '';
+                voiceReviewPushrod.value = payload.draftMetrics.pushRodTravel || '';
+                voiceReviewTread.value = payload.draftMetrics.tireTreadDepth || '';
+                voiceReviewLeak.value = payload.draftMetrics.fluidContainmentAlert || '';
+                voiceReviewModal.classList.remove('is-hidden');
+                voiceStatus.textContent = 'Draft ready for mechanic review.';
+            } catch (error) {
+                console.error('Voice transcription error:', error);
+                voiceStatus.textContent = 'Voice transcription could not be completed.';
+            }
+        }
+
+        function closeVoiceReview() {
+            activeTranscript = '';
+            voiceReviewModal.classList.add('is-hidden');
+        }
+
+        async function commitVoiceInspection() {
+            const dispatchId = inspectionDispatchId.value;
+            if (!dispatchId) {
+                voiceStatus.textContent = 'Select a completed dispatch before approving the voice inspection.';
+                return;
+            }
+
+            const metrics = {
+                brakePadThickness: voiceReviewBrake.value.trim(),
+                pushRodTravel: voiceReviewPushrod.value.trim(),
+                tireTreadDepth: voiceReviewTread.value.trim(),
+                fluidContainmentAlert: voiceReviewLeak.value.trim()
+            };
+            const voiceCommitBody = { dispatchId, transcript: activeTranscript, metrics };
+            if (!navigator.onLine) {
+                try {
+                    await queueOfflineMutation('/api/voice/commit-dvir', voiceCommitBody);
+                    closeVoiceReview();
+                    voiceStatus.textContent = 'Offline: reviewed voice inspection queued for delivery.';
+                } catch (error) {
+                    console.error('Unable to queue offline voice inspection:', error);
+                    voiceStatus.textContent = 'Offline voice inspection could not be queued on this device.';
+                }
+                return;
+            }
+            voiceCommitButton.disabled = true;
+            try {
+                const response = await fetch('/api/voice/commit-dvir', {
+                    method: 'POST',
+                    headers: { ...apiHeaders, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(voiceCommitBody)
+                });
+                const payload = await response.json();
+                if (!response.ok || payload.status !== 'COMMITTED') {
+                    throw new Error(payload.error || 'Unable to save reviewed voice inspection.');
+                }
+
+                document.getElementById('brake-pad-measurements').value = metrics.brakePadThickness;
+                document.getElementById('push-rod-travel').value = metrics.pushRodTravel;
+                document.getElementById('tire-tread-depths').value = metrics.tireTreadDepth;
+                document.getElementById('fluid-leak-check').value = metrics.fluidContainmentAlert.includes('FLAGGED')
+                    ? 'Leak observed - containment required'
+                    : 'No leaks observed';
+                inspectionStatus.textContent = `Voice inspection saved to ${dispatchId}.`;
+                closeVoiceReview();
+                voiceStatus.textContent = 'Reviewed voice inspection committed successfully.';
+            } catch (error) {
+                console.error('Voice inspection commit error:', error);
+                voiceStatus.textContent = 'Reviewed voice inspection could not be saved.';
+            } finally {
+                voiceCommitButton.disabled = false;
+            }
+        }
+
+        corridorPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const corridor = pill.dataset.corridor;
+                historySearch.value = corridor;
+                corridorPills.forEach(item => item.classList.toggle('active', item === pill));
+                filterHistory();
+            });
+        });
+        historySearch.addEventListener('input', filterHistory);
+        inspectionForm.addEventListener('submit', saveInspection);
+        visionAnalysisForm.addEventListener('submit', analyzePartImage);
+        applySuggestedCostButton.addEventListener('click', applySuggestedPartCost);
+        loadMaintenanceButton.addEventListener('click', loadPredictiveMaintenance);
+        voiceConsent.addEventListener('change', () => {
+            if (!voiceConsent.checked && isRecording) {
+                toggleVoiceRecording();
+            }
+            updateVoiceRecorderState();
+        });
+        voiceRecordButton.addEventListener('click', toggleVoiceRecording);
+        voiceDiscardButton.addEventListener('click', closeVoiceReview);
+        voiceCommitButton.addEventListener('click', commitVoiceInspection);
+        window.addEventListener('online', replayOfflineMutations);
+        updateVoiceRecorderState();
+        registerServiceWorker();
+        replayOfflineMutations();
+        loadDispatchHistory();
+        connectEventStream();
+    </script>
+</body>
+</html>
