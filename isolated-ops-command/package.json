@@ -1,0 +1,13 @@
+{
+  "name": "isolated-ops-command",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EH Graced Roads Solutions LLC — Isolated Operations Command",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "backup:export": "node src/backup-cli.js export",
+    "backup:restore": "node src/backup-cli.js restore"
+  }
+}

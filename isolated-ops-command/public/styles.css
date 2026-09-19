@@ -1,0 +1,129 @@
+:root {
+  color-scheme: dark;
+  --bg: #020617;
+  --panel: #0f172a;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --safe: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #020617, #111827);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+}
+button, input, select, textarea {
+  font: inherit;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #0b1220;
+  color: var(--text);
+}
+button {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  border: none;
+}
+button.secondary { background: #1e293b; }
+input, select, textarea { width: 100%; padding: 0.7rem 0.85rem; }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.95);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.eyebrow { margin: 0 0 0.4rem; color: var(--accent); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+h1 { margin: 0; font-size: 1.8rem; }
+.subtitle { margin: 0.6rem 0 0; max-width: 50rem; color: var(--muted); }
+.toolbar { display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap; }
+.toolbar label, .stacked-form label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.9rem; }
+.banner, .message {
+  margin: 1rem 1.5rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+}
+.message { border-color: rgba(56, 189, 248, 0.35); background: rgba(14, 165, 233, 0.12); color: #bae6fd; min-height: 3rem; }
+.layout {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.panel {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+.panel-wide { grid-column: 1 / -1; }
+.panel-title-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.monitor-grid, .media-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.monitor-card, .media-card, .queue-card, .feed-item, .session-card {
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: rgba(2, 6, 23, 0.78);
+}
+.monitor-card[data-status="online"] { border-color: rgba(34, 197, 94, 0.55); }
+.monitor-card[data-status="simulated"] { border-color: rgba(245, 158, 11, 0.55); }
+.monitor-card[data-status="error"], .state-danger { border-color: rgba(239, 68, 68, 0.55); color: #fecaca; }
+.monitor-card[data-status="offline"], .monitor-card[data-status="stale"] { border-color: rgba(148, 163, 184, 0.45); }
+.status-badge, .state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  background: #0b1220;
+  border: 1px solid #334155;
+}
+.stacked-form { display: grid; gap: 0.8rem; }
+.inline-buttons { align-items: end; }
+.note { color: var(--muted); font-size: 0.88rem; }
+.feed-list, .session-list { display: grid; gap: 0.75rem; }
+.monospace { font-family: ui-monospace, SFMono-Regular, monospace; }
+.meta { color: var(--muted); font-size: 0.82rem; }
+.media-preview {
+  margin-top: 0.75rem;
+  min-height: 140px;
+  border: 1px dashed #334155;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.6);
+  overflow: hidden;
+}
+.media-preview iframe { width: 100%; min-height: 220px; border: 0; }
+.media-actions, .session-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.checkbox-label { display: flex !important; align-items: center; gap: 0.6rem; }
+.checkbox-label input { width: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .monitor-card, .media-card, .panel { transition: transform 180ms ease, border-color 180ms ease; }
+  .monitor-card:hover, .media-card:hover, .panel:hover { transform: translateY(-2px); }
+}
+@media (max-width: 820px) {
+  .topbar { flex-direction: column; align-items: stretch; }
+}
