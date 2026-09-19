@@ -220,32 +220,82 @@
             scannerTitle.innerText = `${center.radiusMiles}-Mile Commercial Breakdown Scanner`;
         }
 
+        function renderEmptyState(title, details) {
+            incidentGrid.replaceChildren();
+
+            const card = document.createElement('div');
+            card.className = 'incident-card';
+
+            const issueTitle = document.createElement('div');
+            issueTitle.className = 'issue-title';
+            issueTitle.textContent = title;
+
+            const issueDetails = document.createElement('div');
+            issueDetails.className = 'issue-details';
+            issueDetails.textContent = details;
+
+            card.append(issueTitle, issueDetails);
+            incidentGrid.appendChild(card);
+        }
+
+        function createBreakdownCard(breakdown, watchCenterLabel) {
+            const card = document.createElement('div');
+            card.className = 'incident-card';
+
+            const cardTop = document.createElement('div');
+            cardTop.className = 'card-top';
+
+            const corridorPill = document.createElement('span');
+            corridorPill.className = 'corridor-pill';
+            corridorPill.textContent = breakdown.corridor;
+
+            const distancePill = document.createElement('span');
+            distancePill.className = 'distance-pill';
+            distancePill.textContent = `${breakdown.distance} FROM WATCH CENTER`;
+
+            cardTop.append(corridorPill, distancePill);
+
+            const issueTitle = document.createElement('div');
+            issueTitle.className = 'issue-title';
+            issueTitle.textContent = `🚨 ${breakdown.vehicle} — ${breakdown.issue}`;
+
+            const issueDetails = document.createElement('div');
+            issueDetails.className = 'issue-details';
+            issueDetails.textContent = `${breakdown.location} • Source mode: ${watchCenterLabel}`;
+
+            const cardActions = document.createElement('div');
+            cardActions.className = 'card-actions';
+
+            const quoteRate = document.createElement('span');
+            quoteRate.className = 'quote-rate';
+            quoteRate.textContent = `Quoted Rate: ${breakdown.quoteRate}`;
+
+            const dispatchButton = document.createElement('button');
+            dispatchButton.className = 'dispatch-cta';
+            dispatchButton.type = 'button';
+            dispatchButton.textContent = 'Triage Job ➔';
+            dispatchButton.addEventListener('click', () => {
+                executeTriageRedirect(breakdown.vehicle, breakdown.location, breakdown.issue, breakdown.quoteRate);
+            });
+
+            cardActions.append(quoteRate, dispatchButton);
+            card.append(cardTop, issueTitle, issueDetails, cardActions);
+
+            return card;
+        }
+
         function renderBreakdowns(data) {
             renderWatchCenter(data.watchCenter);
 
             if (!data.breakdowns || data.breakdowns.length === 0) {
-                incidentGrid.innerHTML = `
-                    <div class="incident-card">
-                        <div class="issue-title">No breakdowns inside the active watch filter</div>
-                        <div class="issue-details">The server is applying the ${data.radiusMiles}-mile watch-center radius from ${data.watchCenter.watchCenterLabel}.</div>
-                    </div>`;
+                renderEmptyState(
+                    'No breakdowns inside the active watch filter',
+                    `The server is applying the ${data.radiusMiles}-mile watch-center radius from ${data.watchCenter.watchCenterLabel}.`
+                );
                 return;
             }
 
-            incidentGrid.innerHTML = data.breakdowns.map((breakdown) => `
-                <div class="incident-card">
-                    <div class="card-top">
-                        <span class="corridor-pill">${breakdown.corridor}</span>
-                        <span class="distance-pill">${breakdown.distance} FROM WATCH CENTER</span>
-                    </div>
-                    <div class="issue-title">🚨 ${breakdown.vehicle} — ${breakdown.issue}</div>
-                    <div class="issue-details">${breakdown.location} • Source mode: ${data.watchCenter.watchCenterLabel}</div>
-                    <div class="card-actions">
-                        <span class="quote-rate">Quoted Rate: ${breakdown.quoteRate}</span>
-                        <button class="dispatch-cta" onclick="executeTriageRedirect('${breakdown.vehicle}', '${breakdown.location}', '${breakdown.issue}', '${breakdown.quoteRate}')">Triage Job ➔</button>
-                    </div>
-                </div>
-            `).join('');
+            incidentGrid.replaceChildren(...data.breakdowns.map((breakdown) => createBreakdownCard(breakdown, data.watchCenter.watchCenterLabel)));
         }
 
         function executeTriageRedirect(vehicle, location, issue, quoteRate) {
@@ -270,11 +320,7 @@
                 .then(renderBreakdowns)
                 .catch((error) => {
                     scannerMode.innerText = 'WATCH CENTER OFFLINE';
-                    incidentGrid.innerHTML = `
-                        <div class="incident-card">
-                            <div class="issue-title">Breakdown scanner offline</div>
-                            <div class="issue-details">${error.message}</div>
-                        </div>`;
+                    renderEmptyState('Breakdown scanner offline', error.message);
                 });
         }
 

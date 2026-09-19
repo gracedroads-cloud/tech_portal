@@ -313,7 +313,7 @@
     const GPS_UPDATE_INTERVAL_MS = 45000;
     let geolocationWatchId = null;
     let lastGpsSentAt = 0;
-    let activeWatchCenter = null;
+    let gpsUpdateInFlight = false;
 
     // Helper TTS speech wrapper
     function speakGrace(text) {
@@ -364,7 +364,6 @@
     }
 
     function renderWatchCenter(center) {
-        activeWatchCenter = center;
         const isLiveGps = center.sourceMode === 'live_gps';
         const modeLabel = isLiveGps ? 'Watch Center: Live GPS' : 'Watch Center: Lehigh Valley fallback';
 
@@ -431,7 +430,11 @@
             return Promise.resolve();
         }
 
-        lastGpsSentAt = Date.now();
+        if (gpsUpdateInFlight) {
+            return Promise.resolve();
+        }
+
+        gpsUpdateInFlight = true;
         gpsStatus.innerText = 'Sending live GPS to the watch center...';
 
         return fetchJson('/api/watch-center/location', {
@@ -446,8 +449,11 @@
                 recordedAt: new Date(position.timestamp || Date.now()).toISOString()
             })
         }).then(data => {
+            lastGpsSentAt = Date.now();
             renderWatchCenter(data.watchCenter);
             gpsStatus.innerText = `Live GPS active. Last sent at ${new Date().toLocaleTimeString()}.`;
+        }).finally(() => {
+            gpsUpdateInFlight = false;
         });
     }
 

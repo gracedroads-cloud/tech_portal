@@ -11,7 +11,7 @@ const {
 
 const PORT = process.env.PORT || 3000;
 const dataDir = path.join(__dirname, 'data');
-const WATCH_CENTER_OPERATOR_TOKEN = process.env.WATCH_CENTER_OPERATOR_TOKEN || 'local-operator-access';
+const WATCH_CENTER_OPERATOR_TOKEN = process.env.WATCH_CENTER_OPERATOR_TOKEN || null;
 const WATCH_CENTER_RADIUS_MILES = Number(process.env.WATCH_CENTER_RADIUS_MILES || DEFAULT_WATCH_CENTER_RADIUS_MILES);
 const WATCH_CENTER_STALE_MS = Number(process.env.WATCH_CENTER_STALE_MS || DEFAULT_WATCH_CENTER_STALE_MS);
 const LEHIGH_VALLEY_CENTER = {
@@ -73,8 +73,32 @@ function ensureDataDir() {
     }
 }
 
+function createRateLimit({ windowMs, maxRequests }) {
+    const requestsByIp = new Map();
+
+    return (req, res, next) => {
+        const requestTime = Date.now();
+        const requestKey = req.ip || 'unknown';
+        const recentRequests = (requestsByIp.get(requestKey) || [])
+            .filter((timestamp) => requestTime - timestamp < windowMs);
+
+        recentRequests.push(requestTime);
+        requestsByIp.set(requestKey, recentRequests);
+
+        if (recentRequests.length > maxRequests) {
+            return res.status(429).json({ success: false, error: 'Too many requests. Please try again shortly.' });
+        }
+
+        return next();
+    };
+}
+
 function requireOperatorAuth(expectedToken) {
     return (req, res, next) => {
+        if (!expectedToken) {
+            return res.status(503).json({ success: false, error: 'Watch-center operator authorization is not configured.' });
+        }
+
         const authorizationHeader = req.get('authorization') || '';
         const providedToken = authorizationHeader.startsWith('Bearer ')
             ? authorizationHeader.slice('Bearer '.length).trim()
@@ -107,9 +131,17 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
     app.use(express.urlencoded({ extended: true }));
     app.use(cors());
     app.use(express.static(path.join(__dirname, 'public')));
-    app.use(express.static(__dirname));
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+    app.get('/index.html', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+    app.get('/no_tow_authorization.html', (req, res) => {
+        res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+    });
 
-    app.post('/api/dvir', (req, res) => {
+    app.post('/api/dvir', createRateLimit({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
         try {
             const dvirData = req.body;
             const filePath = path.join(dataDir, `dvir_${now()}.json`);
