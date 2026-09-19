@@ -143,7 +143,8 @@ test('payment-link flow does not persist raw card data', async () => {
     laborTier: 'standard',
     laborHours: 1,
     mileage: 0,
-    feeSchedule: 'standard'
+    feeSchedule: 'standard',
+    estimateApprovedOrAccepted: true
   });
 
   const paymentResp = await request('POST', '/api/grace/payment_link', {
@@ -162,4 +163,21 @@ test('payment-link flow does not persist raw card data', async () => {
   const auditLog = fs.readFileSync(auditLogPath, 'utf8');
   assert.equal(auditLog.includes('4242424242424242'), false);
   assert.equal(auditLog.includes('"cvv":"123"'), false);
+});
+
+test('payment-link generation requires estimate approval or acceptance', async () => {
+  const callId = await createCallThroughIntake();
+  await request('POST', '/api/grace/scope_check', { callId });
+  await request('POST', '/api/grace/quote', {
+    callId,
+    laborTier: 'standard',
+    laborHours: 1,
+    mileage: 0,
+    feeSchedule: 'standard',
+    estimateApprovedOrAccepted: false
+  });
+
+  const denied = await request('POST', '/api/grace/payment_link', { callId });
+  assert.equal(denied.status, 409);
+  assert.match(denied.body.error, /Estimate must be approved or accepted/i);
 });

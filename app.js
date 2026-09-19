@@ -187,7 +187,6 @@ app.post('/api/grace/intake', writeRateLimit, (req, res) => {
 app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
-    const stateEvent = transitionState(call, 'scope_check', { initiatedBy: 'grace' });
     const decision = validateScope({
       serviceCategory: req.body.serviceCategory || call.intake.serviceCategory,
       vehicleType: req.body.vehicleType || call.intake.vehicleType,
@@ -197,10 +196,10 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
 
     call.scopeDecision = decision;
     call.gates.scopeApproved = decision.approved;
-    audit(call, 'scope_check', { ...stateEvent, decision });
-    persistCall(call);
 
     if (!decision.approved) {
+      audit(call, 'scope_check_rejected', { decision });
+      persistCall(call);
       return res.status(422).json({
         success: false,
         callId: call.callId,
@@ -211,6 +210,9 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
       });
     }
 
+    const stateEvent = transitionState(call, 'scope_check', { initiatedBy: 'grace' });
+    audit(call, 'scope_check', { ...stateEvent, decision });
+    persistCall(call);
     return respondWithCall(res, call, { scopeApproved: true, policyDomain: decision.policyDomain });
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message });
@@ -252,6 +254,13 @@ app.post('/api/grace/quote', writeRateLimit, (req, res) => {
 app.post('/api/grace/payment_link', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
+    if (!call.gates.pricingEstimateApprovedOrAccepted) {
+      return res.status(409).json({
+        success: false,
+        callId: call.callId,
+        error: 'Estimate must be approved or accepted before payment-link generation.'
+      });
+    }
     const stateEvent = transitionState(call, 'payment_link', { providerType: 'pci-compliant' });
     const paymentLink = generateSecurePaymentLink(call.callId);
     call.paymentLink = paymentLink;

@@ -19,7 +19,7 @@
     <label for="callId">Call ID</label>
     <input id="callId" placeholder="Enter callId from dispatch console" style="width:65%;">
     <button onclick="loadState()">Load Call State</button>
-    <pre id="stateOutput">No call loaded.</pre>
+    <pre id="stateOutput" role="status" aria-live="polite">No call loaded.</pre>
   </div>
 
   <script>

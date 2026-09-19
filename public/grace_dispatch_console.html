@@ -101,7 +101,7 @@
     function answer() { return post('/api/grace/answer', { caller: { phone: '+1-610-555-0147' }, channel: 'voice' }); }
     function intake() { return post('/api/grace/intake', baseBody()); }
     function scopeCheck() { return post('/api/grace/scope_check', baseBody()); }
-    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard' }); }
+    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard', estimateApprovedOrAccepted: true }); }
     function paymentLink() { return post('/api/grace/payment_link', baseBody()); }
     function offerTech() { return post('/api/grace/technician_offer', { ...baseBody(), technicianId: 'tech-22', technicianName: 'J. Miller', etaMinutes: 35 }); }
     function acceptTech() { return post('/api/grace/technician_acceptance', { ...baseBody(), accepted: true }); }
