@@ -749,6 +749,14 @@ app.post('/api/grace/call/work-order-create', (req, res) => {
         return;
     }
 
+    if (!call.scope?.accepted || !call.quote || !call.payment || !call.technicianOffer) {
+        return res.status(409).json({
+            error: 'Scope verification, quote, payment link, and technician offer are required before work order creation.',
+            dispatchStatus: getDispatchStatus(call),
+            ...toCallResponse(call)
+        });
+    }
+
     if (!call.technicianAccepted) {
         return res.status(409).json({
             error: 'Dispatch blocked until technicianAccepted === true.',

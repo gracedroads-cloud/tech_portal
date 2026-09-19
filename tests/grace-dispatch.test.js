@@ -43,6 +43,13 @@ test.beforeEach(() => {
     resetInMemoryState();
 });
 
+test('resetInMemoryState is guarded outside test mode', () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    assert.throws(() => resetInMemoryState(), /test-only/i);
+    process.env.NODE_ENV = previous;
+});
+
 test('haversine and 150-mile scanner filtering work server-side', async () => {
     const distance = haversineMiles(40.6259, -75.3705, 41.6259, -75.3705);
     assert.ok(distance > 68 && distance < 70);

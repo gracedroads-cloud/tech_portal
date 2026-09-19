@@ -525,8 +525,10 @@
                 });
                 if (response) {
                     graceLog.textContent = '[WATCH CENTER] Live GPS coordinates accepted.';
-                    refreshWatchCenter();
-                    refreshBreakdownTicker();
+                    await Promise.all([
+                        refreshWatchCenter(),
+                        refreshBreakdownTicker()
+                    ]);
                 }
             } catch (error) {
                 graceLog.textContent = `[WATCH CENTER] GPS update failed: ${error.message}`;

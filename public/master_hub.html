@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grace Master Hub Redirect</title>
-  <meta http-equiv="refresh" content="0; url=/business_dashboard.html">
   <style>
     body { background:#020617; color:#e2e8f0; font-family:Arial,sans-serif; display:flex; min-height:100vh; align-items:center; justify-content:center; margin:0; }
     .box { max-width:640px; background:#0f172a; border:1px solid #334155; border-radius:12px; padding:20px; text-align:center; }
@@ -15,10 +14,12 @@
   <div class="box">
     <h2>Grace Master Hub</h2>
     <p>This legacy fragment has been cleaned up and aligned to the live system.</p>
-    <p>Redirecting to <a href="/business_dashboard.html">Business Dashboard</a>...</p>
+    <p>Redirecting to <a href="/business_dashboard.html">Business Dashboard</a> in 3 seconds...</p>
   </div>
   <script>
-    window.location.replace('/business_dashboard.html');
+    setTimeout(() => {
+      window.location.replace('/business_dashboard.html');
+    }, 3000);
   </script>
 </body>
 </html>
