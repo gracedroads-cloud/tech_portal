@@ -56,7 +56,8 @@
 
   <script>
     const API = '';
-    const token = localStorage.getItem('grace_field_token') || '';
+    const token = sessionStorage.getItem('grace_field_token') || localStorage.getItem('grace_field_token') || '';
+    const tokenExpiry = sessionStorage.getItem('grace_field_token_expiry') || localStorage.getItem('grace_field_token_expiry') || '';
     const statusMsg = document.getElementById('statusMsg');
     const reportList = document.getElementById('reportList');
     const submitBtn = document.getElementById('submitDvirBtn');
@@ -68,6 +69,12 @@
 
     function headers() {
       return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+    }
+
+    function tokenIsExpired() {
+      if (!tokenExpiry) return false;
+      const expiry = new Date(tokenExpiry).getTime();
+      return Number.isFinite(expiry) && Date.now() > expiry;
     }
 
     async function getGps() {
@@ -138,7 +145,7 @@
       await loadReports();
     };
 
-    if (!token) {
+    if (!token || tokenIsExpired()) {
       setStatus('Please login in Field Jobs app first', 'bad');
     } else {
       setStatus('Connected', 'ok');

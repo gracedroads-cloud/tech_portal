@@ -86,8 +86,10 @@
   <script>
     const API = '';
     const tokenKey = 'grace_field_token';
+    const tokenExpiryKey = 'grace_field_token_expiry';
     const queueKey = 'grace_field_queue';
-    let currentToken = localStorage.getItem(tokenKey) || '';
+    let currentToken = sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
+    let currentTokenExpiry = sessionStorage.getItem(tokenExpiryKey) || localStorage.getItem(tokenExpiryKey) || '';
     let selectedJobId = null;
 
     const syncStatus = document.getElementById('syncStatus');
@@ -99,6 +101,26 @@
     const jobDetail = document.getElementById('jobDetail');
 
     function setSyncLabel(msg) { syncStatus.textContent = `Sync: ${msg}`; }
+    function setToken(token, expiresAt) {
+      currentToken = token || '';
+      currentTokenExpiry = expiresAt || '';
+      if (token) {
+        sessionStorage.setItem(tokenKey, token);
+        sessionStorage.setItem(tokenExpiryKey, expiresAt || '');
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenExpiryKey);
+      } else {
+        sessionStorage.removeItem(tokenKey);
+        sessionStorage.removeItem(tokenExpiryKey);
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenExpiryKey);
+      }
+    }
+    function isTokenExpired() {
+      if (!currentTokenExpiry) return false;
+      const expiry = new Date(currentTokenExpiry).getTime();
+      return Number.isFinite(expiry) && Date.now() > expiry;
+    }
     function headers() {
       return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + currentToken };
     }
@@ -135,6 +157,12 @@
     }
     async function loadJobs() {
       if (!currentToken) return;
+      if (isTokenExpired()) {
+        setToken('', '');
+        renderAuthState(false);
+        setSyncLabel('Session expired');
+        return;
+      }
       const res = await fetch(`${API}/api/field/jobs`, { headers: headers() });
       if (!res.ok) {
         renderAuthState(false);
@@ -156,6 +184,11 @@
       document.querySelectorAll('.job-item').forEach((el) => {
         el.onclick = () => { selectedJobId = el.dataset.id; loadJobs(); };
       });
+      const policyRes = await fetch(`${API}/api/field/policy`, { headers: headers() });
+      if (policyRes.ok) {
+        const policy = await policyRes.json();
+        setSyncLabel(`Online • ${policy.role.replace('_', ' ')}`);
+      }
     }
     async function callWithOfflineFallback(method, url, body) {
       try {
@@ -178,8 +211,7 @@
       });
       if (!res.ok) return alert('Invalid credentials');
       const data = await res.json();
-      currentToken = data.token;
-      localStorage.setItem(tokenKey, currentToken);
+      setToken(data.token, data.expiresAt);
       renderAuthState(true);
       await loadJobs();
       await syncQueue();
@@ -189,9 +221,8 @@
       if (currentToken) {
         try { await fetch(`${API}/api/field/auth/logout`, { method: 'POST', headers: headers() }); } catch {}
       }
-      currentToken = '';
+      setToken('', '');
       selectedJobId = null;
-      localStorage.removeItem(tokenKey);
       renderAuthState(false);
     };
 
@@ -246,8 +277,8 @@
       window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js').catch(() => {}));
     }
 
-    renderAuthState(Boolean(currentToken));
-    if (currentToken) {
+    renderAuthState(Boolean(currentToken) && !isTokenExpired());
+    if (currentToken && !isTokenExpired()) {
       loadJobs().catch(() => renderAuthState(false));
       syncQueue().catch(() => {});
     }

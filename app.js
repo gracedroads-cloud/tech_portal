@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -84,7 +85,10 @@ const SLO_POLICY = Object.freeze({
 const auditTrail = [];
 const AUDIT_RETENTION = 400;
 const FIELD_SESSION_TTL_MS = 1000 * 60 * 60 * 8;
+const FIELD_LOGIN_WINDOW_MS = 1000 * 60 * 15;
+const FIELD_LOGIN_MAX_ATTEMPTS = 8;
 const fieldSessions = new Map();
+const fieldLoginAttempts = new Map();
 const fieldTechnicians = [
     { techId: 'tech-101', name: 'Elijah Wright', pin: '1101', role: 'field_technician' },
     { techId: 'tech-202', name: 'Jordan Miles', pin: '2202', role: 'field_technician' }
@@ -158,9 +162,16 @@ const BREAKDOWN_LOCATIONS = [
 ];
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '300kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(self)');
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname)); // Serves root-level files like index.html
 
@@ -303,7 +314,50 @@ function writeAuditEntry(entry) {
 }
 
 function createFieldToken(techId) {
-    return `field-${techId}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    return `field-${techId}-${Date.now()}-${crypto.randomBytes(12).toString('hex')}`;
+}
+
+function getLoginAttemptKey(req, techId) {
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown-ip';
+    return `${techId || 'unknown-tech'}:${ip}`;
+}
+
+function isLoginBlocked(req, techId) {
+    const key = getLoginAttemptKey(req, techId);
+    const entry = fieldLoginAttempts.get(key);
+    if (!entry) return false;
+    const withinWindow = Date.now() - entry.firstAttemptAt <= FIELD_LOGIN_WINDOW_MS;
+    if (!withinWindow) {
+        fieldLoginAttempts.delete(key);
+        return false;
+    }
+    return entry.count >= FIELD_LOGIN_MAX_ATTEMPTS;
+}
+
+function markLoginFailure(req, techId) {
+    const key = getLoginAttemptKey(req, techId);
+    const current = fieldLoginAttempts.get(key);
+    const now = Date.now();
+    if (!current || now - current.firstAttemptAt > FIELD_LOGIN_WINDOW_MS) {
+        fieldLoginAttempts.set(key, { count: 1, firstAttemptAt: now });
+        return;
+    }
+    current.count += 1;
+    fieldLoginAttempts.set(key, current);
+}
+
+function clearLoginFailures(req, techId) {
+    const key = getLoginAttemptKey(req, techId);
+    fieldLoginAttempts.delete(key);
+}
+
+function cleanupExpiredFieldSessions() {
+    const now = Date.now();
+    Array.from(fieldSessions.entries()).forEach(([token, session]) => {
+        if (now > session.expiresAt) {
+            fieldSessions.delete(token);
+        }
+    });
 }
 
 function readFieldDvirReports() {
@@ -347,6 +401,7 @@ function sanitizeFieldJob(job) {
 }
 
 function requireFieldTechnician(req, res, next) {
+    cleanupExpiredFieldSessions();
     const authHeader = req.headers.authorization || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     if (!token) {
@@ -573,14 +628,25 @@ app.get('/api/location/base', (req, res) => {
 app.post('/api/field/auth/login', (req, res) => {
     const techId = String(req.body.techId || '').trim();
     const pin = String(req.body.pin || '').trim();
+    if (isLoginBlocked(req, techId)) {
+        return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+    }
     const technician = fieldTechnicians.find((tech) => tech.techId === techId && tech.pin === pin);
     if (!technician) {
+        markLoginFailure(req, techId);
         return res.status(401).json({ error: 'Invalid technician credentials' });
     }
 
+    clearLoginFailures(req, techId);
     const token = createFieldToken(technician.techId);
     const expiresAt = Date.now() + FIELD_SESSION_TTL_MS;
-    fieldSessions.set(token, { techId: technician.techId, role: technician.role, expiresAt });
+    fieldSessions.set(token, {
+        techId: technician.techId,
+        role: technician.role,
+        expiresAt,
+        issuedAt: Date.now(),
+        userAgent: String(req.headers['user-agent'] || 'unknown-agent')
+    });
 
     writeAuditEntry({
         actor: technician.techId,
@@ -642,6 +708,16 @@ app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
             'mastersuite governance endpoints',
             'company secrets and codes'
         ]
+    });
+});
+
+app.get('/api/field/security/session', requireFieldTechnician, (req, res) => {
+    const ttlMs = Math.max(req.fieldSession.expiresAt - Date.now(), 0);
+    res.json({
+        role: req.fieldTechnician.role,
+        tokenTtlMinutes: Math.ceil(ttlMs / 60000),
+        sessionExpiry: new Date(req.fieldSession.expiresAt).toISOString(),
+        policy: 'field_service_only'
     });
 });
 
@@ -891,6 +967,31 @@ app.get('/api/mastersuite/kpis', (req, res) => {
         alertAckSecondsP95: 140,
         cancellationRate,
         uptimeSeconds
+    });
+});
+
+app.get('/api/security/posture', (req, res) => {
+    cleanupExpiredFieldSessions();
+    res.json({
+        headers: {
+            nosniff: true,
+            frameGuard: 'SAMEORIGIN',
+            referrerPolicy: 'strict-origin-when-cross-origin',
+            permissionsPolicy: 'geolocation=(self), microphone=(self)'
+        },
+        fieldAuth: {
+            tokenTtlHours: FIELD_SESSION_TTL_MS / (1000 * 60 * 60),
+            loginWindowMinutes: FIELD_LOGIN_WINDOW_MS / (1000 * 60),
+            loginMaxAttempts: FIELD_LOGIN_MAX_ATTEMPTS,
+            activeSessions: fieldSessions.size
+        },
+        controls: [
+            'field role-only endpoint guard',
+            'gps-required state updates',
+            'proof-required completion',
+            'dvir-required fields',
+            'audit trail for field actions'
+        ]
     });
 });
 
