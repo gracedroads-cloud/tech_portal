@@ -117,6 +117,7 @@ async function runNext() {
       const data = await post('/api/grace/call/closeout', { callId:call.callId, resolution:'Backup flow complete' });
       showCall(data); logEl.textContent = 'Closeout complete.'; return;
     }
+    activeCallId = null;
     logEl.textContent = 'Backup workflow already complete.';
   } catch (err) {
     logEl.textContent = `Error: ${err.message}`;
@@ -126,11 +127,12 @@ async function runNext() {
 document.getElementById('start').addEventListener('click', async () => {
   try {
     const existing = await getCall();
-    if (existing) {
+    if (existing && existing.lifecycleState !== 'closeout_complete') {
       showCall(existing);
       logEl.textContent = 'Reusing current active backup call.';
       return;
     }
+    activeCallId = null;
     const data = await post('/api/grace/call/answer', { fleetName:'Backup Fleet', callbackNumber:'+1 610-555-0100' });
     activeCallId = data.callId;
     showCall(data);

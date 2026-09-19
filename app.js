@@ -437,7 +437,6 @@ function resetInMemoryState() {
     watchCenterState.radiusMiles = DEFAULT_RADIUS_MILES;
     callControl.mode = 'grace_ai';
     callControl.updatedAt = nowIso();
-    requestRateState.clear();
     dvirRecords.length = 0;
     departmentSuggestions.length = 0;
 }
@@ -559,8 +558,10 @@ app.get('/api/departments/qa-suggestions', (_req, res) => {
         }));
 
     res.json({
-        totalSubmissions: departmentSuggestions.length,
-        submissions: summaries
+        totalSubmissionsStored: departmentSuggestions.length,
+        returnedSubmissions: summaries.length,
+        submissions: summaries,
+        pageLimit: 25
     });
 });
 
@@ -974,7 +975,8 @@ app.get('/api/grace/calls', (req, res) => {
         totalCalls: calls.length,
         latestState: calls[0]?.lifecycleState || null,
         latestDispatchStatus: calls[0]?.dispatchStatus || null,
-        lifecycleSummary
+        lifecycleSummary,
+        calls: calls.slice(0, 10)
     });
 });
 

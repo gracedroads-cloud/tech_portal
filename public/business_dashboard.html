@@ -505,6 +505,12 @@
     });
 
     document.getElementById('btn-start-demo').addEventListener('click', async () => {
+        const existingCall = await getActiveCall();
+        if (existingCall && existingCall.lifecycleState !== 'closeout_complete') {
+            graceLog.textContent = `[INFO] Reusing in-progress call ${existingCall.callId}.`;
+            return;
+        }
+
         const data = await postLifecycle('/api/grace/call/answer', { fleetName: 'Keystone Freight', callbackNumber: '+1 610-555-0192' });
         if (data) {
             transcriptScreen.innerText += `\n[GRACE]: New demo call answered (${data.callId}).`;
