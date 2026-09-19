@@ -141,13 +141,14 @@ function createApp(overrides = {}) {
   let persistenceReady = false;
   let persistenceError = null;
 
-  ensureDir(config.dataDir)
+  const persistenceReadyPromise = ensureDir(config.dataDir)
     .then(() => {
       persistenceReady = true;
     })
     .catch((err) => {
       persistenceError = 'Data directory initialization failed.';
       console.error(`Failed to initialize data directory: ${err?.message || 'unknown error'}`);
+      throw err;
     });
 
   const writeMode = config.operatorToken
@@ -424,7 +425,7 @@ function createApp(overrides = {}) {
     return rejectWithError(res, 500, 'internal_error', 'An internal server error occurred.', req.requestId);
   });
 
-  return { app, config };
+  return { app, config, persistenceReadyPromise };
 }
 
 module.exports = {

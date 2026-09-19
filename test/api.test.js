@@ -84,6 +84,7 @@ test('scanner endpoint returns expected demo response shape', async () => {
   assert.equal(response.body.ok, true);
   assert.equal(response.body.source, 'simulated_demo_data');
   assert.ok(Array.isArray(response.body.breakdowns));
+  assert.ok(response.body.breakdowns.length > 0);
   assert.equal(typeof response.body.breakdowns[0].id, 'string');
   assert.equal(typeof response.body.breakdowns[0].distance, 'string');
 });

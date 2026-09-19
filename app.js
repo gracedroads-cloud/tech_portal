@@ -3,11 +3,12 @@ const { createApp } = require('./src/server');
 
 dotenv.config();
 
-const { app, config } = createApp();
+const { app, config, persistenceReadyPromise } = createApp();
 
 let server;
 
-function start() {
+async function start() {
+  await persistenceReadyPromise;
   server = app.listen(config.port, () => {
     console.log(`GRACE backup operations server listening on port ${config.port}`);
   });
@@ -40,7 +41,10 @@ function start() {
 }
 
 if (require.main === module) {
-  start();
+  start().catch((err) => {
+    console.error(`Startup failed: ${err?.message || 'unknown error'}`);
+    process.exit(1);
+  });
 }
 
 module.exports = {
