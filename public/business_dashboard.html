@@ -218,7 +218,6 @@
 </div>
 
 <script>
-    // Variable Declarations (Declared ONCE globally at top)
     const pttBtn = document.getElementById('pttBtn');
     const dispatchBtn = document.getElementById('dispatchBtn');
     const graceLog = document.getElementById('graceLog');
@@ -226,7 +225,6 @@
     const transcriptScreen = document.getElementById('stream-transcript-screen');
     const ticker = document.getElementById('breakdown-ticker');
 
-    // Helper TTS speech wrapper
     function speakGrace(text) {
         if ('speechSynthesis' in window) {
             const msg = new SpeechSynthesisUtterance(text);
@@ -234,79 +232,112 @@
         }
     }
 
-    // 1. Fetch 150-Mile Radius Breakdowns and Update Ticker
-    function refreshBreakdownTicker() {
-        fetch('/api/breakdowns/scanner?radius=150')
-            .then(res => res.json())
-            .then(data => {
-                if (data.breakdowns && data.breakdowns.length > 0) {
-                    const tickerText = data.breakdowns.map(b => 
-                        `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance} away) - STATUS: ${b.severity}`
-                    ).join('   |   ');
-                    ticker.innerText = tickerText;
-                } else {
-                    ticker.innerText = "NO BREAKDOWNS DETECTED WITHIN 150-MILE RADIUS OF EASTON, PA.";
-                }
-            })
-            .catch(() => {
-                ticker.innerText = "150-MILE BREAKDOWN TICKER OFFLINE.";
-            });
+    function getOperatorToken() {
+        return window.localStorage.getItem('operatorToken') || '';
     }
 
-    // 2. Call Intercept (Pickup)
+    async function apiRequest(url, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        const token = getOperatorToken();
+        if (token) {
+            headers['x-operator-token'] = token;
+        }
+
+        const response = await fetch(url, { ...options, headers });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.ok === false) {
+            throw new Error(payload?.error?.message || 'Request failed.');
+        }
+        return payload;
+    }
+
+    async function refreshBreakdownTicker() {
+        ticker.innerText = '[LOADING SCANNER FEED - DEMO DATA WHEN LIVE INTEGRATIONS ARE OFFLINE...]';
+        try {
+            const data = await apiRequest('/api/breakdowns/scanner?radius=150', { method: 'GET' });
+            if (data.breakdowns && data.breakdowns.length > 0) {
+                const tickerText = data.breakdowns.map((b) =>
+                    `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance}) - ${b.status.toUpperCase()}`
+                ).join('   |   ');
+                ticker.innerText = `[SIMULATED DEMO FEED] ${tickerText}`;
+            } else {
+                ticker.innerText = '[SIMULATED DEMO FEED] NO BREAKDOWNS IN SELECTED RADIUS.';
+            }
+        } catch (error) {
+            ticker.innerText = 'BREAKDOWN TICKER OFFLINE - BACKEND UNAVAILABLE.';
+        }
+    }
+
+    async function sendOverride(action, activeText, activeColor, logText, voiceText) {
+        graceLog.innerText = '[STREAM CONTROL] Processing request...';
+        try {
+            await apiRequest('/api/stream/override', {
+                method: 'POST',
+                body: JSON.stringify({ action })
+            });
+
+            statusBadge.innerText = activeText;
+            statusBadge.style.background = activeColor;
+            transcriptScreen.innerText += `
+
+${logText}`;
+            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
+            graceLog.innerText = '[STREAM CONTROL] Update confirmed by backend.';
+            speakGrace(voiceText);
+        } catch (error) {
+            graceLog.innerText = `[STREAM CONTROL] Failed: ${error.message}`;
+        }
+    }
+
     document.getElementById('btn-pickup-call').addEventListener('click', () => {
-        fetch('/api/stream/override', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'pickup' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            statusBadge.innerText = "● HUMAN OPERATOR OVERRIDE ACTIVE";
-            statusBadge.style.background = "#DC2626";
-
-            transcriptScreen.innerText += "\n\n[HUMAN INTERCEPT]: Elijah Wright picked up the active call. GRACE AI muted.";
-            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
-
-            graceLog.innerText = "[STREAM INTERCEPT] Active line transferred to operator headset.";
-            speakGrace("Call override engaged. You are now live on the call line.");
-        });
+        sendOverride(
+            'pickup',
+            '● HUMAN OPERATOR OVERRIDE ACTIVE',
+            '#DC2626',
+            '[HUMAN INTERCEPT]: Operator override confirmed by backend. GRACE AI muted.',
+            'Call override engaged.'
+        );
     });
 
-    // 3. Return Control to GRACE AI
     document.getElementById('btn-resume-grace').addEventListener('click', () => {
-        fetch('/api/stream/override', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'resume_grace' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            statusBadge.innerText = "● GRACE AI HANDLING";
-            statusBadge.style.background = "#15803D";
-
-            transcriptScreen.innerText += "\n\n[GRACE RESUMED]: Control returned to GRACE AI Core.";
-            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
-
-            graceLog.innerText = "[STREAM CONTROL] GRACE AI Core resumed primary line monitoring.";
-            speakGrace("GRACE AI core back online on the call line.");
-        });
+        sendOverride(
+            'resume_grace',
+            '● GRACE AI HANDLING',
+            '#15803D',
+            '[GRACE RESUMED]: Backend confirmed stream returned to GRACE AI.',
+            'GRACE AI resumed.'
+        );
     });
 
-    // 4. Dispatch Closest Breakdown
-    document.getElementById('btn-assign-closest').addEventListener('click', () => {
-        fetch('/api/breakdowns/scanner?radius=150')
-        .then(r => r.json())
-        .then(data => {
+    document.getElementById('btn-assign-closest').addEventListener('click', async () => {
+        graceLog.innerText = '[DISPATCH] Finding closest breakdown from scanner feed...';
+        try {
+            const data = await apiRequest('/api/breakdowns/scanner?radius=150', { method: 'GET' });
             if (data.breakdowns && data.breakdowns.length > 0) {
                 const closest = data.breakdowns[0];
-                graceLog.innerText = `[DISPATCHING CLOSEST UNIT]\nTarget: ${closest.id}\nVehicle: ${closest.vehicle}\nLocation: ${closest.location} (${closest.distance} from Easton)\nIssue: ${closest.issue}`;
-                speakGrace(`Dispatching mobile service van to ${closest.vehicle} at ${closest.location}.`);
+                graceLog.innerText = `[DISPATCH PREVIEW]
+Target: ${closest.id}
+Vehicle: ${closest.vehicle}
+Location: ${closest.location} (${closest.distance})
+Issue: ${closest.issue}
+Source: ${closest.source}`;
+                speakGrace(`Dispatch preview ready for ${closest.vehicle}.`);
+            } else {
+                graceLog.innerText = '[DISPATCH] No incidents returned by scanner.';
             }
-        });
+        } catch (error) {
+            graceLog.innerText = `[DISPATCH] Scanner unavailable: ${error.message}`;
+        }
     });
 
-    // Initial load & 30-second ticker interval
+    pttBtn?.addEventListener('click', () => {
+        graceLog.innerText = '[PTT] Local console action only. No backend dispatch mutation was sent.';
+    });
+
+    dispatchBtn?.addEventListener('click', () => {
+        graceLog.innerText = '[DISPATCH] Use the dispatch console form to create a backend-confirmed dispatch record.';
+    });
+
     refreshBreakdownTicker();
     setInterval(refreshBreakdownTicker, 30000);
 </script>

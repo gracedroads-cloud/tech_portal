@@ -1,4 +1,3 @@
-<!-- VERIFICATION CODE: 774291 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,9 +13,10 @@
         .label { color: #f59e0b; font-weight: bold; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; margin-top: 14px; }
         input[type="text"], input[type="date"] { width: 100%; padding: 10px 14px; background-color: #1e293b; border: 1px solid #334155; color: #ffffff; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; }
         input:focus { border-color: #f59e0b; }
-        .cursive-signature { font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #f59e0b; }
         .action-btn { background-color: #ef4444; color: #ffffff; border: none; font-weight: 900; font-size: 14px; padding: 14px; border-radius: 8px; cursor: pointer; text-transform: uppercase; width: 100%; margin-top: 24px; }
-        .success-box { background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 13px; display: none; margin-top: 20px; text-transform: uppercase; }
+        .status-box { border: 1px solid #334155; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 13px; display: none; margin-top: 20px; text-transform: uppercase; }
+        .ok { background-color: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #10b981; }
+        .error { background-color: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
         footer { text-align: center; margin-top: 20px; font-size: 11px; color: #475569; border-top: 1px solid #1e293b; padding-top: 12px; }
     </style>
 </head>
@@ -24,11 +24,11 @@
     <div class="container">
         <h2>TOWING LIABILITY EXCLUSION</h2>
         <div class="disclaimer-text">
-            <span class="alert-bold">LEGAL NOTICE & MANDATORY WAIVER:</span> EH GRACED ROADS SOLUTIONS LLC operates exclusively as a mobile mechanic roadside service and logistics infrastructure network. <span class="alert-bold">The company does not own, manage, or operate vehicle towing machinery, and will never perform towing services under any circumstances.</span> 
+            <span class="alert-bold">LEGAL NOTICE & MANDATORY WAIVER:</span> EH GRACED ROADS SOLUTIONS LLC operates as a mobile mechanic roadside service. <span class="alert-bold">The company does not provide towing services.</span>
             <br><br>
-            EH GRACED ROADS SOLUTIONS LLC is explicitly not responsible or liable for any subsequent vehicle tows, compound storage fees, impounds, or third-party vehicle hook-up damage. By executing this document, the carrier representative confirms towing exclusions have been explicitly communicated and accepted.
+            This form stores a prototype waiver record only and is not legal advice.
         </div>
-        <form id="waiver-form" onsubmit="executeWaiverSubmit(event)">
+        <form id="waiver-form">
             <span class="label">Carrier Company Name</span>
             <input type="text" id="w-carrier" placeholder="e.g. Werner Enterprises" required>
             <span class="label">Fleet Unit / Asset Identifier</span>
@@ -38,40 +38,62 @@
             <span class="label">Execution Date</span>
             <input type="date" id="w-date" required>
             <span class="label">Digital Signature Acknowledgment</span>
-            <input type="text" id="w-sig" class="cursive-signature" placeholder="Type full name to sign" required>
-            <div id="success-shield" class="success-box"></div>
-            <button type="submit" id="btn-lock" class="action-btn">Sign & Log Waiver Protection</button>
+            <input type="text" id="w-sig" placeholder="Type full name to sign" required>
+            <div id="success-shield" class="status-box"></div>
+            <button type="submit" id="btn-lock" class="action-btn">Submit Waiver Record</button>
         </form>
-        <footer>Emergency Roadside Service Desk: <span style="color: #f59e0b; font-weight: bold;">215-821-8046</span><br>? 2026 EH Graced Roads Solutions LLC</footer>
+        <footer>Emergency Roadside Service Desk: <span style="color: #f59e0b; font-weight: bold;">215-821-8046</span><br>© 2026 EH Graced Roads Solutions LLC</footer>
     </div>
     <script>
         document.getElementById('w-date').valueAsDate = new Date();
-        function executeWaiverSubmit(e) {
-            e.preventDefault();
-            const payload = {
-                ticketId: "WVR-" + Math.floor(1000 + Math.random() * 9000),
-                carrier: document.getElementById('w-carrier').value.trim(),
-                unitAsset: document.getElementById('w-asset').value.trim(),
-                destination: "On-Scene Execution",
-                diagnosis: "Towing Exclusion Terms Authorized",
-                repairs: "Waiver Signed",
-                partCost: 0
-            };
-            fetch('http://localhost:3000/api/submit-job', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('success-shield').textContent = "? Liability Waiver Logged Securely";
-                document.getElementById('success-shield').style.display = "block";
-                document.getElementById('btn-lock').style.display = "none";
-                document.querySelectorAll('input').forEach(i => i.disabled = true);
-            })
-            .catch(err => alert("Network Sync Error: Could not reach backend server."));
+
+        function setStatus(text, ok) {
+            const box = document.getElementById('success-shield');
+            box.textContent = text;
+            box.className = `status-box ${ok ? 'ok' : 'error'}`;
+            box.style.display = 'block';
         }
+
+        function operatorHeaders() {
+            const token = window.localStorage.getItem('operatorToken') || '';
+            return token ? { 'x-operator-token': token } : {};
+        }
+
+        document.getElementById('waiver-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = document.getElementById('btn-lock');
+            button.disabled = true;
+            button.textContent = 'Submitting...';
+
+            try {
+                const response = await fetch('/api/submit-job', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...operatorHeaders(),
+                    },
+                    body: JSON.stringify({
+                        carrier: document.getElementById('w-carrier').value.trim(),
+                        unitAsset: document.getElementById('w-asset').value.trim(),
+                        agent: document.getElementById('w-agent').value.trim(),
+                        executionDate: document.getElementById('w-date').value,
+                        signature: document.getElementById('w-sig').value.trim(),
+                    }),
+                });
+
+                const payload = await response.json();
+                if (!response.ok || payload.ok === false) {
+                    throw new Error(payload?.error?.message || 'Request failed');
+                }
+
+                setStatus(`Waiver logged. Reference ID: ${payload.id}`, true);
+            } catch (error) {
+                setStatus(`Submission failed: ${error.message}`, false);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Submit Waiver Record';
+            }
+        });
     </script>
 </body>
 </html>
-

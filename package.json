@@ -1,9 +1,24 @@
 {
+  "name": "tech_portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backup operations command prototype for EH Graced Roads",
+  "main": "app.js",
+  "engines": {
+    "node": ">=20 <23"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "check": "node --check app.js && node --check src/server.js && node --check src/persistence.js && node --check src/validation.js",
+    "test": "node --test"
+  },
   "dependencies": {
-    "cors": "^2.8.6",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "node-fetch": "^3.3.2"
+    "express": "^5.1.0",
+    "helmet": "^8.1.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4"
   }
 }
-
