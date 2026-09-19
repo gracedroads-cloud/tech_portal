@@ -82,6 +82,7 @@ function loadConfig(overrides = {}) {
     port: Number(overrides.port ?? process.env.ISOLATED_OPS_PORT ?? 4300),
     secureBrowserAllowlist,
     secureBrowserSessionMinutes: Number(overrides.secureBrowserSessionMinutes ?? process.env.ISOLATED_OPS_BROWSER_SESSION_MINUTES ?? 20),
+    sseSessionTtlMs: Number(overrides.sseSessionTtlMs ?? process.env.ISOLATED_OPS_SSE_SESSION_TTL_MS ?? 300000),
     simulationMode: parseBoolean(overrides.simulationMode ?? process.env.ISOLATED_OPS_SIMULATION_MODE, true),
     teamsBackoffMs: Number(overrides.teamsBackoffMs ?? process.env.TEAMS_BACKOFF_MS ?? 250),
     teamsRetries: Number(overrides.teamsRetries ?? process.env.TEAMS_RETRIES ?? 2),
@@ -390,7 +391,7 @@ function createServer(overrides = {}) {
 
   let state = createInitialState(config, storage);
   let simulationInterval = null;
-  const sseClients = new Set();
+  const sseClients = new Map();
 
   function persist() {
     state = refreshMonitors(state, config, teams.getHealth());
@@ -409,7 +410,7 @@ function createServer(overrides = {}) {
   function emit(type, payload) {
     const message = { type, at: now(), payload };
     eventBus.emit('event', message);
-    for (const res of sseClients) {
+    for (const res of sseClients.keys()) {
       res.write(`data: ${JSON.stringify(message)}\n\n`);
     }
   }
@@ -745,7 +746,7 @@ function createServer(overrides = {}) {
       return;
     }
 
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const url = new URL(req.url, 'http://localhost');
     const requiresApiAuth = url.pathname.startsWith('/api/') && url.pathname !== '/api/teams/events';
     if (requiresApiAuth && !validateAuth(req, config)) {
       toJson(res, 401, { error: 'Unauthorized' });
@@ -804,8 +805,20 @@ function createServer(overrides = {}) {
         'cache-control': 'no-cache'
       });
       res.write(`data: ${JSON.stringify({ type: 'snapshot', at: now(), payload: getPublicState() })}\n\n`);
-      sseClients.add(res);
-      req.on('close', () => sseClients.delete(res));
+      const timeoutId = setTimeout(() => {
+        if (!res.destroyed) {
+          res.end();
+        }
+      }, config.sseSessionTtlMs);
+      timeoutId.unref();
+      sseClients.set(res, timeoutId);
+      req.on('close', () => {
+        const activeTimeout = sseClients.get(res);
+        if (activeTimeout) {
+          clearTimeout(activeTimeout);
+        }
+        sseClients.delete(res);
+      });
       return;
     }
 
@@ -903,9 +916,11 @@ function createServer(overrides = {}) {
         clearInterval(simulationInterval);
         simulationInterval = null;
       }
-      for (const client of sseClients) {
+      for (const [client, timeoutId] of sseClients.entries()) {
+        clearTimeout(timeoutId);
         client.end();
       }
+      sseClients.clear();
       server.close(() => {
         resolve();
       });
