@@ -16,6 +16,7 @@ const tokenInput = document.getElementById('tokenInput');
 const secureSessions = document.getElementById('secureSessions');
 const automationState = document.getElementById('automationState');
 const lastUpdated = document.getElementById('lastUpdated');
+let liveAbortController = null;
 
 function getToken() {
   return tokenInput.value.trim();
@@ -46,6 +47,14 @@ async function api(path, options = {}) {
     throw new Error(payload.error || `Request failed with ${response.status}`);
   }
   return payload;
+}
+
+function parseSseChunk(rawChunk) {
+  const dataLine = rawChunk.split('\n').find((line) => line.startsWith('data: '));
+  if (!dataLine) {
+    return null;
+  }
+  return JSON.parse(dataLine.slice(6));
 }
 
 function statusBadge(status) {
@@ -152,6 +161,10 @@ function renderSnapshot(snapshot) {
 }
 
 async function refresh() {
+  if (!getToken()) {
+    setMessage('Enter the operator token to load isolated operations state.');
+    return;
+  }
   const [config, snapshot] = await Promise.all([api('/api/config', { method: 'GET' }), api('/api/state', { method: 'GET' })]);
   state.config = config;
   const serviceType = document.getElementById('serviceType');
@@ -159,23 +172,55 @@ async function refresh() {
   renderSnapshot(snapshot);
 }
 
-function connectEvents() {
-  const stream = new EventSource('/api/events');
-  stream.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.payload && data.payload.state) {
-      renderSnapshot(data.payload.state);
-      return;
+async function connectEvents() {
+  if (!getToken()) {
+    return;
+  }
+  if (liveAbortController) {
+    liveAbortController.abort();
+  }
+  liveAbortController = new AbortController();
+  try {
+    const response = await fetch('/api/events', {
+      headers: { 'x-ops-token': getToken() },
+      signal: liveAbortController.signal
+    });
+    if (!response.ok || !response.body) {
+      throw new Error('Unable to open live event stream.');
     }
-    if (data.payload && data.payload.monitors) {
-      renderSnapshot(data.payload);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      let splitIndex = buffer.indexOf('\n\n');
+      while (splitIndex >= 0) {
+        const eventChunk = buffer.slice(0, splitIndex).trim();
+        buffer = buffer.slice(splitIndex + 2);
+        if (eventChunk) {
+          const data = parseSseChunk(eventChunk);
+          if (data?.payload?.state) {
+            renderSnapshot(data.payload.state);
+          } else if (data?.payload?.monitors) {
+            renderSnapshot(data.payload);
+          }
+        }
+        splitIndex = buffer.indexOf('\n\n');
+      }
     }
-  };
-  stream.addEventListener('snapshot', (event) => {
-    const data = JSON.parse(event.data);
-    renderSnapshot(data.payload);
-  });
-  stream.onerror = () => setMessage('Live event stream interrupted; retrying automatically.');
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      setMessage('Live event stream interrupted; retrying automatically.');
+      window.setTimeout(() => {
+        connectEvents().catch((streamError) => setMessage(streamError.message));
+      }, 1500);
+    }
+  }
 }
 
 function preventUnsupportedService(description) {
@@ -300,6 +345,14 @@ document.getElementById('fullscreenButton').addEventListener('click', async () =
 });
 
 tokenInput.value = localStorage.getItem('isolatedOpsToken') || '';
-tokenInput.addEventListener('change', () => localStorage.setItem('isolatedOpsToken', tokenInput.value));
+tokenInput.addEventListener('change', async () => {
+  localStorage.setItem('isolatedOpsToken', tokenInput.value);
+  try {
+    await refresh();
+    await connectEvents();
+  } catch (error) {
+    setMessage(error.message);
+  }
+});
 
 refresh().then(connectEvents).catch((error) => setMessage(error.message));

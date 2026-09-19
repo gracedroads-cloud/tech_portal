@@ -88,6 +88,18 @@ test('requires auth for mutating APIs', async () => {
   }
 });
 
+test('requires auth for operational state feeds', async () => {
+  const ctx = await startTestServer();
+  try {
+    const state = await jsonRequest(ctx.baseUrl, '/api/state');
+    const audit = await jsonRequest(ctx.baseUrl, '/api/audit');
+    assert.equal(state.response.status, 401);
+    assert.equal(audit.response.status, 401);
+  } finally {
+    await ctx.stop();
+  }
+});
+
 test('rejects towing requests at the API layer and records audit history', async () => {
   const ctx = await startTestServer();
   try {
@@ -99,7 +111,7 @@ test('rejects towing requests at the API layer and records audit history', async
     assert.equal(response.status, 422);
     assert.match(body.error, /NO TOWING and NO WINCHING/);
 
-    const audit = await jsonRequest(ctx.baseUrl, '/api/audit');
+    const audit = await jsonRequest(ctx.baseUrl, '/api/audit', { headers: { 'x-ops-token': 'test-token' } });
     assert.ok(audit.body.events.some((event) => event.type === 'policy.rejected'));
   } finally {
     await ctx.stop();
@@ -164,7 +176,7 @@ test('requires human approval by default and allows explicit approval', async ()
     });
     assert.equal(approved.response.status, 200);
 
-    const state = await jsonRequest(ctx.baseUrl, '/api/state');
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
     assert.equal(state.body.dispatchQueue[0].status, 'approved_dispatch');
   } finally {
     await ctx.stop();
@@ -182,7 +194,7 @@ test('supports automation pause and reports it in state', async () => {
     assert.equal(paused.response.status, 200);
     assert.equal(paused.body.paused, true);
 
-    const state = await jsonRequest(ctx.baseUrl, '/api/state');
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
     assert.equal(state.body.automationPaused, true);
     assert.equal(state.body.automationPauseReason, 'Supervisor stop');
   } finally {
@@ -289,7 +301,13 @@ test('streams monitor updates over SSE when simulation events occur', async () =
   const ctx = await startTestServer();
   try {
     const url = new URL('/api/events', ctx.baseUrl);
-    const req = http.request({ method: 'GET', hostname: url.hostname, port: url.port, path: url.pathname });
+    const req = http.request({
+      method: 'GET',
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      headers: { 'x-ops-token': 'test-token' }
+    });
     req.end();
     const [res] = await once(req, 'response');
 

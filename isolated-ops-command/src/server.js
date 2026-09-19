@@ -186,7 +186,7 @@ function createRateLimiter(limit, windowMs) {
   };
 }
 
-function parseBody(req, maxBytes) {
+function parseBody(req, res, maxBytes) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let total = 0;
@@ -198,13 +198,17 @@ function parseBody(req, maxBytes) {
       total += chunk.length;
       if (total > maxBytes) {
         tooLarge = true;
+        if (!res.headersSent) {
+          toJson(res, 413, { error: 'Payload too large' });
+        }
+        req.destroy();
         return;
       }
       chunks.push(chunk);
     });
     req.on('end', () => {
       if (tooLarge) {
-        reject(Object.assign(new Error('Payload too large'), { statusCode: 413 }));
+        resolve(null);
         return;
       }
       const raw = Buffer.concat(chunks).toString('utf8');
@@ -724,16 +728,28 @@ function createServer(overrides = {}) {
     }
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
+      if (!validateAuth(req, config)) {
+        toJson(res, 401, { error: 'Unauthorized' });
+        return;
+      }
       toJson(res, 200, getPublicState());
       return;
     }
 
     if (url.pathname === '/api/audit' && req.method === 'GET') {
+      if (!validateAuth(req, config)) {
+        toJson(res, 401, { error: 'Unauthorized' });
+        return;
+      }
       toJson(res, 200, { events: state.auditTail });
       return;
     }
 
     if (url.pathname === '/api/events' && req.method === 'GET') {
+      if (!validateAuth(req, config)) {
+        toJson(res, 401, { error: 'Unauthorized' });
+        return;
+      }
       res.writeHead(200, {
         'content-type': 'text/event-stream; charset=utf-8',
         connection: 'keep-alive',
@@ -754,7 +770,10 @@ function createServer(overrides = {}) {
     let body = {};
     if (req.method === 'POST') {
       try {
-        body = await parseBody(req, config.maxBodyBytes);
+        body = await parseBody(req, res, config.maxBodyBytes);
+        if (body === null) {
+          return;
+        }
       } catch (error) {
         toJson(res, error.statusCode || 400, { error: error.message });
         return;
@@ -837,6 +856,7 @@ function createServer(overrides = {}) {
 
   function stop() {
     return new Promise((resolve) => {
+      audit('system.stopping', {});
       if (simulationInterval) {
         clearInterval(simulationInterval);
         simulationInterval = null;
@@ -845,7 +865,6 @@ function createServer(overrides = {}) {
         client.end();
       }
       server.close(() => {
-        audit('system.stopped', {});
         resolve();
       });
     });
