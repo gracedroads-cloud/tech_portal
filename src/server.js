@@ -121,6 +121,9 @@ function createApp(overrides = {}) {
       if (!origin) {
         return callback(null, true);
       }
+      if (!config.allowedOrigins.length) {
+        return callback(null, true);
+      }
       if (config.allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -227,7 +230,7 @@ function createApp(overrides = {}) {
   });
 
   app.get('/readyz', (req, res) => {
-    const ready = writeMode !== 'disabled' && persistenceReady;
+    const ready = persistenceReady;
     const status = ready ? 'ready' : 'degraded';
     const code = ready ? 200 : 503;
     res.status(code).json({
@@ -235,8 +238,8 @@ function createApp(overrides = {}) {
       status,
       writeMode,
       message: ready
-        ? 'Service is ready for configured operations.'
-        : (persistenceError || 'Mutating operations are disabled until OPERATOR_TOKEN or ALLOW_DEMO_WRITE_MODE is configured.'),
+        ? 'Service is ready. Check writeMode for mutating-route availability.'
+        : (persistenceError || 'Persistence layer is not ready.'),
       timestamp: new Date().toISOString(),
     });
   });

@@ -139,6 +139,12 @@ function normalizeWaiver(body) {
   const agent = toTrimmed(body?.agent);
   const executionDate = toTrimmed(body?.executionDate);
   const signature = toTrimmed(body?.signature || '');
+  const parsedDate = executionDate ? new Date(`${executionDate}T00:00:00.000Z`) : null;
+  const isValidCalendarDate = Boolean(
+    parsedDate
+    && Number.isFinite(parsedDate.getTime())
+    && parsedDate.toISOString().slice(0, 10) === executionDate,
+  );
 
   if (!isNonEmptyString(carrier, 120)) {
     errors.push('carrier is required.');
@@ -149,8 +155,8 @@ function normalizeWaiver(body) {
   if (!isNonEmptyString(agent, 120)) {
     errors.push('agent is required.');
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(executionDate || '')) {
-    errors.push('executionDate must be YYYY-MM-DD.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(executionDate || '') || !isValidCalendarDate) {
+    errors.push('executionDate must be a real calendar date in YYYY-MM-DD format.');
   }
   if (!isNonEmptyString(signature, 120)) {
     errors.push('signature is required.');

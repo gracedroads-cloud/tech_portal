@@ -88,6 +88,22 @@ test('scanner endpoint returns expected demo response shape', async () => {
   assert.equal(typeof response.body.breakdowns[0].distance, 'string');
 });
 
+test('waiver endpoint rejects impossible calendar dates', async () => {
+  const { app } = await makeTestApp();
+  const response = await request(app)
+    .post('/api/submit-job')
+    .send({
+      carrier: 'Carrier One',
+      unitAsset: 'Unit-9',
+      agent: 'Agent Name',
+      executionDate: '2026-02-31',
+      signature: 'Agent Name',
+    })
+    .expect(400);
+
+  assert.equal(response.body.error.code, 'validation_failed');
+});
+
 test('malformed JSON request gets 400 and oversized payload gets 413', async () => {
   const { app } = await makeTestApp({ requestSizeLimit: '1kb' });
 
@@ -127,16 +143,22 @@ test('frontend API calls have backend route parity', async () => {
   for (const relPath of filesToScan) {
     const filePath = path.join(process.cwd(), relPath);
     const content = await fs.readFile(filePath, 'utf8');
-    const fetchCalls = content.matchAll(/fetch\(\s*['"`](\/api\/[^'"`]+)['"`]\s*(?:,\s*\{([\s\S]*?)\})?\s*\)/gi);
+    const callPatterns = [
+      /fetch\(\s*['"`](\/api\/[^'"`]+)['"`]\s*(?:,\s*\{([\s\S]*?)\})?\s*\)/gi,
+      /apiRequest\(\s*['"`](\/api\/[^'"`]+)['"`]\s*(?:,\s*\{([\s\S]*?)\})?\s*\)/gi,
+    ];
 
-    for (const match of fetchCalls) {
-      const endpointWithQuery = match[1];
-      const optionsChunk = match[2] || '';
-      const endpoint = endpointWithQuery.split('?')[0];
-      const methodMatch = optionsChunk.match(/method\s*:\s*['"`]([A-Za-z]+)['"`]/i);
-      const method = (methodMatch ? methodMatch[1] : 'GET').toUpperCase();
-      const routeKey = `${method} ${endpoint}`;
-      assert.equal(routeSet.has(routeKey), true, `Missing backend route for ${routeKey} referenced in ${relPath}`);
+    for (const pattern of callPatterns) {
+      const calls = content.matchAll(pattern);
+      for (const match of calls) {
+        const endpointWithQuery = match[1];
+        const optionsChunk = match[2] || '';
+        const endpoint = endpointWithQuery.split('?')[0];
+        const methodMatch = optionsChunk.match(/method\s*:\s*['"`]([A-Za-z]+)['"`]/i);
+        const method = (methodMatch ? methodMatch[1] : 'GET').toUpperCase();
+        const routeKey = `${method} ${endpoint}`;
+        assert.equal(routeSet.has(routeKey), true, `Missing backend route for ${routeKey} referenced in ${relPath}`);
+      }
     }
   }
 });
