@@ -437,6 +437,7 @@ function resetInMemoryState() {
     watchCenterState.radiusMiles = DEFAULT_RADIUS_MILES;
     callControl.mode = 'grace_ai';
     callControl.updatedAt = nowIso();
+    requestRateState.clear();
     dvirRecords.length = 0;
     departmentSuggestions.length = 0;
 }
@@ -603,7 +604,7 @@ app.get('/api/breakdowns/scanner', (req, res) => {
         })
         .filter((item) => item.distanceMiles <= radiusMiles)
         .sort((a, b) => a.distanceMiles - b.distanceMiles)
-        .map(({ lat, lng, ...safeItem }) => safeItem);
+        .map((item) => ({ ...item }));
 
     res.json({
         watchCenter,
