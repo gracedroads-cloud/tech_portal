@@ -284,7 +284,7 @@ class LearningSystem {
 
     if (Array.isArray(context.retrievedDocuments)) {
       for (const document of context.retrievedDocuments) {
-        if (document.trustLevel === 'untrusted' && (document.suggestedActions || []).length) {
+        if (document.trustLevel === 'untrusted' && Object.prototype.hasOwnProperty.call(document, 'suggestedActions')) {
           throw new Error('untrusted_source_action_blocked');
         }
       }

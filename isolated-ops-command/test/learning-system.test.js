@@ -328,6 +328,15 @@ test('idempotency, auth/roles, and audit integrity are enforced', async () => {
     assert.equal(second.response.status, 201);
     assert.equal(first.json.feedback.id, second.json.feedback.id);
 
+    const third = await jsonFetch(baseUrl, '/api/ops/feedback', {
+      method: 'POST',
+      headers: headers('reviewer', { 'idempotency-key': 'idem-1' }),
+      body: JSON.stringify({ ...payload, recommendationId: 'rec-2' })
+    });
+
+    assert.equal(third.response.status, 201);
+    assert.notEqual(third.json.feedback.id, first.json.feedback.id);
+
     const audit = await jsonFetch(baseUrl, '/api/ops/audit', {
       headers: headers('admin')
     });

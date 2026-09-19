@@ -229,6 +229,8 @@ function createServer(options = {}) {
     }
 
     const data = req.body.data;
+    const previousAuditLength = store.state.audit.length;
+    const previousRuntime = { ...store.state.runtime };
     store.state.observations = Array.isArray(data.observations) ? data.observations : [];
     store.state.feedback = Array.isArray(data.feedback) ? data.feedback : [];
     store.state.lessons = Array.isArray(data.lessons) ? data.lessons : [];
@@ -237,18 +239,33 @@ function createServer(options = {}) {
       : store.state.knowledgeBases;
     store.state.evaluations = Array.isArray(data.evaluations) ? data.evaluations : [];
     store.state.idempotency = data.idempotency && typeof data.idempotency === 'object' ? data.idempotency : {};
-    store.state.audit = Array.isArray(data.audit) ? data.audit : [];
-    store.state.runtime = {
-      ...store.state.runtime,
-      ...(data.runtime || {})
-    };
+    if (data.runtime && typeof data.runtime === 'object') {
+      if (typeof data.runtime.retentionDays === 'number' && data.runtime.retentionDays > 0) {
+        store.state.runtime.retentionDays = Math.floor(data.runtime.retentionDays);
+      }
+      if (typeof data.runtime.consentRequired === 'boolean') {
+        store.state.runtime.consentRequired = data.runtime.consentRequired;
+      }
+      if (data.runtime.provider && typeof data.runtime.provider === 'object') {
+        store.state.runtime.provider = {
+          ...store.state.runtime.provider,
+          ...data.runtime.provider
+        };
+      }
+    }
+    store.state.runtime.learningPaused = previousRuntime.learningPaused;
+    store.state.runtime.legalHold = previousRuntime.legalHold;
+    store.state.runtime.legalHoldReason = previousRuntime.legalHoldReason;
 
     store.addAudit({
       action: 'governance.restore',
       entityType: 'governance',
       entityId: 'restore',
       actor,
-      details: { restored: true }
+      details: {
+        restored: true,
+        preservedAuditEvents: previousAuditLength
+      }
     });
     store.persistAll();
 

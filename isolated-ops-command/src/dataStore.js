@@ -260,6 +260,9 @@ class DataStore {
       lesson.lastReviewedDate = now;
       lesson.rejectionReason = note || 'Rejected by reviewer';
     } else if (decision === 'rollback') {
+      if (lesson.approvalState !== 'approved') {
+        return null;
+      }
       lesson.approvalState = 'rolled_back';
       lesson.lastReviewedDate = now;
       lesson.rollbackReason = note || 'Rolled back by reviewer';
