@@ -474,7 +474,7 @@ test('restore preserves audit chain and legal-hold runtime controls', async () =
           evaluations: [],
           knowledgeBases: {},
           runtime: { legalHold: false, legalHoldReason: null, retentionDays: 5 },
-          audit: [{ fake: true, hash: 'x', previousHash: null }]
+          audit: []
         }
       })
     });
@@ -488,6 +488,44 @@ test('restore preserves audit chain and legal-hold runtime controls', async () =
     assert.equal(after.json.data.runtime.legalHold, true);
     assert.equal(after.json.data.runtime.retentionDays, 5);
     assert.equal(after.json.data.audit.length, beforeAuditLength + 1);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('legal-hold toggle blocks and then allows governance anonymize flow', async () => {
+  const { baseUrl, headers, cleanup } = await startTestServer();
+  try {
+    const enable = await jsonFetch(baseUrl, '/api/ops/governance/legal-hold', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'hold-1' }),
+      body: JSON.stringify({ enabled: true, reason: 'legal review' })
+    });
+    assert.equal(enable.response.status, 200);
+    assert.equal(enable.json.legalHold, true);
+
+    const blocked = await jsonFetch(baseUrl, '/api/ops/governance/anonymize', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'hold-2' }),
+      body: JSON.stringify({ days: 1 })
+    });
+    assert.equal(blocked.response.status, 400);
+    assert.equal(blocked.json.code, 'legal_hold_active');
+
+    const disable = await jsonFetch(baseUrl, '/api/ops/governance/legal-hold', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'hold-3' }),
+      body: JSON.stringify({ enabled: false })
+    });
+    assert.equal(disable.response.status, 200);
+    assert.equal(disable.json.legalHold, false);
+
+    const allowed = await jsonFetch(baseUrl, '/api/ops/governance/anonymize', {
+      method: 'POST',
+      headers: headers('admin', { 'idempotency-key': 'hold-4' }),
+      body: JSON.stringify({ days: 1 })
+    });
+    assert.equal(allowed.response.status, 200);
   } finally {
     await cleanup();
   }

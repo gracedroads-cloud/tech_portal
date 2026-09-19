@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { DataStore } = require('./dataStore');
 const { LearningSystem } = require('./learningSystem');
 
@@ -28,6 +29,35 @@ function createServer(options = {}) {
     }
   });
 
+  function stableJson(value) {
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => stableJson(item)).join(',')}]`;
+    }
+    if (value && typeof value === 'object') {
+      const keys = Object.keys(value).sort();
+      const entries = keys.map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`);
+      return `{${entries.join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  function validateAuditChain(entries) {
+    if (!Array.isArray(entries)) return false;
+    for (let i = 0; i < entries.length; i += 1) {
+      const current = entries[i];
+      const previous = i > 0 ? entries[i - 1] : null;
+      if (i > 0 && current.previousHash !== previous.hash) {
+        return false;
+      }
+      const { hash, ...withoutHash } = current;
+      const calculated = crypto.createHash('sha256').update(stableJson(withoutHash)).digest('hex');
+      if (hash !== calculated) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function redactError(error) {
     const safeCodes = new Set([
       'idempotency_key_required',
@@ -49,7 +79,8 @@ function createServer(options = {}) {
       'invalid_restore_payload',
       'legal_hold_active',
       'incident_id_required',
-      'feedback_required_fields_missing'
+      'feedback_required_fields_missing',
+      'invalid_actions_schema'
     ]);
     const safeCode = safeCodes.has(error.message) ? error.message : 'invalid_request';
     return {
@@ -107,7 +138,13 @@ function createServer(options = {}) {
         store.persistAll();
         return res.status(status).json(body);
       } catch (error) {
-        return res.status(400).json(redactError(error));
+        const statusMap = {
+          unauthorized: 401,
+          forbidden: 403,
+          lesson_not_found: 404,
+          evaluation_not_found: 404
+        };
+        return res.status(statusMap[error.message] || 400).json(redactError(error));
       }
     };
   }
@@ -257,8 +294,7 @@ function createServer(options = {}) {
     const previousAuditLength = preservedAudit.length;
     const previousRuntime = { ...store.state.runtime };
     if (Array.isArray(data.audit) && data.audit.length) {
-      const chainValid = data.audit.every((entry, index) => index === 0 || entry.previousHash === data.audit[index - 1].hash);
-      if (!chainValid) {
+      if (!validateAuditChain(data.audit)) {
         throw new Error('invalid_restore_payload');
       }
     }
@@ -278,9 +314,15 @@ function createServer(options = {}) {
         store.state.runtime.consentRequired = data.runtime.consentRequired;
       }
       if (data.runtime.provider && typeof data.runtime.provider === 'object') {
+        const allowedProvider = {};
+        for (const key of ['name', 'model', 'version']) {
+          if (typeof data.runtime.provider[key] === 'string' && data.runtime.provider[key].length) {
+            allowedProvider[key] = data.runtime.provider[key];
+          }
+        }
         store.state.runtime.provider = {
           ...store.state.runtime.provider,
-          ...data.runtime.provider
+          ...allowedProvider
         };
       }
     }

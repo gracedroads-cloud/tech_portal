@@ -255,10 +255,12 @@ class DataStore {
       lesson.approvedAt = now;
       lesson.lastReviewedDate = now;
       lesson.rollbackReason = null;
+      lesson.rejectionReason = null;
     } else if (decision === 'reject') {
       lesson.approvalState = 'rejected';
       lesson.lastReviewedDate = now;
       lesson.rejectionReason = note || 'Rejected by reviewer';
+      lesson.rollbackReason = null;
     } else if (decision === 'rollback') {
       if (lesson.approvalState !== 'approved') {
         throw new Error('rollback_requires_approved_lesson');
@@ -266,6 +268,7 @@ class DataStore {
       lesson.approvalState = 'rolled_back';
       lesson.lastReviewedDate = now;
       lesson.rollbackReason = note || 'Rolled back by reviewer';
+      lesson.rejectionReason = null;
     } else {
       throw new Error('invalid_review_decision');
     }
