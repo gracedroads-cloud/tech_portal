@@ -4,6 +4,7 @@ const ComplianceWorker = require('../workers/complianceWorker');
 const Notifier = require('../utils/notifier');
 const AutomationQueue = require('./queue');
 const RagEngine = require('./ragEngine');
+const { assertPermittedService } = require('../utils/servicePolicy');
 
 class AutomationEngine {
     constructor(
@@ -34,6 +35,7 @@ class AutomationEngine {
 
     async run(...args) {
         const taskData = args[0] || {};
+        assertPermittedService(taskData.userQuestion, taskData.cause, taskData.serviceType, taskData.description);
         const ragQuery = `${taskData.faultCode || ''} ${taskData.userQuestion || ''}`.trim();
         const oemReferencesUsed = ragQuery ? this.ragEngine.search(ragQuery) : [];
         const taskWithTechnicalContext = {

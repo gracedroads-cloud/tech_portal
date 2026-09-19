@@ -736,7 +736,7 @@ table { border-collapse: collapse; width: 100%; } th, td { border-bottom: 1px so
             }
 
             const formData = new FormData();
-            formData.append('image', image, image.name || 'part-image.jpg');
+            formData.append('partImage', image, image.name || 'part-image.jpg');
             visionStatus.textContent = 'Analyzing part image...';
             applySuggestedCostButton.disabled = true;
             try {

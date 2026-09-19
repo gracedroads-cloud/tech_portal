@@ -37,3 +37,8 @@ instructions, read [the Operations startup guide](docs/operations-startup-guide.
 
 For VS Code system-information commands and a ready-to-copy Microsoft Copilot Chat
 handoff, read [the Copilot Chat handoff](docs/microsoft-copilot-chat-handoff.md).
+
+For the owner-only local encrypted vault, read [the Company Safe guide](docs/company-safe.md).
+
+The company-wide no-towing/no-winching rule is documented and enforced in
+[the Service Policy](docs/service-policy.md).

@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const DispatchStorage = require('./data/storage');
+const { CompanySafe, CompanySafeError } = require('./data/companySafe');
 const apiKeyAuth = require('./utils/apiAuth');
 const { operationsAccess } = require('./utils/apiAuth');
 const { transcribeAudioBuffer, parseInspectionMetrics } = require('./utils/voiceTranscription');
@@ -11,12 +12,14 @@ const RagEngine = require('./automation/ragEngine');
 const { analyzePartImage } = require('./utils/visionAnalyzer');
 const { getTrafficStatus } = require('./utils/trafficStatus');
 const { interpretMasterCommand } = require('./utils/masterCommands');
+const { assertPermittedService, ServicePolicyError } = require('./utils/servicePolicy');
 
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const dispatchStorage = new DispatchStorage();
+const companySafe = new CompanySafe();
 const ragEngine = new RagEngine(dispatchStorage.getDatabase());
 const voiceUpload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
@@ -29,7 +32,21 @@ const visionUpload = multer({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+const allowedOrigins = new Set(
+    (process.env.DISPATCH_ALLOWED_ORIGINS || 'http://127.0.0.1:3109,http://localhost:3109')
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean)
+);
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || allowedOrigins.has(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error('Origin is not allowed.'));
+    }
+}));
 app.get('/operations.html', operationsAccess, (req, res) => {
     try {
         res.type('html').send(fs.readFileSync(path.join(__dirname, 'public', 'operations.html'), 'utf8'));
@@ -39,14 +56,21 @@ app.get('/operations.html', operationsAccess, (req, res) => {
     }
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+app.use('/docs', express.static(path.join(__dirname, 'docs'), { index: false }));
 app.use('/api', apiKeyAuth);
 
 const eventClients = new Set();
+const safeFailedUnlocks = new Map();
 function broadcastEvent(event, data) {
     const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
     eventClients.forEach(client => client.write(message));
 }
+
+setInterval(() => {
+    eventClients.forEach(client => {
+        if (!client.writableEnded) client.write(': keepalive\n\n');
+    });
+}, 25000).unref();
 
 function toBreakdown(record) {
     const input = Array.isArray(record.input) ? record.input[0] || {} : record.input || {};
@@ -84,11 +108,89 @@ function distanceInMiles(fromLatitude, fromLongitude, toLatitude, toLongitude) {
     return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function isLocalRequest(req) {
+    const address = req.socket.remoteAddress || '';
+    return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
+function localCompanySafeOnly(req, res, next) {
+    if (!isLocalRequest(req)) {
+        res.status(403).json({ success: false, error: 'The Company Safe is available only from this laptop.' });
+        return;
+    }
+    next();
+}
+
+function companySafeUnlock(req, res, next) {
+    const clientAddress = req.socket.remoteAddress || 'unknown';
+    const failure = safeFailedUnlocks.get(clientAddress);
+    if (failure?.lockedUntil > Date.now()) {
+        res.status(429).json({ success: false, error: 'Too many invalid unlock attempts. Try again later.' });
+        return;
+    }
+
+    const code = req.get('x-company-safe-code');
+    try {
+        req.companySafeVault = companySafe.unlock(code);
+        safeFailedUnlocks.delete(clientAddress);
+        next();
+    } catch (error) {
+        const failures = (failure?.count || 0) + 1;
+        safeFailedUnlocks.set(clientAddress, {
+            count: failures,
+            lockedUntil: failures >= 5 ? Date.now() + (15 * 60 * 1000) : 0
+        });
+        const status = error instanceof CompanySafeError && error.status === 400 ? 400 : 401;
+        res.status(status).json({ success: false, error: status === 400 ? error.message : 'Company Safe unlock failed.' });
+    }
+}
+
 app.get('/healthz', (req, res) => {
     res.status(200).json({
         service: 'Grace Dispatch Console',
         status: 'ok',
         uptimeSeconds: Math.floor(process.uptime())
+    });
+
+    app.get('/api/company-safe/status', localCompanySafeOnly, (req, res) => {
+        res.json({ success: true, initialized: companySafe.isInitialized() });
+    });
+
+    app.post('/api/company-safe/setup', localCompanySafeOnly, (req, res) => {
+        try {
+            companySafe.initialize(req.body?.code);
+            res.status(201).json({ success: true, message: 'Company Safe created. The unlock code cannot be recovered.' });
+        } catch (error) {
+            const status = error instanceof CompanySafeError ? error.status : 500;
+            console.error('Unable to create Company Safe:', error);
+            res.status(status).json({ success: false, error: error.message });
+        }
+    });
+
+    app.get('/api/company-safe/entries', localCompanySafeOnly, companySafeUnlock, (req, res) => {
+        res.json({ success: true, entries: req.companySafeVault.entries });
+    });
+
+    app.post('/api/company-safe/entries', localCompanySafeOnly, companySafeUnlock, (req, res) => {
+        try {
+            const entry = companySafe.addEntry(req.get('x-company-safe-code'), req.body);
+            res.status(201).json({ success: true, entry });
+        } catch (error) {
+            const status = error instanceof CompanySafeError ? error.status : 500;
+            console.error('Unable to add Company Safe entry:', error);
+            res.status(status).json({ success: false, error: error.message });
+        }
+    });
+
+    app.delete('/api/company-safe/entries/:id', localCompanySafeOnly, companySafeUnlock, (req, res) => {
+        try {
+            companySafe.removeEntry(req.get('x-company-safe-code'), req.params.id);
+            res.json({ success: true });
+        } catch (error) {
+            const status = error instanceof CompanySafeError ? error.status : 500;
+            console.error('Unable to remove Company Safe entry:', error);
+            res.status(status).json({ success: false, error: error.message });
+        }
     });
 });
 
@@ -246,6 +348,7 @@ app.post('/api/breakdowns/intake', (req, res) => {
             res.status(400).json({ success: false, error: 'Breakdown location and cause are required.' });
             return;
         }
+        assertPermittedService(cause);
         const normalizedPriority = Number(priority);
         const normalizedLatitude = latitude === undefined ? null : toFiniteNumber(latitude);
         const normalizedLongitude = longitude === undefined ? null : toFiniteNumber(longitude);
@@ -283,7 +386,8 @@ app.post('/api/breakdowns/intake', (req, res) => {
         res.status(201).json({ success: true, record: toBreakdown(record) });
     } catch (error) {
         console.error('Error creating breakdown intake:', error);
-        res.status(500).json({ success: false, error: 'Unable to save breakdown intake.' });
+        const status = error instanceof ServicePolicyError ? error.status : 500;
+        res.status(status).json({ success: false, error: error instanceof ServicePolicyError ? error.message : 'Unable to save breakdown intake.' });
     }
 });
 
