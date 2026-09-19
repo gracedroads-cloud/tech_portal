@@ -6,6 +6,25 @@ function toTrimmed(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
+function isSimpleEmail(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex <= 0 || atIndex !== trimmed.lastIndexOf('@')) {
+    return false;
+  }
+
+  const domain = trimmed.slice(atIndex + 1);
+  if (!domain || domain.startsWith('.') || domain.endsWith('.') || !domain.includes('.')) {
+    return false;
+  }
+
+  return !/\s/.test(trimmed);
+}
+
 function normalizeDvir(body) {
   const errors = [];
 
@@ -68,7 +87,7 @@ function normalizeOnboarding(body) {
   if (!isNonEmptyString(carrierName, 120)) {
     errors.push('carrierName is required.');
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingEmail || '')) {
+  if (!isSimpleEmail(billingEmail || '')) {
     errors.push('billingEmail must be a valid email address.');
   }
   if (!isNonEmptyString(paymentTerms, 80)) {

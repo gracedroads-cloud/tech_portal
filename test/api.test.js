@@ -114,7 +114,7 @@ test('malformed JSON request gets 400 and oversized payload gets 413', async () 
 test('frontend API calls have backend route parity', async () => {
   const { app } = await makeTestApp();
   const routeResponse = await request(app).get('/api/routes').expect(200);
-  const routeSet = new Set(routeResponse.body.frontendRouteInventory.map((entry) => entry.path));
+  const routeSet = new Set(routeResponse.body.frontendRouteInventory.map((entry) => `${entry.method} ${entry.path}`));
 
   const filesToScan = [
     'public/business_dashboard.html',
@@ -127,9 +127,16 @@ test('frontend API calls have backend route parity', async () => {
   for (const relPath of filesToScan) {
     const filePath = path.join(process.cwd(), relPath);
     const content = await fs.readFile(filePath, 'utf8');
-    const matches = content.match(/\/api\/[a-z0-9/_-]+/gi) || [];
-    for (const endpoint of matches) {
-      assert.equal(routeSet.has(endpoint), true, `Missing backend route for ${endpoint} referenced in ${relPath}`);
+    const fetchCalls = content.matchAll(/fetch\(\s*['"`](\/api\/[^'"`]+)['"`]\s*(?:,\s*\{([\s\S]*?)\})?\s*\)/gi);
+
+    for (const match of fetchCalls) {
+      const endpointWithQuery = match[1];
+      const optionsChunk = match[2] || '';
+      const endpoint = endpointWithQuery.split('?')[0];
+      const methodMatch = optionsChunk.match(/method\s*:\s*['"`]([A-Za-z]+)['"`]/i);
+      const method = (methodMatch ? methodMatch[1] : 'GET').toUpperCase();
+      const routeKey = `${method} ${endpoint}`;
+      assert.equal(routeSet.has(routeKey), true, `Missing backend route for ${routeKey} referenced in ${relPath}`);
     }
   }
 });

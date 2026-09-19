@@ -1,6 +1,7 @@
 const fs = require('fs/promises');
 const path = require('path');
 const { randomUUID } = require('crypto');
+const auditWriteQueues = new Map();
 
 async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true });
@@ -37,7 +38,12 @@ async function storeRecord({ dataDir, collection, prefix, record }) {
   await ensureDir(auditDir);
   const auditPath = path.join(auditDir, `${collection}.ndjson`);
   const auditEntry = JSON.stringify({ id, createdAt, collection, version: 1 });
-  await fs.appendFile(auditPath, `${auditEntry}\n`, { encoding: 'utf8', mode: 0o600 });
+  const previous = auditWriteQueues.get(auditPath) || Promise.resolve();
+  const next = previous.then(() =>
+    fs.appendFile(auditPath, `${auditEntry}\n`, { encoding: 'utf8', mode: 0o600 }),
+  );
+  auditWriteQueues.set(auditPath, next.catch(() => {}));
+  await next;
 
   return fullRecord;
 }

@@ -100,7 +100,21 @@ function createApp(overrides = {}) {
     next();
   });
 
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }));
 
   app.use(cors({
     origin(origin, callback) {
@@ -121,9 +135,17 @@ function createApp(overrides = {}) {
   app.use(express.static(path.join(process.cwd(), 'public')));
   app.use(express.static(process.cwd()));
 
-  ensureDir(config.dataDir).catch((err) => {
-    console.error(`Failed to initialize data directory: ${err?.message || 'unknown error'}`);
-  });
+  let persistenceReady = false;
+  let persistenceError = null;
+
+  ensureDir(config.dataDir)
+    .then(() => {
+      persistenceReady = true;
+    })
+    .catch((err) => {
+      persistenceError = 'Data directory initialization failed.';
+      console.error(`Failed to initialize data directory: ${err?.message || 'unknown error'}`);
+    });
 
   const writeMode = config.operatorToken
     ? 'token_required'
@@ -171,6 +193,10 @@ function createApp(overrides = {}) {
   }
 
   async function writeOperation(req, res, normalizeResult, storeOptions, successMessage, responseBuilder) {
+    if (!persistenceReady) {
+      return rejectWithError(res, 503, 'persistence_unavailable', 'Persistence layer is not ready.', req.requestId);
+    }
+
     if (normalizeResult.errors.length) {
       return rejectWithError(res, 400, 'validation_failed', 'Request validation failed.', req.requestId, normalizeResult.errors);
     }
@@ -201,7 +227,7 @@ function createApp(overrides = {}) {
   });
 
   app.get('/readyz', (req, res) => {
-    const ready = writeMode !== 'disabled';
+    const ready = writeMode !== 'disabled' && persistenceReady;
     const status = ready ? 'ready' : 'degraded';
     const code = ready ? 200 : 503;
     res.status(code).json({
@@ -210,7 +236,7 @@ function createApp(overrides = {}) {
       writeMode,
       message: ready
         ? 'Service is ready for configured operations.'
-        : 'Mutating operations are disabled until OPERATOR_TOKEN or ALLOW_DEMO_WRITE_MODE is configured.',
+        : (persistenceError || 'Mutating operations are disabled until OPERATOR_TOKEN or ALLOW_DEMO_WRITE_MODE is configured.'),
       timestamp: new Date().toISOString(),
     });
   });
