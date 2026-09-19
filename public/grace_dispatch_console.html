@@ -125,6 +125,12 @@ async function runNext() {
 
 document.getElementById('start').addEventListener('click', async () => {
   try {
+    const existing = await getCall();
+    if (existing) {
+      showCall(existing);
+      logEl.textContent = 'Reusing current active backup call.';
+      return;
+    }
     const data = await post('/api/grace/call/answer', { fleetName:'Backup Fleet', callbackNumber:'+1 610-555-0100' });
     activeCallId = data.callId;
     showCall(data);

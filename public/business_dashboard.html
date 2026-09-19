@@ -518,14 +518,18 @@
             return;
         }
         navigator.geolocation.getCurrentPosition(async (position) => {
-            const response = await postLifecycle('/api/watch-center/location', {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-            });
-            if (response) {
-                graceLog.textContent = '[WATCH CENTER] Live GPS coordinates accepted.';
-                refreshWatchCenter();
-                refreshBreakdownTicker();
+            try {
+                const response = await postLifecycle('/api/watch-center/location', {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                if (response) {
+                    graceLog.textContent = '[WATCH CENTER] Live GPS coordinates accepted.';
+                    refreshWatchCenter();
+                    refreshBreakdownTicker();
+                }
+            } catch (error) {
+                graceLog.textContent = `[WATCH CENTER] GPS update failed: ${error.message}`;
             }
         }, () => {
             graceLog.textContent = '[WATCH CENTER] GPS request denied; using Lehigh Valley fallback.';

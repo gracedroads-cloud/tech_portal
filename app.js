@@ -831,7 +831,8 @@ app.get('/api/grace/calls', (req, res) => {
 
     return res.json({
         totalCalls: calls.length,
-        latestCall: calls[0] || null
+        latestCall: calls[0] || null,
+        calls: calls.slice(0, 10)
     });
 });
 
