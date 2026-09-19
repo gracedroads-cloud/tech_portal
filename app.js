@@ -191,6 +191,7 @@ if (!fs.existsSync(dataDir)) {
 
 const dispatchLogsPath = path.join(__dirname, 'radio_dispatch_logs.json');
 const fieldDvirPath = path.join(dataDir, 'field_dvir_reports.json');
+const BREAKDOWN_INGEST_KEY = process.env.BREAKDOWN_INGEST_KEY || '';
 const statusPriority = {
     Dispatched: 'high',
     'En-route': 'normal',
@@ -558,6 +559,8 @@ function createBreakdownAlert(overrides = {}) {
         lat,
         lng,
         cause: overrides.cause || cause,
+        source: overrides.source || 'dispatch_console',
+        sourceRef: overrides.sourceRef || '',
         radiusMiles: 150,
         base: LEHIGH_VALLEY_BASE,
         distanceFromBaseMiles: distanceFromBase
@@ -675,6 +678,8 @@ app.get('/api/events/model', (req, res) => {
             lat: 'number',
             lng: 'number',
             cause: 'string',
+            source: 'dispatch_console | field_dvir | telematics | manual_intake',
+            sourceRef: 'string',
             distanceFromBaseMiles: 'number'
         },
         fieldJobPayloadSchema: {
@@ -719,6 +724,55 @@ app.get('/api/breakdowns/live', (req, res) => {
         },
         alerts: getBreakdownFeed(centerLat, centerLng, radiusMiles)
     });
+});
+
+app.post('/api/breakdowns/ingest', (req, res) => {
+    if (BREAKDOWN_INGEST_KEY) {
+        const providedKey = String(req.headers['x-ingest-key'] || '').trim();
+        if (!providedKey || providedKey !== BREAKDOWN_INGEST_KEY) {
+            return res.status(401).json({ error: 'Invalid ingest key' });
+        }
+    }
+
+    const vehicle = String(req.body.vehicle || '').trim();
+    const location = String(req.body.location || '').trim();
+    const cause = String(req.body.cause || '').trim();
+    const source = String(req.body.source || 'manual_intake').trim();
+    const sourceRef = String(req.body.sourceRef || '').trim();
+    const lat = toNumber(req.body.lat, Number.NaN);
+    const lng = toNumber(req.body.lng, Number.NaN);
+
+    const missing = [];
+    if (!vehicle) missing.push('vehicle');
+    if (!location) missing.push('location');
+    if (!cause) missing.push('cause');
+    if (!isValidCoordinates(lat, lng)) missing.push('valid lat/lng');
+    if (missing.length) {
+        return res.status(400).json({ error: 'Breakdown ingest blocked. Missing required fields.', missing });
+    }
+
+    const event = createBreakdownAlert({
+        vehicle,
+        location,
+        cause,
+        source,
+        sourceRef,
+        lat,
+        lng,
+        timestamp: toIsoTimestamp(req.body.timestamp),
+        priority: String(req.body.priority || '').trim() || undefined
+    });
+
+    publishEvent(CHANNELS.BREAKDOWN_ALERTS, event);
+    writeAuditEntry({
+        actor: 'breakdown_ingest',
+        action: 'breakdown_alert_ingested',
+        channel: CHANNELS.BREAKDOWN_ALERTS,
+        summary: `${event.vehicle} breakdown alert ingested from ${event.source}`,
+        policy: 'multi_source_breakdown_monitoring'
+    });
+
+    return res.status(201).json({ alert: event });
 });
 
 app.get('/api/location/base', (req, res) => {
@@ -878,6 +932,28 @@ app.post('/api/field/dvir', requireFieldTechnician, (req, res) => {
         summary: `${report.vehicleId} DVIR submitted`,
         policy: 'field_dvir_required'
     });
+
+    if (!report.safeToOperate) {
+        const breakdownEvent = createBreakdownAlert({
+            vehicle: report.vehicleId,
+            location: `DVIR reported location (${report.lat}, ${report.lng})`,
+            cause: report.outOfServiceReason || report.defectsSummary,
+            source: 'field_dvir',
+            sourceRef: report.id,
+            lat: report.lat,
+            lng: report.lng,
+            timestamp: report.submittedAt,
+            priority: 'high'
+        });
+        publishEvent(CHANNELS.BREAKDOWN_ALERTS, breakdownEvent);
+        writeAuditEntry({
+            actor: req.fieldTechnician.techId,
+            action: 'field_dvir_breakdown_alert',
+            channel: CHANNELS.BREAKDOWN_ALERTS,
+            summary: `${report.vehicleId} unsafe DVIR emitted breakdown alert`,
+            policy: 'dvir_to_breakdown_escalation'
+        });
+    }
 
     notifyTeamsEvent({
         title: '🧾 Field DVIR Submitted',

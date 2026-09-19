@@ -105,6 +105,7 @@ export default function BreakdownAlertsMonitor() {
           </div>
           <p className="breakdown-location">{alert.location}</p>
           <p className="breakdown-cause">{alert.vehicle} — {alert.cause}</p>
+          <p className="breakdown-source">Source: {alert.source || 'dispatch_console'} {alert.sourceRef ? `(${alert.sourceRef})` : ''}</p>
           <p className="breakdown-distance">{alert.distanceMiles} mi from monitor center</p>
         </article>
       )),
@@ -117,6 +118,7 @@ export default function BreakdownAlertsMonitor() {
         <div>
           <h2>Breakdown Alerts (150 mi)</h2>
           <p>{center.label}: {center.lat}, {center.lng}</p>
+          <p>Includes all breakdown sources: dispatch, DVIR, telematics, and manual intake.</p>
         </div>
         <div className="breakdown-actions">
           <span className="breakdown-status">{status}</span>
