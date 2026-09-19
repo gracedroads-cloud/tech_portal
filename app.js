@@ -3,6 +3,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 const {
     DEFAULT_WATCH_CENTER_RADIUS_MILES,
     DEFAULT_WATCH_CENTER_STALE_MS,
@@ -137,7 +138,7 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
     app.post('/api/dvir', apiWriteRateLimit, (req, res) => {
         try {
             const dvirData = req.body;
-            const filePath = path.join(dataDir, `dvir_${now()}.json`);
+            const filePath = path.join(dataDir, `dvir_${now()}_${randomUUID()}.json`);
             fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
             res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
         } catch (error) {

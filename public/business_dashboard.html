@@ -406,6 +406,7 @@
             })
             .catch(() => {
                 ticker.innerText = "150-MILE BREAKDOWN TICKER OFFLINE.";
+                refreshWatchCenter();
             });
     }
 
@@ -545,11 +546,8 @@
     });
 
     // Initial load & 30-second ticker interval
-    Promise.allSettled([refreshWatchCenter(), refreshBreakdownTicker()]);
-    setInterval(() => {
-        refreshWatchCenter();
-        refreshBreakdownTicker();
-    }, WATCH_CENTER_POLL_MS);
+    refreshBreakdownTicker();
+    setInterval(refreshBreakdownTicker, WATCH_CENTER_POLL_MS);
 </script>
 
 </body>
