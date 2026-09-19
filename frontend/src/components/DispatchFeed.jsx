@@ -32,6 +32,7 @@ export default function DispatchFeed() {
   const [voiceStatus, setVoiceStatus] = useState('Voice Offline');
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [handsFreeEnabled, setHandsFreeEnabled] = useState(false);
+  const [faceMood, setFaceMood] = useState('calm');
   const feedRef = useRef(null);
   const lastSeenRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -69,6 +70,22 @@ export default function DispatchFeed() {
   useEffect(() => {
     handsFreeRef.current = handsFreeEnabled;
   }, [handsFreeEnabled]);
+
+  useEffect(() => {
+    if (voiceStatus.includes('Error') || voiceStatus.includes('Unsupported')) {
+      setFaceMood('alert');
+      return;
+    }
+    if (voiceStatus.includes('Listening')) {
+      setFaceMood('listening');
+      return;
+    }
+    if (handsFreeEnabled) {
+      setFaceMood('warm');
+      return;
+    }
+    setFaceMood('calm');
+  }, [voiceStatus, handsFreeEnabled]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -202,6 +219,12 @@ export default function DispatchFeed() {
     [events]
   );
 
+  function handleFaceInteract() {
+    injectVoiceEvent('Grace is ready. You can speak now.', 'Hands-Free');
+    setFaceMood('warm');
+    setVoiceStatus(handsFreeEnabled ? 'Hands-Free Listening' : 'Voice Ready');
+  }
+
   return (
     <section className="dispatch-feed-panel">
       <div className="dispatch-feed-header">
@@ -210,6 +233,18 @@ export default function DispatchFeed() {
           <span className="connection-pill">{connectionStatus}</span>
         </div>
         <div className="voice-controls">
+          <button type="button" className={`grace-face grace-face-${faceMood}`} onClick={handleFaceInteract}>
+            <span className="face-halo" />
+            <span className="face-core">
+              <span className="face-eyes">
+                <span className="face-eye" />
+                <span className="face-eye" />
+              </span>
+              <span className="face-mouth" />
+              <span className="face-cheek face-cheek-left" />
+              <span className="face-cheek face-cheek-right" />
+            </span>
+          </button>
           <button
             type="button"
             className="voice-btn"
