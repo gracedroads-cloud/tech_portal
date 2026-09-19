@@ -1,11 +1,65 @@
-# EH Graced Roads Solutions LLC SystemSkeleton Blueprint
+# EH GRACED ROADS SOLUTIONS LLC — FULL SYSTEM BLUEPRINT v4.5
 
-## 1) Introduction — A Company Becoming Its Own Operating System
-EH Graced Roads Solutions LLC is building a digitally automated enterprise backbone that extends beyond dashboards and static pages.  
-This system is designed as the operating system of the business, with real-time visibility, automation, and governed AI oversight.
+===============================================================================
+EH GRACED ROADS SOLUTIONS LLC — FULL SYSTEM BLUEPRINT v4.5  
+===============================================================================
+COMPLIANCE DIRECTION : LOCAL EMBEDDED SYSTEM MATRIX | STANDALONE ENVIRONMENT  
+NET ORTHOGONAL PORT  : HOST LOCALHOST PORT 3000  
+SYSTEM CHECKPOINT KEY: 994211  
+PENNSYLVANIA CODES   : TITLE 75 VEHICLE EQUIPMENT, CHAPTER 175, FMCSR CH. 229  
+REBRAND MANDATE      : 100% SANITIZED CLEAR OF "RIG" / "RIGS"  
+OPERATIONAL SLOGAN   : SAFE AND DEPENDABLE RESPONSE TIMES  
+EXCLUSIONS MANIFEST  : HEAVY TOWING & OFF-ROAD WINCHING EXCLUDED FROM ALL LOGIC  
+PLATFORM FEES COST   : $0.00 FLAT LIFETIME OPERATIONAL COST  
+===============================================================================
 
-## 2) What the System Is — Multi-Domain Enterprise Backbone
-The SystemSkeleton covers:
+## SECTION 1: SYSTEM ARCHITECTURE & MASTER DIRECTORY MATRIX
+
+The EH Graced Roads Solutions LLC ecosystem runs in a single-process local host model.  
+This approach keeps services inside one controlled runtime boundary and avoids browser sandbox, iframe policy, and cross-origin data-flow risks.
+
+### Absolute Hardware File System Map (Windows Target Layout)
+
+```text
+C:\GracedRoadsSystem\
+└── backend-api\
+    ├── app.js                           <-- Central Multi-Core Express Engine
+    ├── package.json                     <-- Local System Package Registry
+    ├── Launch_Graced_Roads_Cockpit.bat <-- One-Click Windows Autopilot Launcher
+    ├── auto_launch_cockpit.ps1          <-- Hardened PowerShell Logic Automator
+    └── public\
+        ├── grace_247_cloud_vault.txt    <-- Encrypted Offline Audit Registry Logs
+        └── leads_exports\
+            └── leads_manifest_[DATE].txt <-- Midnight Automation Backup Targets
+```
+
+### Current Repository Runtime Path (Agent Environment)
+
+```text
+/home/runner/work/tech_portal/tech_portal
+```
+
+## SECTION 2: CENTRAL MULTI-CORE SERVER ENGINE (app.js)
+
+`app.js` is the central execution engine. It owns API routing, event channels, socket broadcasting, and core dispatch stream handling.
+
+Core runtime duties:
+- Hosts Express API on localhost port 3000
+- Serves local monitor assets
+- Loads dispatch history and publishes live dispatch events
+- Maintains unified event channels for dispatch, fleet, HR/payroll, alerts, and system health
+- Provides socket snapshot/replay behavior for monitor reconnect safety
+- Emits live event traffic for command-center monitors
+
+System operating constraints:
+- Standalone local host operation
+- Heavy towing and off-road winching logic excluded
+- Safe and dependable response-time posture
+- No open dependency on remote cloud orchestration for baseline operation
+
+## SECTION 3: SYSTEMSCOPE DOMAINS
+
+The SystemSkeleton scope covers:
 - Dispatch
 - Fleet operations
 - HR
@@ -15,116 +69,59 @@ The SystemSkeleton covers:
 - System health
 - Notifications
 - AI oversight
-- Real-time monitoring
+- Real-time command-center monitoring
 
-Each domain is delivered through:
-- Modules (business logic)
-- Workers (automation executors)
-- Workflows (automation definitions)
-- Triggers (event-driven orchestration)
-- Monitors (React live panels)
-- AI review (anomaly and optimization oversight)
+## SECTION 4: AUTOMATION ENGINE SUMMARY
 
-## 3) Automation Engine
-The automation engine orchestrates:
-- Scheduled tasks
+The automation layer coordinates:
+- Scheduled jobs
 - Event triggers
 - Workflow execution
-- Worker coordination
-- Job queuing
-- Error handling
-- AI oversight
+- Worker routing
+- Queue handling
+- Fault handling
+- AI review
 
-Target outcomes:
-- Automated payroll cycles
-- Automated HR onboarding/offboarding
-- Automated dispatch assignments
-- Automated billing and receipt generation
-- Automated compliance checks
-- Automated system-health validation
+## SECTION 5: REACT COMMAND CENTER SUMMARY
 
-## 4) React Command Center
-The command center is a live-monitor operations cockpit with WebSocket-backed updates for:
-- Dispatch activity
-- Fleet movement and status
-- HR and payroll activity
-- Alerts and compliance events
-- System health
-- Video and AI insight overlays
+The command center is a live operations wall using REST seed data plus Socket.IO real-time streams.  
+Primary monitor classes include dispatch activity, fleet status, HR/payroll activity, alerts, system health, and AI insight panes.
 
-This is designed as an operator-first wallboard experience with role-based monitor access.
+## SECTION 6: GRACE AI ROLE SUMMARY
 
-## 5) Explanation Layer
-The system includes an explanation layer that converts:
-- Workflow execution data
-- Logs
-- AI findings
-- Automation results
+Role name: **Grace AI — Digital Operations Analyst**
 
-into:
-- Human-readable summaries
-- Leadership reports
-- Operational and financial insight narratives
-
-## 6) Grace AI — Digital Operations Analyst
-Role: **Grace AI (Digital Operations Analyst)**  
-Responsibilities include:
-- Anomaly detection
-- Financial leakage monitoring
-- HR and payroll irregularity detection
-- Dispatch efficiency analysis
+Primary duties:
+- Event anomaly detection
+- Financial leakage watch
+- Payroll and HR pattern watch
+- Dispatch performance analysis
 - Compliance risk scanning
-- System-health forecasting
-- Workflow optimization suggestions
-- Explanation generation
+- System health forecasting
+- Workflow tuning guidance
+- Leadership explanation outputs
 
-Governance and safeguards:
-- Operational boundaries and approval gates
-- Audit logging for actions
-- Ethical guardrails and fail-safe behavior
+Governance controls:
+- Human approval for high-impact actions
+- Full audit logging
+- Ethical guardrails
+- Fail-safe boundaries
 - Restricted access to sensitive HR data
 - No self-modifying code
-- No workflow creation without explicit approval
+- No autonomous workflow creation
 
-## 7) NO TOW Authorization Domain
-The NO TOW Authorization system is a formal domain that governs non-tow outcomes due to:
-- Legal restrictions
-- Customer agreements
-- Insurance constraints
-- Compliance requirements
-- Internal policy and safety constraints
+## SECTION 7: NO TOW AUTHORIZATION DOMAIN
 
-Core elements:
+NO TOW authorization is a formal domain with:
 - NO TOW workflow
 - NO TOW worker
-- Dispatch integration
-- AI oversight
+- Dispatch integration rules
+- Compliance checks
+- AI review
+- Audit logging
 - Human override controls
-- Full audit trail
 
-## 8) Financial Leakage Control
-The system includes controls for financial integrity:
-- Variance thresholds
-- Reconciliation rules
-- Automated exception alerts
-- AI-led anomaly detection
-- Corrective workflow hooks
+## SECTION 8: VALUE AND VISION
 
-Primary protections:
-- Payroll accuracy
-- Billing completeness
-- Invoice coverage
-- Compliance reporting integrity
-
-## 9) Value Perspective
-System value is defined across:
-- Operational value (speed, consistency, reduced manual effort)
-- Financial value (reduced leakage, improved billing accuracy)
-- Strategic value (proprietary automation foundation)
-- Market value (scalable, enterprise-grade operational platform potential)
-
-## 10) Long-Term Vision
-The target end state is a self-operating digital company where core functions are automated and leadership supervises through a live command center.
-
-## 11) Conclusion
-The SystemSkeleton, NO TOW domain, and governed Grace AI role establish a scalable, AI-driven, safeguarded foundation for long-term growth, operational control, and modernization.
+The platform target is a self-operating digital company backbone with real-time supervision.  
+The long-term objective is scalable, safeguarded, AI-assisted operations with clear compliance alignment and measurable response-time performance.
