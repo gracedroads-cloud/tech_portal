@@ -1,127 +1,64 @@
-# EH GRACED ROADS SOLUTIONS LLC — FULL SYSTEM BLUEPRINT v4.5
+# EH GRACED ROADS SOLUTIONS LLC — SYSTEM BLUEPRINT
 
-===============================================================================
-EH GRACED ROADS SOLUTIONS LLC — FULL SYSTEM BLUEPRINT v4.5  
-===============================================================================
-COMPLIANCE DIRECTION : LOCAL EMBEDDED SYSTEM MATRIX | STANDALONE ENVIRONMENT  
-NET ORTHOGONAL PORT  : HOST LOCALHOST PORT 3000  
-SYSTEM CHECKPOINT KEY: 994211  
-PENNSYLVANIA CODES   : TITLE 75 VEHICLE EQUIPMENT, CHAPTER 175, FMCSR CH. 229  
-REBRAND MANDATE      : 100% SANITIZED CLEAR OF "RIG" / "RIGS"  
-OPERATIONAL SLOGAN   : SAFE AND DEPENDABLE RESPONSE TIMES  
-EXCLUSIONS MANIFEST  : HEAVY TOWING & OFF-ROAD WINCHING EXCLUDED FROM ALL LOGIC  
-PLATFORM FEES COST   : $0.00 FLAT LIFETIME OPERATIONAL COST  
-===============================================================================
+## 1. Executive Summary & Enterprise Vision
 
-## SECTION 1: SYSTEM ARCHITECTURE & MASTER DIRECTORY MATRIX
+EH Graced Roads Solutions LLC operates as a digitally automated commercial heavy-duty mobile truck and trailer repair enterprise based in Pennsylvania. This blueprint establishes the architectural standard for the **Grace Dispatch Console**—a self-operating enterprise backbone combining automated backend workers, real-time WebSocket telemetry, and a live React command center.
 
-The EH Graced Roads Solutions LLC ecosystem runs in a single-process local host model.  
-This approach keeps services inside one controlled runtime boundary and avoids browser sandbox, iframe policy, and cross-origin data-flow risks.
-
-### Absolute Hardware File System Map (Windows Target Layout)
+## 2. Directory & File Architecture (`SystemSkeleton`)
 
 ```text
 C:\GracedRoadsSystem\
-└── backend-api\
-    ├── app.js                           <-- Central Multi-Core Express Engine
-    ├── package.json                     <-- Local System Package Registry
-    ├── Launch_Graced_Roads_Cockpit.bat <-- One-Click Windows Autopilot Launcher
-    ├── auto_launch_cockpit.ps1          <-- Hardened PowerShell Logic Automator
-    └── public\
-        ├── grace_247_cloud_vault.txt    <-- Encrypted Offline Audit Registry Logs
-        └── leads_exports\
-            └── leads_manifest_[DATE].txt <-- Midnight Automation Backup Targets
+│
+├── backend-api\
+│   ├── server.js               # Express + Socket.IO server & master routing
+│   ├── engine.js               # Central automation & scheduler engine
+│   ├── scheduler.js            # Cron & interval event scheduler
+│   ├── queue.js                # Job execution queue
+│   ├── triggers.js             # Event-based workflow triggers
+│   └── grace_ai.js             # Grace AI operational oversight module
+│
+├── workers\
+│   ├── dispatchWorker.js       # Handles incoming service calls & technician assignments
+│   ├── hrWorker.js             # Manages time-tracking, compliance, and onboarding
+│   ├── payrollWorker.js        # Automated payroll cycle calculations & records
+│   ├── billingWorker.js        # Processes invoices, receipts, and payment events
+│   ├── systemHealthWorker.js   # Monitors CPU, memory, API latency, and uptime
+│   └── aiWorker.js             # Executes scheduled AI audits and anomaly detection
+│
+├── workflows\
+│   ├── dispatch.json           # Dispatch workflow rules
+│   ├── hr.json                 # HR compliance rules
+│   ├── payroll.json            # Payroll distribution rules
+│   ├── billing.json            # Invoice triggers
+│   ├── compliance.json         # DOT expiration checks
+│   └── ai.json                 # AI oversight parameters
+│
+├── public\
+│   ├── business_dashboard.html # Main operations cockpit
+│   ├── master_hub.html         # Central navigation hub
+│   └── breakdown_scanner.html  # Diagnostic scanner interface
+│
+└── package.json                # Project dependencies (express, socket.io, etc.)
 ```
 
-### Current Repository Runtime Path (Agent Environment)
+## 3. Core Operational Domains & Automation Engine
 
-```text
-/home/runner/work/tech_portal/tech_portal
-```
+The automation engine orchestrates scheduled tasks, event triggers, and worker coordination to maintain continuous operations without manual intervention:
 
-## SECTION 2: CENTRAL MULTI-CORE SERVER ENGINE (app.js)
+* **Dispatch:** Captures inbound calls, CB radio logs, and customer requests, assigning on-call mobile technicians instantly via `/api/dispatch`.
+* **Fleet & Compliance:** Monitors DOT expiration warnings, vehicle telemetry, and required maintenance actions.
+* **HR & Payroll:** Streamlines employee time-tracking, hour calculation, and payroll processing.
+* **System Health:** Provides continuous live feedback on server uptime, API response times, and error logs.
 
-`app.js` is the central execution engine. It owns API routing, event channels, socket broadcasting, and core dispatch stream handling.
+## 4. React Command Center & Real-Time Telemetry
 
-Core runtime duties:
-- Hosts Express API on localhost port 3000
-- Serves local monitor assets
-- Loads dispatch history and publishes live dispatch events
-- Maintains unified event channels for dispatch, fleet, HR/payroll, alerts, and system health
-- Provides socket snapshot/replay behavior for monitor reconnect safety
-- Emits live event traffic for command-center monitors
+Designed to mimic a live operations cockpit (similar to modern logistics and emergency command centers), the frontend interfaces directly with the backend via **WebSockets (`Socket.IO`)**:
 
-System operating constraints:
-- Standalone local host operation
-- Heavy towing and off-road winching logic excluded
-- Safe and dependable response-time posture
-- No open dependency on remote cloud orchestration for baseline operation
+* **Live Dispatch Monitor:** Real-time terminal feed auto-scrolling with color-coded status tracking (`Dispatched`, `En-route`, `Completed`, `Cancelled`).
+* **Explanation System:** Translates raw operational logs and workflow results into human-readable leadership insights.
+* **Grace AI Integration:** Functions as the digital operations analyst, evaluating risk, monitoring logs, and generating automated field responses.
 
-## SECTION 3: SYSTEMSCOPE DOMAINS
+## 5. 2-Week Execution Timetable
 
-The SystemSkeleton scope covers:
-- Dispatch
-- Fleet operations
-- HR
-- Payroll
-- Billing
-- Compliance
-- System health
-- Notifications
-- AI oversight
-- Real-time command-center monitoring
-
-## SECTION 4: AUTOMATION ENGINE SUMMARY
-
-The automation layer coordinates:
-- Scheduled jobs
-- Event triggers
-- Workflow execution
-- Worker routing
-- Queue handling
-- Fault handling
-- AI review
-
-## SECTION 5: REACT COMMAND CENTER SUMMARY
-
-The command center is a live operations wall using REST seed data plus Socket.IO real-time streams.  
-Primary monitor classes include dispatch activity, fleet status, HR/payroll activity, alerts, system health, and AI insight panes.
-
-## SECTION 6: GRACE AI ROLE SUMMARY
-
-Role name: **Grace AI — Digital Operations Analyst**
-
-Primary duties:
-- Event anomaly detection
-- Financial leakage watch
-- Payroll and HR pattern watch
-- Dispatch performance analysis
-- Compliance risk scanning
-- System health forecasting
-- Workflow tuning guidance
-- Leadership explanation outputs
-
-Governance controls:
-- Human approval for high-impact actions
-- Full audit logging
-- Ethical guardrails
-- Fail-safe boundaries
-- Restricted access to sensitive HR data
-- No self-modifying code
-- No autonomous workflow creation
-
-## SECTION 7: NO TOW AUTHORIZATION DOMAIN
-
-NO TOW authorization is a formal domain with:
-- NO TOW workflow
-- NO TOW worker
-- Dispatch integration rules
-- Compliance checks
-- AI review
-- Audit logging
-- Human override controls
-
-## SECTION 8: VALUE AND VISION
-
-The platform target is a self-operating digital company backbone with real-time supervision.  
-The long-term objective is scalable, safeguarded, AI-assisted operations with clear compliance alignment and measurable response-time performance.
+* **Week 1 (Backend & Automation):** Finalize `SystemSkeleton`, build `engine.js` and `scheduler.js`, deploy core workers and workflows, and integrate `grace_ai.js` safeguards.
+* **Week 2 (Command Center & Launch):** Initialize React environment, build monitor grid layout, wire WebSocket telemetry feeds for dispatch, HR, billing, and system health, and run full end-to-end integration testing.
