@@ -496,7 +496,7 @@ app.get('/api/departments', (_req, res) => {
     });
 });
 
-app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 5 * 60 * 1000, maxRequests: 8 }), (req, res) => {
+app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 10 * 60 * 1000, maxRequests: 4 }), (req, res) => {
     const fromName = String(req.body.fromName || '').trim();
     const contact = String(req.body.contact || '').trim();
     const message = String(req.body.message || '').trim();
@@ -539,9 +539,19 @@ app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 5 * 60
 });
 
 app.get('/api/departments/qa-suggestions', (_req, res) => {
+    const summaries = departmentSuggestions
+        .slice(-25)
+        .reverse()
+        .map((entry) => ({
+            id: entry.id,
+            category: entry.category,
+            createdAt: entry.createdAt,
+            hasContact: Boolean(entry.contact)
+        }));
+
     res.json({
         totalSubmissions: departmentSuggestions.length,
-        submissions: departmentSuggestions.slice(-25).reverse()
+        submissions: summaries
     });
 });
 
@@ -945,10 +955,17 @@ app.get('/api/grace/calls', (req, res) => {
             updatedAt: call.updatedAt
         }));
 
+    const lifecycleSummary = calls.reduce((acc, call) => {
+        const key = call.lifecycleState || 'unknown';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {});
+
     return res.json({
         totalCalls: calls.length,
-        latestCall: calls[0] || null,
-        calls: calls.slice(0, 10)
+        latestState: calls[0]?.lifecycleState || null,
+        latestDispatchStatus: calls[0]?.dispatchStatus || null,
+        lifecycleSummary
     });
 });
 

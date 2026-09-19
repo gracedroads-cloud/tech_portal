@@ -256,7 +256,8 @@ test('Q&A and suggestions department accepts submissions and lists them', async 
     const listed = await getJson('/api/departments/qa-suggestions');
     assert.equal(listed.response.status, 200);
     assert.equal(listed.data.totalSubmissions, 1);
-    assert.equal(listed.data.submissions[0].message, 'Can we schedule a monthly cross-department coordination review?');
+    assert.equal(listed.data.submissions[0].category, 'question');
+    assert.equal(listed.data.submissions[0].hasContact, true);
 });
 
 test('Q&A suggestions endpoint rejects invalid payloads', async () => {
