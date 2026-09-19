@@ -29,8 +29,95 @@ function mergeEvents(currentEvents, incomingEvents) {
 export default function DispatchFeed() {
   const [events, setEvents] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('Connecting');
+  const [voiceStatus, setVoiceStatus] = useState('Voice Offline');
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [handsFreeEnabled, setHandsFreeEnabled] = useState(false);
   const feedRef = useRef(null);
   const lastSeenRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const handsFreeRef = useRef(false);
+
+  function injectVoiceEvent(text, mode = 'Hands-Free') {
+    const voiceEvent = {
+      id: `VOICE-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      type: mode === 'PTT' ? 'En-route' : 'Dispatched',
+      text: `Grace Voice (${mode}) — ${text}`
+    };
+    setEvents((current) => mergeEvents(current, [voiceEvent]));
+  }
+
+  function startRecognition(mode) {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    try {
+      recognition.continuous = mode === 'Hands-Free';
+      recognition.start();
+      setVoiceStatus(mode === 'Hands-Free' ? 'Hands-Free Listening' : 'PTT Listening');
+    } catch (error) {
+      setVoiceStatus('Voice Busy');
+    }
+  }
+
+  function stopRecognition() {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    recognition.stop();
+    setVoiceStatus(handsFreeRef.current ? 'Hands-Free Listening' : 'Voice Ready');
+  }
+
+  useEffect(() => {
+    handsFreeRef.current = handsFreeEnabled;
+  }, [handsFreeEnabled]);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceSupported(false);
+      setVoiceStatus('Voice Unsupported');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => {
+      setVoiceSupported(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim();
+      if (transcript && event.results[event.results.length - 1].isFinal) {
+        injectVoiceEvent(transcript, handsFreeRef.current ? 'Hands-Free' : 'PTT');
+      }
+    };
+
+    recognition.onerror = () => {
+      setVoiceStatus('Voice Error');
+    };
+
+    recognition.onend = () => {
+      if (handsFreeRef.current) {
+        startRecognition('Hands-Free');
+      } else {
+        setVoiceStatus('Voice Ready');
+      }
+    };
+
+    recognitionRef.current = recognition;
+    setVoiceSupported(true);
+    setVoiceStatus('Voice Ready');
+
+    return () => {
+      handsFreeRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,8 +205,43 @@ export default function DispatchFeed() {
   return (
     <section className="dispatch-feed-panel">
       <div className="dispatch-feed-header">
-        <h2>Live Dispatch Feed</h2>
-        <span className="connection-pill">{connectionStatus}</span>
+        <div>
+          <h2>Live Dispatch Feed</h2>
+          <span className="connection-pill">{connectionStatus}</span>
+        </div>
+        <div className="voice-controls">
+          <button
+            type="button"
+            className="voice-btn"
+            disabled={!voiceSupported}
+            onMouseDown={() => startRecognition('PTT')}
+            onMouseUp={stopRecognition}
+            onMouseLeave={stopRecognition}
+            onTouchStart={() => startRecognition('PTT')}
+            onTouchEnd={stopRecognition}
+          >
+            Hold to Talk (PTT)
+          </button>
+          <button
+            type="button"
+            className={`voice-btn ${handsFreeEnabled ? 'voice-btn-active' : ''}`}
+            disabled={!voiceSupported}
+            onClick={() => {
+              const next = !handsFreeEnabled;
+              handsFreeRef.current = next;
+              setHandsFreeEnabled(next);
+              if (next) {
+                startRecognition('Hands-Free');
+              } else {
+                handsFreeRef.current = false;
+                stopRecognition();
+              }
+            }}
+          >
+            {handsFreeEnabled ? 'Stop Hands-Free' : 'Talk Freely (Hands-Free)'}
+          </button>
+          <span className="voice-pill">{voiceStatus}</span>
+        </div>
       </div>
       <div ref={feedRef} className="dispatch-feed-scroll">
         {feedRows}

@@ -13,7 +13,8 @@
 .dispatch-feed-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid #1f2937;
 }
@@ -26,10 +27,45 @@
 }
 
 .connection-pill {
+  display: inline-block;
+  margin-top: 6px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #7dd3fc;
+}
+
+.voice-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.voice-btn {
+  border: 1px solid #334155;
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.voice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-btn-active {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.voice-pill {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #facc15;
 }
 
 .dispatch-feed-scroll {
