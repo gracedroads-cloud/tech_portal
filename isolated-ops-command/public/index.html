@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EH Graced Roads Solutions LLC — Isolated Operations Command</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">EH Graced Roads Solutions LLC</p>
+      <h1>Isolated Operations Command</h1>
+      <p class="subtitle">Reactive monitor wall for approved roadside support only. This system does not replace emergency services or certified dispatch.</p>
+    </div>
+    <div class="toolbar">
+      <button id="fullscreenButton" type="button">Fullscreen</button>
+      <label>
+        <span>Operator token</span>
+        <input id="tokenInput" type="password" autocomplete="off" placeholder="Enter isolated ops token">
+      </label>
+    </div>
+  </header>
+
+  <div id="simulationBanner" class="banner" hidden>SIMULATION MODE — never treat simulated sources as live production signals.</div>
+  <div id="messageBar" class="message" role="status" aria-live="polite"></div>
+
+  <main class="layout">
+    <section class="panel panel-wide">
+      <div class="panel-title-row">
+        <h2>Monitor Wall</h2>
+        <span id="lastUpdated">--</span>
+      </div>
+      <div id="monitorGrid" class="monitor-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Dispatch Intake</h2>
+      <form id="incidentForm" class="stacked-form">
+        <label><span>Customer</span><input name="customer" value="Simulation Carrier" required></label>
+        <label><span>Origin</span><input name="origin" value="Operations Center" required></label>
+        <label><span>Service</span>
+          <select name="serviceType" id="serviceType"></select>
+        </label>
+        <label><span>Description</span><textarea name="description" rows="4" required>Battery no-start complaint at secure yard gate.</textarea></label>
+        <button type="submit">Submit for triage</button>
+      </form>
+      <p class="note">Unsupported towing or winching requests are rejected here and referred externally.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Automation Controls</h2>
+      <form id="pauseForm" class="stacked-form inline-buttons">
+        <label><span>Pause reason</span><input name="reason" value="Awaiting supervisor confirmation"></label>
+        <button type="submit">Toggle Automation Pause</button>
+      </form>
+      <button id="simulateButton" type="button">Generate Demo Event</button>
+      <div id="automationState" class="state-pill">Unknown</div>
+    </section>
+
+    <section class="panel">
+      <h2>Secure Browser</h2>
+      <form id="browserForm" class="stacked-form inline-buttons">
+        <label><span>Allowlisted URL</span><input name="url" type="url" placeholder="https://portal.example.com" required></label>
+        <label><span>Mode</span>
+          <select name="mode">
+            <option value="external_window">Protected tab / window</option>
+            <option value="iframe">Sandboxed iframe</option>
+          </select>
+        </label>
+        <button type="submit">Launch Session</button>
+      </form>
+      <button id="clearSessionsButton" type="button">Clear Sessions</button>
+      <div id="secureSessions" class="session-list"></div>
+    </section>
+
+    <section class="panel panel-wide">
+      <h2>Media Sources</h2>
+      <form id="mediaForm" class="stacked-form media-form">
+        <label><span>Name</span><input name="name" placeholder="SIMULATION Yard Camera" required></label>
+        <label><span>Kind</span>
+          <select name="kind">
+            <option value="video">Video</option>
+            <option value="tv">TV / News</option>
+          </select>
+        </label>
+        <label><span>Type</span>
+          <select name="type">
+            <option value="EMBED">EMBED</option>
+            <option value="HLS">HLS</option>
+            <option value="DASH">DASH</option>
+            <option value="WEBRTC">WEBRTC</option>
+          </select>
+        </label>
+        <label><span>URL</span><input name="url" type="url" placeholder="https://demo.example.com/stream"></label>
+        <label class="checkbox-label"><input name="simulated" type="checkbox" checked> <span>Simulated source</span></label>
+        <button type="submit">Register Source</button>
+      </form>
+      <div id="mediaGrid" class="media-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Dispatch Queue</h2>
+      <div id="dispatchQueue" class="feed-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Policy Rejections</h2>
+      <div id="policyRejections" class="feed-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Incident Feed</h2>
+      <div id="incidentFeed" class="feed-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Audit Events</h2>
+      <div id="auditFeed" class="feed-list monospace"></div>
+    </section>
+  </main>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
