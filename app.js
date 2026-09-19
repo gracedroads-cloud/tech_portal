@@ -94,13 +94,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-app.get('/index.html', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-app.get('/no_tow_authorization.html', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+    res.redirect('/business_dashboard.html');
 });
 
 // Ensure local data directory exists for JSON backups
