@@ -1,51 +1,66 @@
-<!-- SYSTEM VERIFICATION CODE: 774291 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>EH Graced Roads - Grace Live Interaction Stream</title>
-    <style>
-        :root { --bg-dark: #020617; --card-bg: #0f172a; --border-color: #334155; --text-main: #f1f5f9; --accent-orange: #ff9f1c; --accent-blue: #38bdf8; --accent-green: #10b981; }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: monospace; padding: 20px; margin: 0; }
-        .stream-container { max-width: 1100px; margin: 0 auto; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; }
-        .stream-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; }
-        .audio-btn { background: #1e293b; border: 1px solid var(--accent-green); color: var(--accent-green); padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .terminal-feed { background-color: #020617; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; height: 300px; overflow-y: auto; margin-top: 20px; }
-        .log-line { border-bottom: 1px solid #1e293b; padding-bottom: 10px; font-size: 12px; }
-        .tag-source { color: var(--accent-blue); }
-        .text-highlight { color: var(--accent-green); font-weight: bold; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grace Backup Stream Monitor</title>
+  <style>
+    body { background:#020617; color:#e2e8f0; font-family:Arial,sans-serif; margin:0; padding:20px; }
+    .container { max-width:1000px; margin:0 auto; }
+    .card { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:16px; margin-bottom:12px; }
+    #log { white-space:pre-wrap; font-family:monospace; background:#020617; border:1px solid #1e293b; border-radius:8px; padding:12px; min-height:120px; }
+    button { border:none; border-radius:8px; padding:10px 12px; margin-right:8px; font-weight:700; cursor:pointer; }
+    .pickup { background:#00E676; color:#021a10; }
+    .resume { background:#334155; color:#fff; }
+  </style>
 </head>
 <body>
-    <div class="stream-container">
-        <div class="stream-header">
-            <h2>🎙️ Grace Telemetry Stream & Interaction Monitor</h2>
-            <button class="audio-btn" onclick="triggerAudioPing()">🔊 TEST AUDIO RADAR ALARM</button>
-        </div>
-        <div class="terminal-feed">
-            <div class="log-line">
-                <div>[02:15:00 AM] <span class="tag-source">GRACE_ENGINE</span> ➔ VALUATION_LOCK</div>
-                <div style="margin-top:4px;">Processing metric breakdown request... Mapped service item locked at flat zero rate: <span class="text-highlight">$0.00</span>.</div>
-            </div>
-        </div>
+<div class="container">
+  <div class="card">
+    <h2>Grace Backup Stream Monitor</h2>
+    <div>Compatibility monitor for call-control status only (no real phone operations).</div>
+    <div id="status">Loading call-control mode...</div>
+    <div style="margin-top:12px;">
+      <button id="pickup" class="pickup">Pickup Override</button>
+      <button id="resume" class="resume">Return to Grace AI</button>
     </div>
-    <script>
-        let audioCtx = null;
-        function triggerAudioPing() {
-            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, now);
-            osc.frequency.exponentialRampToValueAtTime(1320, now + 0.15);
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.3);
-        }
-    </script>
+  </div>
+  <div class="card">
+    <div id="log">Backup stream monitor online.</div>
+  </div>
+</div>
+<script>
+const statusEl = document.getElementById('status');
+const logEl = document.getElementById('log');
+
+async function refresh() {
+  const statusRes = await fetch('/api/status');
+  const status = await statusRes.json();
+  const callsRes = await fetch('/api/grace/calls');
+  const calls = await callsRes.json();
+  statusEl.textContent = `Call-control: ${status.callControl.mode} | base: ${status.base} | tracked calls: ${calls.calls.length}`;
+}
+
+async function override(action) {
+  const res = await fetch('/api/stream/override', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ action })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    logEl.textContent = `Error: ${data.error || 'override failed'}`;
+    return;
+  }
+  logEl.textContent = `${new Date().toISOString()}\n${data.message}\nmode=${data.callControl.mode}`;
+  await refresh();
+}
+
+document.getElementById('pickup').addEventListener('click', () => override('pickup'));
+document.getElementById('resume').addEventListener('click', () => override('resume_grace'));
+
+refresh();
+setInterval(refresh, 15000);
+</script>
 </body>
 </html>
-
