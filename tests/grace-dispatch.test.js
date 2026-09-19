@@ -50,6 +50,12 @@ test('resetInMemoryState is guarded outside test mode', () => {
     process.env.NODE_ENV = previous;
 });
 
+test('root route redirects to the index landing page', async () => {
+    const response = await fetch(`${baseUrl}/`, { redirect: 'manual' });
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('location'), '/index.html');
+});
+
 test('haversine and 150-mile scanner filtering work server-side', async () => {
     const distance = haversineMiles(40.6259, -75.3705, 41.6259, -75.3705);
     assert.ok(distance > 68 && distance < 70);
