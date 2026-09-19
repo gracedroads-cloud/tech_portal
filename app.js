@@ -30,7 +30,7 @@ if (!fs.existsSync(graceDataDir)) {
 
 const auditFilePath = path.join(dataDir, 'grace_audit.log');
 const graceCalls = new Map();
-const operatorToken = process.env.GRACE_OPERATOR_TOKEN || 'grace-operator';
+const operatorToken = process.env.GRACE_OPERATOR_TOKEN;
 const writeRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -120,6 +120,9 @@ function respondWithCall(res, call, extras = {}, statusCode = 200) {
 }
 
 function requireOperatorAuth(req, res, next) {
+  if (!operatorToken) {
+    return res.status(503).json({ success: false, error: 'Operator token is not configured.' });
+  }
   const provided = req.headers['x-operator-token'];
   if (provided !== operatorToken) {
     return res.status(401).json({ success: false, error: 'Operator authorization required.' });
@@ -136,7 +139,7 @@ function generateSecurePaymentLink(callId) {
   const token = crypto.randomBytes(12).toString('hex');
   return {
     provider: provider.name,
-    url: `${provider.baseUrl}?token=${token}&call=${encodeURIComponent(callId)}`,
+    url: `${provider.baseUrl}?token=${token}`,
     expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
   };
 }
@@ -320,8 +323,7 @@ app.post('/api/grace/technician_acceptance', writeRateLimit, (req, res) => {
     const call = getCallOrThrow(req.body.callId);
 
     if (!req.body.accepted) {
-      const deniedEvent = recordStateEvent(call, 'technician_acceptance_denied', call.state, { accepted: false });
-      audit(call, 'technician_acceptance_denied', deniedEvent);
+      audit(call, 'technician_acceptance_denied', { accepted: false, state: call.state });
       persistCall(call);
       return res.status(409).json({ success: false, callId: call.callId, error: 'Dispatch remains estimate-only until technician acceptance.' });
     }

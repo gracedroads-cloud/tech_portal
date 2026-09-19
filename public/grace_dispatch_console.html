@@ -67,6 +67,7 @@
         <div class="state">quote</div><div class="state">payment_link</div><div class="state">technician_offer</div>
         <div class="state">technician_acceptance</div><div class="state">work_order_create</div><div class="state">closeout</div>
       </div>
+      <p id="next-action-status" role="status" aria-live="polite" class="warning">Next suggested action: answer</p>
       <pre id="output" role="status" aria-live="polite">Ready.</pre>
     </div>
   </div>
@@ -74,6 +75,43 @@
   <script>
     const output = document.getElementById('output');
     const callIdInput = document.getElementById('callId');
+    const nextActionStatus = document.getElementById('next-action-status');
+    const actionButtons = {
+      answer: document.getElementById('btn-answer'),
+      intake: document.getElementById('btn-intake'),
+      scope_check: document.getElementById('btn-scope-check'),
+      quote: document.getElementById('btn-quote'),
+      payment_link: document.getElementById('btn-payment-link'),
+      technician_offer: document.getElementById('btn-tech-offer'),
+      technician_acceptance: document.getElementById('btn-tech-acceptance'),
+      work_order_create: document.getElementById('btn-work-order'),
+      closeout: document.getElementById('btn-closeout')
+    };
+
+    function updateActionAvailability(state) {
+      const nextActionByState = {
+        undefined: 'answer',
+        new: 'answer',
+        answered: 'intake',
+        intake: 'scope_check',
+        scope_check: 'quote',
+        quote: 'payment_link',
+        payment_link: 'technician_offer',
+        technician_offer: 'technician_acceptance',
+        technician_acceptance: 'work_order_create',
+        work_order_create: 'closeout',
+        closeout: null,
+        scope_rejected: null
+      };
+
+      const nextAction = nextActionByState[state];
+      Object.entries(actionButtons).forEach(([action, button]) => {
+        button.disabled = nextAction ? action !== nextAction : true;
+      });
+      nextActionStatus.textContent = nextAction
+        ? `Next suggested action: ${nextAction}`
+        : `No next action available from state: ${state || 'unknown'}`;
+    }
 
     async function post(path, body) {
       const response = await fetch(path, {
@@ -84,6 +122,7 @@
       const json = await response.json();
       output.textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
       if (json.callId) callIdInput.value = json.callId;
+      updateActionAvailability(json.state);
       return json;
     }
 
@@ -117,6 +156,7 @@
     document.getElementById('btn-tech-acceptance').addEventListener('click', acceptTech);
     document.getElementById('btn-work-order').addEventListener('click', createWorkOrder);
     document.getElementById('btn-closeout').addEventListener('click', closeout);
+    updateActionAvailability();
   </script>
 </body>
 </html>

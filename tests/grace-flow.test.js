@@ -57,6 +57,7 @@ async function createCallThroughIntake({ serviceCategory = 'air_brake_repair', v
 }
 
 test.before(async () => {
+  fs.rmSync(dataDir, { recursive: true, force: true });
   fs.mkdirSync(graceDataDir, { recursive: true });
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
