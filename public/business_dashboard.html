@@ -415,6 +415,7 @@
             geolocationWatchId = null;
         }
 
+        gpsUpdateInFlight = false;
         gpsStatus.innerText = message || 'Browser GPS stopped. The server will fall back automatically when live GPS becomes stale.';
     }
 
@@ -426,7 +427,7 @@
             return Promise.resolve();
         }
 
-        if (Date.now() - lastGpsSentAt < GPS_UPDATE_INTERVAL_MS) {
+        if (lastGpsSentAt !== 0 && Date.now() - lastGpsSentAt < GPS_UPDATE_INTERVAL_MS) {
             return Promise.resolve();
         }
 

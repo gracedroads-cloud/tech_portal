@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const {
@@ -74,23 +75,13 @@ function ensureDataDir() {
 }
 
 function createRateLimit({ windowMs, maxRequests }) {
-    const requestsByIp = new Map();
-
-    return (req, res, next) => {
-        const requestTime = Date.now();
-        const requestKey = req.ip || 'unknown';
-        const recentRequests = (requestsByIp.get(requestKey) || [])
-            .filter((timestamp) => requestTime - timestamp < windowMs);
-
-        recentRequests.push(requestTime);
-        requestsByIp.set(requestKey, recentRequests);
-
-        if (recentRequests.length > maxRequests) {
-            return res.status(429).json({ success: false, error: 'Too many requests. Please try again shortly.' });
-        }
-
-        return next();
-    };
+    return rateLimit({
+        windowMs,
+        limit: maxRequests,
+        standardHeaders: 'draft-8',
+        legacyHeaders: false,
+        message: { success: false, error: 'Too many requests. Please try again shortly.' }
+    });
 }
 
 function requireOperatorAuth(expectedToken) {
@@ -120,6 +111,8 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
     ensureDataDir();
 
     const app = express();
+    const pageReadRateLimit = createRateLimit({ windowMs: 60 * 1000, maxRequests: 120 });
+    const apiWriteRateLimit = createRateLimit({ windowMs: 60 * 1000, maxRequests: 20 });
     const watchCenterStore = createWatchCenterStore({
         fallbackCenter: LEHIGH_VALLEY_CENTER,
         radiusMiles: WATCH_CENTER_RADIUS_MILES,
@@ -131,17 +124,17 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
     app.use(express.urlencoded({ extended: true }));
     app.use(cors());
     app.use(express.static(path.join(__dirname, 'public')));
-    app.get('/', (req, res) => {
+    app.get('/', pageReadRateLimit, (req, res) => {
         res.sendFile(path.join(__dirname, 'index.html'));
     });
-    app.get('/index.html', (req, res) => {
+    app.get('/index.html', pageReadRateLimit, (req, res) => {
         res.sendFile(path.join(__dirname, 'index.html'));
     });
-    app.get('/no_tow_authorization.html', (req, res) => {
+    app.get('/no_tow_authorization.html', pageReadRateLimit, (req, res) => {
         res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
     });
 
-    app.post('/api/dvir', createRateLimit({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
+    app.post('/api/dvir', apiWriteRateLimit, (req, res) => {
         try {
             const dvirData = req.body;
             const filePath = path.join(dataDir, `dvir_${now()}.json`);
@@ -168,7 +161,7 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
         res.json(watchCenterStore.getCenter(now()));
     });
 
-    app.post('/api/watch-center/location', requireOperatorAuth(operatorToken), (req, res) => {
+    app.post('/api/watch-center/location', apiWriteRateLimit, requireOperatorAuth(operatorToken), (req, res) => {
         try {
             const watchCenter = watchCenterStore.updateLiveLocation({
                 latitude: req.body.latitude,
@@ -193,7 +186,7 @@ function createApp({ now = Date.now, operatorToken = WATCH_CENTER_OPERATOR_TOKEN
         });
     });
 
-    app.post('/api/stream/override', (req, res) => {
+    app.post('/api/stream/override', apiWriteRateLimit, (req, res) => {
         res.json({
             success: true,
             action: req.body.action || 'noop',
