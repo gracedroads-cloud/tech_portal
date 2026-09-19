@@ -47,15 +47,15 @@
       <textarea id="issueDescription">Trailer air leak near belly line.</textarea>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-        <button type="button" onclick="answer()">1. answer</button>
-        <button type="button" onclick="intake()">2. intake</button>
-        <button type="button" onclick="scopeCheck()">3. scope_check</button>
-        <button type="button" onclick="quote()">4. quote</button>
-        <button type="button" onclick="paymentLink()">5. payment_link</button>
-        <button type="button" onclick="offerTech()">6. technician_offer</button>
-        <button type="button" onclick="acceptTech()">7. technician_acceptance</button>
-        <button type="button" onclick="createWorkOrder()">8. work_order_create</button>
-        <button type="button" onclick="closeout()">9. closeout</button>
+        <button type="button" id="btn-answer">1. answer</button>
+        <button type="button" id="btn-intake">2. intake</button>
+        <button type="button" id="btn-scope-check">3. scope_check</button>
+        <button type="button" id="btn-quote">4. quote</button>
+        <button type="button" id="btn-payment-link">5. payment_link</button>
+        <button type="button" id="btn-tech-offer">6. technician_offer</button>
+        <button type="button" id="btn-tech-acceptance">7. technician_acceptance</button>
+        <button type="button" id="btn-work-order">8. work_order_create</button>
+        <button type="button" id="btn-closeout">9. closeout</button>
       </div>
       <p class="warning">Payment is link-only. Do not enter raw card numbers in this app.</p>
     </div>
@@ -67,7 +67,7 @@
         <div class="state">quote</div><div class="state">payment_link</div><div class="state">technician_offer</div>
         <div class="state">technician_acceptance</div><div class="state">work_order_create</div><div class="state">closeout</div>
       </div>
-      <pre id="output">Ready.</pre>
+      <pre id="output" role="status" aria-live="polite">Ready.</pre>
     </div>
   </div>
 
@@ -107,6 +107,16 @@
     function acceptTech() { return post('/api/grace/technician_acceptance', { ...baseBody(), accepted: true }); }
     function createWorkOrder() { return post('/api/grace/work_order_create', { ...baseBody(), estimateApprovedOrAccepted: true, safetyCheckPassed: true }); }
     function closeout() { return post('/api/grace/closeout', { ...baseBody(), resolutionNotes: 'Completed roadside repair.' }); }
+
+    document.getElementById('btn-answer').addEventListener('click', answer);
+    document.getElementById('btn-intake').addEventListener('click', intake);
+    document.getElementById('btn-scope-check').addEventListener('click', scopeCheck);
+    document.getElementById('btn-quote').addEventListener('click', quote);
+    document.getElementById('btn-payment-link').addEventListener('click', paymentLink);
+    document.getElementById('btn-tech-offer').addEventListener('click', offerTech);
+    document.getElementById('btn-tech-acceptance').addEventListener('click', acceptTech);
+    document.getElementById('btn-work-order').addEventListener('click', createWorkOrder);
+    document.getElementById('btn-closeout').addEventListener('click', closeout);
   </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { FLOW_STATES, transitionState } = require('./lib/graceStateEngine');
 const { SERVICE_SCOPE_POLICY, validateScope, generateEstimate } = require('./lib/gracePolicy');
 const { sanitizeForStorage, appendAuditEvent } = require('./lib/graceAudit');
@@ -29,29 +30,12 @@ if (!fs.existsSync(graceDataDir)) {
 
 const auditFilePath = path.join(dataDir, 'grace_audit.log');
 const graceCalls = new Map();
-const rateLimitState = new Map();
-
-function createSimpleRateLimiter({ windowMs, max }) {
-  return (req, res, next) => {
-    const key = `${req.ip}:${req.path}`;
-    const now = Date.now();
-    const entry = rateLimitState.get(key);
-
-    if (!entry || now > entry.resetAt) {
-      rateLimitState.set(key, { count: 1, resetAt: now + windowMs });
-      return next();
-    }
-
-    if (entry.count >= max) {
-      return res.status(429).json({ success: false, error: 'Rate limit exceeded. Please retry shortly.' });
-    }
-
-    entry.count += 1;
-    return next();
-  };
-}
-
-const writeRateLimit = createSimpleRateLimiter({ windowMs: 60 * 1000, max: 120 });
+const writeRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 function createGraceCall(payload) {
   const now = new Date().toISOString();

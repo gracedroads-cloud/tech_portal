@@ -7,6 +7,7 @@ const app = require('../app');
 
 const dataDir = path.join(__dirname, '..', 'data');
 const graceDataDir = path.join(dataDir, 'grace_calls');
+const auditLogPath = path.join(dataDir, 'grace_audit.log');
 
 let server;
 let baseUrl;
@@ -157,4 +158,8 @@ test('payment-link flow does not persist raw card data', async () => {
   const persisted = fs.readFileSync(path.join(graceDataDir, `${callId}.json`), 'utf8');
   assert.equal(persisted.includes('4242424242424242'), false);
   assert.equal(persisted.includes('"cvv": "123"'), false);
+
+  const auditLog = fs.readFileSync(auditLogPath, 'utf8');
+  assert.equal(auditLog.includes('4242424242424242'), false);
+  assert.equal(auditLog.includes('"cvv":"123"'), false);
 });
