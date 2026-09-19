@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EH Graced Roads Departments</title>
+  <style>
+    body { margin:0; font-family:Arial,sans-serif; background:#020617; color:#e2e8f0; padding:20px; }
+    .container { max-width:1200px; margin:0 auto; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .link { color:#38bdf8; font-weight:700; text-decoration:none; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-bottom:20px; }
+    .card { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px; }
+    .card h3 { margin:0 0 6px; font-size:15px; color:#f8fafc; }
+    .card p { margin:0; color:#94a3b8; font-size:13px; }
+    .panel { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    input, select, textarea { width:100%; box-sizing:border-box; border-radius:8px; border:1px solid #334155; background:#020617; color:#e2e8f0; padding:10px; }
+    textarea { min-height:100px; }
+    button { margin-top:10px; border:none; border-radius:8px; background:#10b981; color:#032016; font-weight:700; padding:10px 12px; cursor:pointer; }
+    #status { margin-top:10px; font-size:13px; color:#93c5fd; }
+    @media (max-width:700px) { .row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <h1>EH Graced Roads Departments</h1>
+      <a class="link" href="/business_dashboard.html">Back to Operations Dashboard</a>
+    </div>
+
+    <div id="departmentsGrid" class="grid"></div>
+
+    <div class="panel">
+      <h2>Question & Answer / Suggestions Intake</h2>
+      <p>Send questions or suggestions to the EH Graced Roads Question and Answer & Suggestions Department.</p>
+      <div class="row">
+        <input id="fromName" placeholder="Your name (optional)">
+        <input id="contact" placeholder="Contact email/phone (optional)">
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <select id="category">
+          <option value="suggestion">Suggestion</option>
+          <option value="question">Question</option>
+        </select>
+      </div>
+      <textarea id="message" placeholder="Share your question or suggestion"></textarea>
+      <button id="submitBtn">Submit to Q&A/Suggestions Department</button>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadDepartments() {
+      const res = await fetch('/api/departments');
+      const data = await res.json();
+      const grid = document.getElementById('departmentsGrid');
+      grid.innerHTML = '';
+      data.departments.forEach((department) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>${department.name}</h3><p>${department.focus}</p>`;
+        grid.appendChild(card);
+      });
+    }
+
+    async function submitSuggestion() {
+      const payload = {
+        fromName: document.getElementById('fromName').value,
+        contact: document.getElementById('contact').value,
+        category: document.getElementById('category').value,
+        message: document.getElementById('message').value
+      };
+
+      const status = document.getElementById('status');
+      try {
+        const res = await fetch('/api/departments/qa-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.error || 'Submission failed.';
+          return;
+        }
+        status.textContent = data.message;
+        document.getElementById('message').value = '';
+      } catch (error) {
+        status.textContent = `Submission failed: ${error.message}`;
+      }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitSuggestion);
+    loadDepartments().catch((error) => {
+      document.getElementById('status').textContent = `Failed to load departments: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

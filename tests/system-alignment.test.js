@@ -59,3 +59,16 @@ test('cleanup removed sensitive-like routing/account strings and Easton-only leg
     });
   });
 });
+
+test('departments portal is integrated from main pages and connected to department APIs', () => {
+  const indexPage = read('index.html');
+  const businessDashboard = read('public/business_dashboard.html');
+  const departmentsPage = read('public/departments.html');
+
+  assert.match(indexPage, /\/departments\.html/);
+  assert.match(businessDashboard, /\/departments\.html/);
+
+  assert.match(departmentsPage, /\/api\/departments/);
+  assert.match(departmentsPage, /\/api\/departments\/qa-suggestions/);
+  assert.match(departmentsPage, /Question & Answer \/ Suggestions Intake/);
+});

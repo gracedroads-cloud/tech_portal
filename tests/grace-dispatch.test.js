@@ -217,3 +217,38 @@ test('technician acceptance is required before work order dispatch confirmation'
     assert.equal(confirmedWorkOrder.response.status, 201);
     assert.equal(confirmedWorkOrder.data.dispatchStatus, 'dispatch_confirmed');
 });
+
+test('department directory API exposes all requested EH Graced Roads departments', async () => {
+    const response = await getJson('/api/departments');
+    assert.equal(response.response.status, 200);
+    assert.equal(response.data.totalDepartments, 9);
+
+    const names = response.data.departments.map((department) => department.name);
+    assert.ok(names.includes('EH Graced Roads HR Department'));
+    assert.ok(names.includes('EH Graced Roads Legal Department'));
+    assert.ok(names.includes('EH Graced Roads Marketing Department'));
+    assert.ok(names.includes('EH Graced Roads Question and Answer & Suggestions Department'));
+    assert.ok(names.includes('EH Graced Roads Leadership and Development Department'));
+    assert.ok(names.includes('EH Graced Roads Uplift the Environment Department'));
+    assert.ok(names.includes('EH Graced Roads Support of Military Veterans Department'));
+    assert.ok(names.includes('EH Graced Roads Community Donation Department'));
+    assert.ok(names.includes('EH Graced Roads Youth Athletic and Academic Sponsorship Department'));
+});
+
+test('Q&A and suggestions department accepts submissions and lists them', async () => {
+    const submission = await postJson('/api/departments/qa-suggestions', {
+        fromName: 'Ops Team',
+        contact: 'ops@example.com',
+        category: 'question',
+        message: 'Can we schedule a monthly cross-department coordination review?'
+    });
+
+    assert.equal(submission.response.status, 201);
+    assert.equal(submission.data.submission.departmentId, 'qa_suggestions');
+    assert.equal(submission.data.submission.category, 'question');
+
+    const listed = await getJson('/api/departments/qa-suggestions');
+    assert.equal(listed.response.status, 200);
+    assert.equal(listed.data.totalSubmissions, 1);
+    assert.equal(listed.data.submissions[0].message, 'Can we schedule a monthly cross-department coordination review?');
+});

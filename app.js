@@ -40,6 +40,55 @@ const watchCenterState = {
 const graceCalls = new Map();
 const requestRateState = new Map();
 const dvirRecords = [];
+const departmentSuggestions = [];
+
+const companyDepartments = [
+    {
+        id: 'hr',
+        name: 'EH Graced Roads HR Department',
+        focus: 'Hiring, employee support, culture, and workforce policies.'
+    },
+    {
+        id: 'legal',
+        name: 'EH Graced Roads Legal Department',
+        focus: 'Contracts, compliance, risk management, and legal guidance.'
+    },
+    {
+        id: 'marketing',
+        name: 'EH Graced Roads Marketing Department',
+        focus: 'Brand growth, outreach campaigns, and public messaging.'
+    },
+    {
+        id: 'qa_suggestions',
+        name: 'EH Graced Roads Question and Answer & Suggestions Department',
+        focus: 'Internal Q&A intake and improvement suggestions from team/community.'
+    },
+    {
+        id: 'leadership_development',
+        name: 'EH Graced Roads Leadership and Development Department',
+        focus: 'Leadership training, mentorship, and professional development paths.'
+    },
+    {
+        id: 'uplift_environment',
+        name: 'EH Graced Roads Uplift the Environment Department',
+        focus: 'Environmental stewardship initiatives and sustainable operations.'
+    },
+    {
+        id: 'military_veterans',
+        name: 'EH Graced Roads Support of Military Veterans Department',
+        focus: 'Veteran support programs, recruiting, and transition resources.'
+    },
+    {
+        id: 'community_donation',
+        name: 'EH Graced Roads Community Donation Department',
+        focus: 'Community donation planning, events, and local partnerships.'
+    },
+    {
+        id: 'youth_sponsorship',
+        name: 'EH Graced Roads Youth Athletic and Academic Sponsorship Department',
+        focus: 'Youth sports and academic sponsorship initiatives.'
+    }
+];
 
 const demoBreakdowns = [
     {
@@ -379,6 +428,7 @@ function resetInMemoryState() {
     callControl.updatedAt = nowIso();
     requestRateState.clear();
     dvirRecords.length = 0;
+    departmentSuggestions.length = 0;
 }
 
 function createRateLimiter({ windowMs, maxRequests }) {
@@ -435,6 +485,50 @@ app.get('/api/status', (req, res) => {
 app.get('/api/watch-center', (req, res) => {
     const watchCenter = getActiveWatchCenter();
     res.json(watchCenter);
+});
+
+app.get('/api/departments', (_req, res) => {
+    res.json({
+        departments: companyDepartments,
+        totalDepartments: companyDepartments.length
+    });
+});
+
+app.post('/api/departments/qa-suggestions', createRateLimiter({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
+    const fromName = String(req.body.fromName || '').trim();
+    const contact = String(req.body.contact || '').trim();
+    const message = String(req.body.message || '').trim();
+    const category = String(req.body.category || 'suggestion').trim().toLowerCase();
+
+    if (!message || message.length < 5) {
+        return res.status(400).json({
+            error: 'A message with at least 5 characters is required.'
+        });
+    }
+
+    const safeEntry = {
+        id: `qa_${Date.now()}`,
+        departmentId: 'qa_suggestions',
+        fromName: fromName ? fromName.slice(0, 120) : 'Anonymous',
+        contact: contact ? contact.slice(0, 180) : null,
+        category: ['question', 'suggestion'].includes(category) ? category : 'suggestion',
+        message: message.slice(0, 3000),
+        createdAt: nowIso()
+    };
+
+    departmentSuggestions.push(safeEntry);
+
+    return res.status(201).json({
+        message: 'Submission received by EH Graced Roads Question and Answer & Suggestions Department.',
+        submission: safeEntry
+    });
+});
+
+app.get('/api/departments/qa-suggestions', (_req, res) => {
+    res.json({
+        totalSubmissions: departmentSuggestions.length,
+        submissions: departmentSuggestions.slice(-25).reverse()
+    });
 });
 
 app.post('/api/watch-center/location', (req, res) => {
