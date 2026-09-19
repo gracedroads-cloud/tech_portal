@@ -11,6 +11,12 @@ const statusClassMap = {
   'En-route': 'status-enroute'
 };
 
+const intelligenceProfiles = {
+  adaptive: { label: 'Adaptive', multiplier: 1 },
+  strategic: { label: 'Strategic', multiplier: 1.4 },
+  apex: { label: 'Apex Growth', multiplier: 2 }
+};
+
 function toKey(event, index) {
   return event.id || `${event.timestamp}-${event.type}-${index}`;
 }
@@ -33,6 +39,8 @@ export default function DispatchFeed() {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [handsFreeEnabled, setHandsFreeEnabled] = useState(false);
   const [faceMood, setFaceMood] = useState('calm');
+  const [intelligenceLevel, setIntelligenceLevel] = useState('apex');
+  const [interactionCount, setInteractionCount] = useState(0);
   const feedRef = useRef(null);
   const lastSeenRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -46,6 +54,7 @@ export default function DispatchFeed() {
       text: `Grace Voice (${mode}) — ${text}`
     };
     setEvents((current) => mergeEvents(current, [voiceEvent]));
+    setInteractionCount((value) => value + 1);
   }
 
   function startRecognition(mode) {
@@ -219,6 +228,11 @@ export default function DispatchFeed() {
     [events]
   );
 
+  const intelligenceScore = useMemo(() => {
+    const profile = intelligenceProfiles[intelligenceLevel];
+    return Math.round((events.length + interactionCount * 4) * profile.multiplier);
+  }, [events.length, interactionCount, intelligenceLevel]);
+
   function handleFaceInteract() {
     injectVoiceEvent('Grace is ready. You can speak now.', 'Hands-Free');
     setFaceMood('warm');
@@ -276,6 +290,21 @@ export default function DispatchFeed() {
             {handsFreeEnabled ? 'Stop Hands-Free' : 'Talk Freely (Hands-Free)'}
           </button>
           <span className="voice-pill">{voiceStatus}</span>
+          <div className="intel-panel">
+            <label htmlFor="grace-intelligence">Grace Intelligence</label>
+            <select
+              id="grace-intelligence"
+              value={intelligenceLevel}
+              onChange={(event) => setIntelligenceLevel(event.target.value)}
+            >
+              {Object.entries(intelligenceProfiles).map(([key, profile]) => (
+                <option key={key} value={key}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
+            <span className="intel-score">Growth Score: {intelligenceScore}</span>
+          </div>
         </div>
       </div>
       <div ref={feedRef} className="dispatch-feed-scroll">
