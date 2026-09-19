@@ -19,6 +19,7 @@ const operatorNameInput = document.getElementById('operatorNameInput');
 const secureSessions = document.getElementById('secureSessions');
 const automationState = document.getElementById('automationState');
 const lastUpdated = document.getElementById('lastUpdated');
+const techCopilotResult = document.getElementById('techCopilotResult');
 let liveAbortController = null;
 
 function getToken() {
@@ -73,6 +74,17 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function nextTransition(status) {
+  const map = {
+    approved_dispatch: { value: 'technician_assigned', label: 'Assign Technician' },
+    auto_dispatched: { value: 'technician_assigned', label: 'Assign Technician' },
+    technician_assigned: { value: 'in_progress', label: 'Mark In Progress' },
+    in_progress: { value: 'completed', label: 'Mark Completed' },
+    completed: { value: 'closed', label: 'Close Work Order' }
+  };
+  return map[status] || null;
+}
+
 function renderSnapshot(snapshot) {
   state.snapshot = snapshot;
   simulationBanner.hidden = !snapshot.simulationMode;
@@ -108,7 +120,10 @@ function renderSnapshot(snapshot) {
       </div>
       <div>${escapeHtml(item.description)}</div>
       <div class="meta">Priority ${escapeHtml(item.priority)} • Human approval ${item.requiresHumanApproval ? 'required' : 'not required'}</div>
+      ${item.assignedTechnician ? `<div class="meta">Technician: ${escapeHtml(item.assignedTechnician)}</div>` : ''}
+      ${item.customerSafeSummary ? `<div class="meta">Customer-safe summary: ${escapeHtml(item.customerSafeSummary)}</div>` : ''}
       ${item.status === 'awaiting_human_approval' ? `<button data-approve="${item.id}" type="button">Approve Dispatch</button>` : ''}
+      ${nextTransition(item.status) ? `<button data-transition-id="${item.id}" data-transition="${nextTransition(item.status).value}" type="button">${nextTransition(item.status).label}</button>` : ''}
     </div>
   `).join('') : '<div class="feed-item">No queue items.</div>';
 
@@ -328,10 +343,28 @@ document.getElementById('mediaForm').addEventListener('submit', async (event) =>
   }
 });
 
+document.getElementById('techCopilotForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries(form.entries());
+  try {
+    const result = await api('/api/technician/copilot', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    techCopilotResult.innerHTML = `<div class="feed-item"><pre>${escapeHtml(JSON.stringify(result.result, null, 2))}</pre></div>`;
+    setMessage('Technician copilot response received.');
+  } catch (error) {
+    setMessage(error.message);
+  }
+});
+
 document.addEventListener('click', async (event) => {
   const approveId = event.target.getAttribute('data-approve');
   const sourceUrl = event.target.getAttribute('data-open-source');
   const sessionUrl = event.target.getAttribute('data-open-session');
+  const transitionId = event.target.getAttribute('data-transition-id');
+  const transition = event.target.getAttribute('data-transition');
   const muteId = event.target.getAttribute('data-mute');
   const reconnectId = event.target.getAttribute('data-reconnect');
 
@@ -341,6 +374,31 @@ document.addEventListener('click', async (event) => {
       if (!operator) {
         setMessage('Enter the approving operator name before approving a dispatch.');
         return;
+      }
+
+      if (transitionId && transition) {
+        try {
+          const operator = operatorNameInput.value.trim();
+          if (!operator) {
+            setMessage('Enter the operator name before transitioning a work order.');
+            return;
+          }
+          const payload = { operator, transition };
+          if (transition === 'technician_assigned') {
+            payload.technician = window.prompt('Technician name', operator) || operator;
+          } else if (transition === 'completed') {
+            payload.completionNotes = window.prompt('Completion notes', 'Diagnostics completed and vehicle stabilized.') || '';
+          } else if (transition === 'closed') {
+            payload.customerSafeSummary = window.prompt('Customer-safe summary', 'Roadside support completed. Unit returned to service readiness.') || '';
+          }
+          await api(`/api/work-orders/${transitionId}/transition`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          setMessage(`Work order moved to ${transition.replace(/_/g, ' ')}.`);
+        } catch (error) {
+          setMessage(error.message);
+        }
       }
       await api(`/api/dispatch/${approveId}/approve`, {
         method: 'POST',

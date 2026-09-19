@@ -18,6 +18,7 @@ const { createTeamsAdapter } = require('./teams');
 
 const MONITOR_KEYS = [
   'systemHealth',
+  'automationPause',
   'incidentFeed',
   'dispatchQueue',
   'activeUnits',
@@ -72,10 +73,13 @@ function loadConfig(overrides = {}) {
     cspFrameSources,
     cspMediaSources,
     dataDir,
+    graceAvatarProfile: overrides.graceAvatarProfile || process.env.GRACE_AVATAR_PROFILE || 'interactive-business-assistant',
+    graceVoiceProfile: overrides.graceVoiceProfile || process.env.GRACE_VOICE_PROFILE || 'en-GB-modern-neutral',
     graceAiApiKey: overrides.graceAiApiKey || process.env.GRACE_AI_API_KEY || '',
     graceAiEndpoint: overrides.graceAiEndpoint || process.env.GRACE_AI_ENDPOINT || '',
     inboundTeamsToken: overrides.inboundTeamsToken || process.env.TEAMS_INBOUND_TOKEN || '',
     maxBodyBytes: Number(overrides.maxBodyBytes ?? process.env.ISOLATED_OPS_MAX_BODY_BYTES ?? 16384),
+    maxQueueItems: Number(overrides.maxQueueItems ?? process.env.ISOLATED_OPS_MAX_QUEUE_ITEMS ?? 250),
     mediaAllowlist,
     opsToken: overrides.opsToken || process.env.ISOLATED_OPS_TOKEN || 'change-me-isolated-ops',
     outboundTimeoutMs: Number(overrides.outboundTimeoutMs ?? process.env.ISOLATED_OPS_TIMEOUT_MS ?? 3000),
@@ -87,6 +91,7 @@ function loadConfig(overrides = {}) {
     teamsBackoffMs: Number(overrides.teamsBackoffMs ?? process.env.TEAMS_BACKOFF_MS ?? 250),
     teamsRetries: Number(overrides.teamsRetries ?? process.env.TEAMS_RETRIES ?? 2),
     teamsWebhookUrl: overrides.teamsWebhookUrl || process.env.TEAMS_WEBHOOK_URL || '',
+    technicianKnowledgeSources: overrides.technicianKnowledgeSources || splitCsv(process.env.ISOLATED_OPS_TECH_KNOWLEDGE_SOURCES || 'internal_sop'),
     trustProxy: parseBoolean(overrides.trustProxy ?? process.env.ISOLATED_OPS_TRUST_PROXY, false),
     tvRegistry: overrides.tvRegistry || parseJsonList(process.env.ISOLATED_OPS_TV_REGISTRY, []),
     videoRegistry: overrides.videoRegistry || parseJsonList(process.env.ISOLATED_OPS_VIDEO_REGISTRY, [])
@@ -130,6 +135,7 @@ function createInitialState(config, storage) {
     })),
     secureBrowserSessions: [],
     idempotencyKeys: {},
+    transitionIdempotencyKeys: {},
     teamsEvents: [],
     lastGraceAiDecision: null,
     monitors: {}
@@ -147,6 +153,7 @@ function refreshMonitors(state, config, teamsHealth) {
 
   state.monitors = {
     systemHealth: { status: 'online', label: 'System Health', detail: state.automationPaused ? 'Automation paused' : 'Ready', lastUpdatedAt: stamp },
+    automationPause: { status: state.automationPaused ? 'error' : 'online', label: 'Automation Pause', detail: state.automationPaused ? state.automationPauseReason || 'Manual hold' : 'Automation enabled', lastUpdatedAt: stamp },
     incidentFeed: { status: state.incidents.length ? 'online' : config.simulationMode ? 'simulated' : 'stale', label: 'Incident Feed', detail: `${state.incidents.length} tracked`, lastUpdatedAt: stamp },
     dispatchQueue: { status: state.dispatchQueue.length ? 'online' : 'stale', label: 'Dispatch Queue', detail: `${state.dispatchQueue.length} items awaiting action`, lastUpdatedAt: stamp },
     activeUnits: { status: state.activeUnits.some((unit) => unit.status === 'online') ? 'online' : config.simulationMode ? 'simulated' : 'offline', label: 'Active Units', detail: `${state.activeUnits.length} units visible`, lastUpdatedAt: stamp },
@@ -374,6 +381,13 @@ function validateSecureBrowserTarget(body = {}, config) {
   }
 }
 
+function validateStartupConfig(config, storage) {
+  if ((!config.opsToken || config.opsToken === 'change-me-isolated-ops') && !config.simulationMode) {
+    throw new Error('ISOLATED_OPS_TOKEN must be configured with a non-default value before startup.');
+  }
+  storage.probeWritable();
+}
+
 function createServer(overrides = {}) {
   const config = loadConfig(overrides);
   const storage = createStorage(config.dataDir);
@@ -399,6 +413,14 @@ function createServer(overrides = {}) {
   let simulationInterval = null;
   const sseClients = new Map();
   let started = false;
+  const TRANSITIONS = {
+    awaiting_human_approval: ['approved_dispatch'],
+    approved_dispatch: ['technician_assigned'],
+    auto_dispatched: ['technician_assigned'],
+    technician_assigned: ['in_progress'],
+    in_progress: ['completed'],
+    completed: ['closed']
+  };
 
   function persist() {
     state = refreshMonitors(state, config, teams.getHealth());
@@ -457,7 +479,14 @@ function createServer(overrides = {}) {
         requiresHumanApproval: item.requiresHumanApproval,
         status: item.status,
         approvedBy: item.approvedBy,
-        approvedAt: item.approvedAt
+        approvedAt: item.approvedAt,
+        assignedTechnician: item.assignedTechnician,
+        inProgressAt: item.inProgressAt,
+        completedAt: item.completedAt,
+        completionNotes: item.completionNotes,
+        customerSafeSummary: item.customerSafeSummary,
+        closedAt: item.closedAt,
+        statusHistory: item.statusHistory || []
       })),
       activeUnits: state.activeUnits,
       policyRejections: state.policyRejections.slice(-10).map((item) => ({
@@ -495,6 +524,121 @@ function createServer(overrides = {}) {
     };
   }
 
+  function transitionQueueItem(queueId, body, opts = {}) {
+    const requestedTransition = String(body.transition || opts.transition || '').trim();
+    const operator = String(body.operator || '').trim();
+    const notes = String(body.notes || '').trim();
+    const idempotencyKey = String(opts.idempotencyKey || body.idempotencyKey || '').trim();
+    if (!requestedTransition) {
+      return { statusCode: 400, body: { error: 'transition is required' } };
+    }
+    if (!operator) {
+      return { statusCode: 400, body: { error: 'operator is required' } };
+    }
+    const item = state.dispatchQueue.find((entry) => entry.id === queueId);
+    if (!item) {
+      return { statusCode: 404, body: { error: 'queue item not found' } };
+    }
+
+    const transitionKey = idempotencyKey ? `${queueId}:${idempotencyKey}` : '';
+    if (transitionKey && state.transitionIdempotencyKeys[transitionKey]) {
+      return state.transitionIdempotencyKeys[transitionKey];
+    }
+
+    const currentStatus = item.status;
+    if (currentStatus === requestedTransition) {
+      return { statusCode: 200, body: { ok: true, idempotent: true, queueItemId: queueId, status: currentStatus } };
+    }
+    const allowed = TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(requestedTransition)) {
+      return { statusCode: 409, body: { error: `transition from ${currentStatus} to ${requestedTransition} is not allowed` } };
+    }
+    const completionNotes = String(body.completionNotes || notes || '').trim();
+    const customerSafeSummary = String(body.customerSafeSummary || item.completionNotes || notes || '').trim();
+    if (requestedTransition === 'completed' && !completionNotes) {
+      return { statusCode: 400, body: { error: 'completionNotes are required for completed transition' } };
+    }
+    if (requestedTransition === 'closed' && !customerSafeSummary) {
+      return { statusCode: 400, body: { error: 'customerSafeSummary is required for closed transition' } };
+    }
+
+    const transitionAt = now();
+    const result = { statusCode: 200, body: { ok: true, queueItemId: queueId, status: requestedTransition, operator } };
+    updateState((draft) => {
+      const target = draft.dispatchQueue.find((entry) => entry.id === queueId);
+      target.status = requestedTransition;
+      target.requiresHumanApproval = requestedTransition === 'awaiting_human_approval';
+      target.statusHistory = (target.statusHistory || []).concat({
+        from: currentStatus,
+        to: requestedTransition,
+        at: transitionAt,
+        operator,
+        notes
+      });
+
+      if (requestedTransition === 'approved_dispatch') {
+        target.approvedBy = operator;
+        target.approvedAt = transitionAt;
+      }
+      if (requestedTransition === 'technician_assigned') {
+        target.assignedTechnician = String(body.technician || body.technicianName || operator).slice(0, 120);
+      }
+      if (requestedTransition === 'in_progress') {
+        target.inProgressAt = transitionAt;
+      }
+      if (requestedTransition === 'completed') {
+        target.completionNotes = completionNotes.slice(0, 1200);
+        target.completedAt = transitionAt;
+      }
+      if (requestedTransition === 'closed') {
+        target.customerSafeSummary = customerSafeSummary.replace(/[<>]/g, '').slice(0, 1200);
+        target.closedAt = transitionAt;
+      }
+      if (transitionKey) {
+        draft.transitionIdempotencyKeys[transitionKey] = result;
+      }
+    }, 'dispatch_updated');
+
+    audit('work_order.transition', {
+      queueItemId: queueId,
+      from: currentStatus,
+      to: requestedTransition,
+      operator,
+      notes
+    });
+    return result;
+  }
+
+  function handleTechnicianCopilot(res, body) {
+    const source = String(body.source || '').trim();
+    if (!source) {
+      toJson(res, 400, { error: 'source is required and must be an authorized knowledge source' });
+      return;
+    }
+    if (!config.technicianKnowledgeSources.includes(source)) {
+      toJson(res, 403, { error: 'source is not authorized for technician copilot' });
+      return;
+    }
+    const domain = String(body.domain || 'diagnostic').toLowerCase();
+    const escalationRequired = ['legal', 'accounting', 'tax', 'business'].includes(domain);
+    const result = {
+      engineVehicle: String(body.engineVehicle || body.vehicle || 'Unknown vehicle').slice(0, 160),
+      codeFamily: String(body.codeFamily || 'general').slice(0, 80),
+      symptoms: String(body.symptoms || '').slice(0, 500),
+      measurements: String(body.measurements || '').slice(0, 500),
+      safetyState: String(body.safetyState || 'verify lockout-tagout and scene safety').slice(0, 240),
+      source,
+      lastVerifiedDate: String(body.lastVerifiedDate || new Date().toISOString().slice(0, 10)),
+      confidence: Number.isFinite(Number(body.confidence)) ? Number(body.confidence) : 0.66,
+      escalation: escalationRequired ? 'professional_review_required' : (String(body.escalation || 'field_supervisor_review').slice(0, 120)),
+      advisory: escalationRequired
+        ? 'Informational drafting assistance only. Route to licensed legal/accounting/tax/business professionals before action.'
+        : String(body.query || 'Collect fault codes, verify safety state, and follow internal SOP diagnostics.').slice(0, 800)
+    };
+    audit('technician.copilot.requested', { source: result.source, codeFamily: result.codeFamily, escalation: result.escalation });
+    toJson(res, 200, { result });
+  }
+
   async function handleIncident(req, res, body) {
     const validated = validateIncident(body);
     if (validated.error) {
@@ -506,6 +650,13 @@ function createServer(overrides = {}) {
     if (state.idempotencyKeys[idempotencyKey]) {
       const replay = state.idempotencyKeys[idempotencyKey];
       toJson(res, replay.statusCode, replay.body);
+      return;
+    }
+    if (state.dispatchQueue.length >= config.maxQueueItems) {
+      const responseBody = { error: 'Dispatch queue is at capacity. Pause intake and complete existing work orders.' };
+      state.idempotencyKeys[idempotencyKey] = { statusCode: 503, body: responseBody };
+      audit('dispatch.queue.capacity_reached', { queueLength: state.dispatchQueue.length, maxQueueItems: config.maxQueueItems });
+      toJson(res, 503, responseBody);
       return;
     }
 
@@ -580,7 +731,14 @@ function createServer(overrides = {}) {
       createdAt: now(),
       requiresHumanApproval: true,
       status: 'awaiting_human_approval',
-      aiSummary: decision.summary
+      aiSummary: decision.summary,
+      statusHistory: [{
+        from: 'intake',
+        to: 'awaiting_human_approval',
+        at: now(),
+        operator: 'system',
+        notes: 'Incident triaged by policy + Grace adapter'
+      }]
     };
 
     const canAutoDispatch = config.autoDispatchEnabled
@@ -592,6 +750,13 @@ function createServer(overrides = {}) {
       queueItem.requiresHumanApproval = false;
       queueItem.status = 'auto_dispatched';
       queueItem.dispatchedAt = now();
+      queueItem.statusHistory.push({
+        from: 'awaiting_human_approval',
+        to: 'auto_dispatched',
+        at: queueItem.dispatchedAt,
+        operator: 'system',
+        notes: 'Low-risk auto-dispatch policy path'
+      });
     }
 
     const responseBody = { incident: validated, queueItem, decision, automationPaused: state.automationPaused };
@@ -606,34 +771,22 @@ function createServer(overrides = {}) {
     toJson(res, 202, responseBody);
   }
 
-  function handleApprove(res, body, queueId) {
-    const operator = String(body.operator || '').trim();
-    if (!operator) {
-      toJson(res, 400, { error: 'operator is required' });
-      return;
+  function handleApprove(req, res, body, queueId) {
+    const result = transitionQueueItem(queueId, body, {
+      transition: 'approved_dispatch',
+      idempotencyKey: String(req.headers['idempotency-key'] || body.idempotencyKey || '')
+    });
+    if (result.statusCode === 200 && !result.body.idempotent) {
+      audit('dispatch.approved', { queueItemId: queueId, operator: String(body.operator || '').trim() });
     }
-    const item = state.dispatchQueue.find((entry) => entry.id === queueId);
-    if (!item) {
-      toJson(res, 404, { error: 'queue item not found' });
-      return;
-    }
-    if (item.status === 'policy_rejected') {
-      toJson(res, 409, { error: 'policy rejected items cannot be approved' });
-      return;
-    }
-    if (item.status !== 'awaiting_human_approval') {
-      toJson(res, 409, { error: 'only items awaiting human approval can be approved' });
-      return;
-    }
-    updateState((draft) => {
-      const target = draft.dispatchQueue.find((entry) => entry.id === queueId);
-      target.status = 'approved_dispatch';
-      target.approvedBy = operator;
-      target.approvedAt = now();
-      target.requiresHumanApproval = false;
-    }, 'dispatch_updated');
-    audit('dispatch.approved', { queueItemId: queueId, operator });
-    toJson(res, 200, { approved: true, queueItemId: queueId, operator });
+    toJson(res, result.statusCode, result.body);
+  }
+
+  function handleWorkOrderTransition(req, res, body, queueId) {
+    const result = transitionQueueItem(queueId, body, {
+      idempotencyKey: String(req.headers['idempotency-key'] || body.idempotencyKey || '')
+    });
+    toJson(res, result.statusCode, result.body);
   }
 
   function handleAutomationPause(res, body) {
@@ -719,6 +872,24 @@ function createServer(overrides = {}) {
     toJson(res, 200, { cleared: true, sessionId: sessionId || 'all' });
   }
 
+  function handleBackupExport(res) {
+    const snapshot = storage.exportSnapshot();
+    audit('backup.exported', { exportedAt: snapshot.exportedAt, auditEvents: snapshot.audit.length });
+    toJson(res, 200, snapshot);
+  }
+
+  function handleBackupRestore(res, body) {
+    if (!body || typeof body !== 'object' || !body.state || !Array.isArray(body.audit)) {
+      toJson(res, 400, { error: 'state and audit snapshot payload is required' });
+      return;
+    }
+    storage.restoreSnapshot(body);
+    state = createInitialState(config, storage);
+    emit('snapshot', { state: getPublicState() });
+    audit('backup.restored', { restoredAt: now(), auditEvents: body.audit.length });
+    toJson(res, 202, { restored: true, restoredAt: now() });
+  }
+
   async function handleSimulateTick(res) {
     const syntheticBody = {
       incidentId: `SIM-${Date.now()}`,
@@ -781,12 +952,21 @@ function createServer(overrides = {}) {
     }
 
     if (url.pathname === '/health/ready' && req.method === 'GET') {
+      const teamsHealth = teams.getHealth();
+      const dependencies = {
+        persistence: fs.existsSync(config.dataDir) ? 'online' : 'error',
+        graceAi: config.graceAiEndpoint && config.graceAiApiKey ? 'configured' : 'simulation',
+        teams: teamsHealth.lastError ? 'error' : (teamsHealth.mode || 'simulation')
+      };
+      const degraded = Object.values(dependencies).includes('error');
       toJson(res, 200, {
-        ok: true,
+        ok: !degraded,
         dataDir: config.dataDir,
         simulationMode: config.simulationMode,
-        teamsMode: teams.getHealth().mode,
-        graceAiMode: config.graceAiEndpoint && config.graceAiApiKey ? 'external' : 'simulation'
+        teamsMode: teamsHealth.mode,
+        graceAiMode: config.graceAiEndpoint && config.graceAiApiKey ? 'external' : 'simulation',
+        dependencies,
+        degraded
       });
       return;
     }
@@ -798,7 +978,11 @@ function createServer(overrides = {}) {
         supportedServices: SUPPORTED_SERVICES,
         policyLabel: POLICY_LABEL,
         secureBrowserAllowlist: config.secureBrowserAllowlist,
-        mediaAllowlist: config.mediaAllowlist
+        mediaAllowlist: config.mediaAllowlist,
+        technicianKnowledgeSources: config.technicianKnowledgeSources,
+        maxQueueItems: config.maxQueueItems,
+        graceAvatarProfile: config.graceAvatarProfile,
+        graceVoiceProfile: config.graceVoiceProfile
       });
       return;
     }
@@ -859,7 +1043,12 @@ function createServer(overrides = {}) {
       }
       if (url.pathname.startsWith('/api/dispatch/') && url.pathname.endsWith('/approve') && req.method === 'POST') {
         const queueId = url.pathname.split('/')[3];
-        handleApprove(res, body, queueId);
+        handleApprove(req, res, body, queueId);
+        return;
+      }
+      if (url.pathname.startsWith('/api/work-orders/') && url.pathname.endsWith('/transition') && req.method === 'POST') {
+        const queueId = url.pathname.split('/')[3];
+        handleWorkOrderTransition(req, res, body, queueId);
         return;
       }
       if (url.pathname === '/api/automation/pause' && req.method === 'POST') {
@@ -874,6 +1063,10 @@ function createServer(overrides = {}) {
         handleInboundTeams(req, res, body);
         return;
       }
+      if (url.pathname === '/api/technician/copilot' && req.method === 'POST') {
+        handleTechnicianCopilot(res, body);
+        return;
+      }
       if (url.pathname === '/api/media/sources' && req.method === 'POST') {
         handleMediaSource(res, body);
         return;
@@ -884,6 +1077,14 @@ function createServer(overrides = {}) {
       }
       if (url.pathname === '/api/secure-browser/clear' && req.method === 'POST') {
         handleSecureBrowserClear(res, body);
+        return;
+      }
+      if (url.pathname === '/api/admin/backup/export' && req.method === 'GET') {
+        handleBackupExport(res);
+        return;
+      }
+      if (url.pathname === '/api/admin/backup/restore' && req.method === 'POST') {
+        handleBackupRestore(res, body);
         return;
       }
       if (url.pathname === '/api/simulate/tick' && req.method === 'POST') {
@@ -905,6 +1106,7 @@ function createServer(overrides = {}) {
 
   function start() {
     return new Promise((resolve) => {
+      validateStartupConfig(config, storage);
       server.listen(config.port, () => {
         started = true;
         persist();

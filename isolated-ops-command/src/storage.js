@@ -50,6 +50,12 @@ function createStorage(dataDir) {
     loadState(defaultState) {
       return readJson(statePath, defaultState);
     },
+    probeWritable() {
+      ensureDir(dataDir);
+      const probePath = path.join(dataDir, `.write-probe-${randomUUID()}.tmp`);
+      fs.writeFileSync(probePath, 'ok', 'utf8');
+      fs.rmSync(probePath, { force: true });
+    },
     saveState(state) {
       atomicWriteJson(statePath, state);
     },
@@ -59,6 +65,24 @@ function createStorage(dataDir) {
     },
     readAudit(limit) {
       return readJsonLines(auditPath, limit);
+    },
+    exportSnapshot() {
+      return {
+        exportedAt: new Date().toISOString(),
+        schemaVersion: 1,
+        state: readJson(statePath, {}),
+        audit: readJsonLines(auditPath, Number.MAX_SAFE_INTEGER)
+      };
+    },
+    restoreSnapshot(snapshot) {
+      const safeSnapshot = snapshot && typeof snapshot === 'object' ? snapshot : {};
+      const state = safeSnapshot.state && typeof safeSnapshot.state === 'object'
+        ? safeSnapshot.state
+        : {};
+      const audit = Array.isArray(safeSnapshot.audit) ? safeSnapshot.audit : [];
+      atomicWriteJson(statePath, state);
+      const content = audit.map((entry) => JSON.stringify(entry)).join(os.EOL);
+      fs.writeFileSync(auditPath, content ? content + os.EOL : '', 'utf8');
     },
     paths: { statePath, auditPath }
   };

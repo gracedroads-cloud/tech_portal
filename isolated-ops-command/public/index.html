@@ -63,6 +63,20 @@
     </section>
 
     <section class="panel">
+      <h2>Technician Copilot</h2>
+      <form id="techCopilotForm" class="stacked-form">
+        <label><span>Authorized source</span><input name="source" value="internal_sop" required></label>
+        <label><span>Engine / vehicle</span><input name="engineVehicle" value="Cummins X15 / Freightliner Cascadia"></label>
+        <label><span>Code family</span><input name="codeFamily" value="SPN/FMI"></label>
+        <label><span>Symptoms</span><input name="symptoms" value="Intermittent no-start and low battery voltage"></label>
+        <label><span>Measurements</span><input name="measurements" value="12.1V static / 13.8V charging"></label>
+        <label><span>Safety state</span><input name="safetyState" value="Scene secured, parking brakes set"></label>
+        <button type="submit">Request Copilot Assist</button>
+      </form>
+      <div id="techCopilotResult" class="feed-list monospace"></div>
+    </section>
+
+    <section class="panel">
       <h2>Secure Browser</h2>
       <form id="browserForm" class="stacked-form inline-buttons">
         <label><span>Allowlisted URL</span><input name="url" type="url" placeholder="https://portal.example.com" required></label>

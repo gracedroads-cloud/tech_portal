@@ -181,10 +181,60 @@ test('requires human approval by default and allows explicit approval', async ()
       headers: authHeaders(),
       body: JSON.stringify({ operator: 'Dispatcher Two' })
     });
-    assert.equal(duplicateApproval.response.status, 409);
+    assert.equal(duplicateApproval.response.status, 200);
+    assert.equal(duplicateApproval.body.idempotent, true);
 
     const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
     assert.equal(state.body.dispatchQueue[0].status, 'approved_dispatch');
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('supports full work-order transitions through closeout with idempotency', async () => {
+  const ctx = await startTestServer();
+  try {
+    const created = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ description: 'Battery diagnostics requested', serviceType: 'battery_electrical_help' })
+    });
+    const queueId = created.body.queueItem.id;
+    await jsonRequest(ctx.baseUrl, `/api/dispatch/${queueId}/approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ operator: 'Dispatcher One' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'assign-1' }),
+      body: JSON.stringify({ transition: 'technician_assigned', operator: 'Dispatcher One', technician: 'Tech 9' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'in-progress-1' }),
+      body: JSON.stringify({ transition: 'in_progress', operator: 'Tech 9' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'completed-1' }),
+      body: JSON.stringify({ transition: 'completed', operator: 'Tech 9', completionNotes: 'Battery cables repaired and verified.' })
+    });
+    const closed = await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'closed-1' }),
+      body: JSON.stringify({ transition: 'closed', operator: 'Dispatcher One', customerSafeSummary: 'Service complete and unit ready.' })
+    });
+    assert.equal(closed.response.status, 200);
+    const replay = await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'closed-1' }),
+      body: JSON.stringify({ transition: 'closed', operator: 'Dispatcher One', customerSafeSummary: 'Service complete and unit ready.' })
+    });
+    assert.deepEqual(replay.body, closed.body);
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
+    assert.equal(state.body.dispatchQueue[0].status, 'closed');
+    assert.equal(state.body.dispatchQueue[0].assignedTechnician, 'Tech 9');
   } finally {
     await ctx.stop();
   }
@@ -205,6 +255,47 @@ test('replays the original idempotent incident response shape and status', async
     assert.deepEqual(replay.body, first.body);
   } finally {
     await ctx.stop();
+  }
+});
+
+test('recovers persisted state after restart', async () => {
+  const dataDir = makeTempDir();
+  const first = createServer({
+    port: 0,
+    dataDir,
+    opsToken: 'test-token',
+    simulationMode: true,
+    secureBrowserAllowlist: ['https://portal.example.com'],
+    mediaAllowlist: ['https://demo.example.com'],
+    silent: true
+  });
+  const firstPort = await first.start();
+  const firstBase = `http://127.0.0.1:${firstPort}`;
+  await jsonRequest(firstBase, '/api/incidents', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ description: 'Restart persistence test', serviceType: 'battery_electrical_help' })
+  });
+  await first.stop();
+
+  const second = createServer({
+    port: 0,
+    dataDir,
+    opsToken: 'test-token',
+    simulationMode: true,
+    secureBrowserAllowlist: ['https://portal.example.com'],
+    mediaAllowlist: ['https://demo.example.com'],
+    silent: true
+  });
+  const secondPort = await second.start();
+  try {
+    const secondBase = `http://127.0.0.1:${secondPort}`;
+    const state = await jsonRequest(secondBase, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
+    assert.equal(state.response.status, 200);
+    assert.ok(state.body.dispatchQueue.length >= 1);
+  } finally {
+    await second.stop();
+    fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 
@@ -354,6 +445,57 @@ test('simulates Teams notifications without external secrets', async () => {
     });
     assert.equal(result.response.status, 200);
     assert.equal(result.body.result.mode, 'simulation');
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('returns technician copilot response for authorized sources and escalates legal domain', async () => {
+  const ctx = await startTestServer({ technicianKnowledgeSources: ['internal_sop'] });
+  try {
+    const denied = await jsonRequest(ctx.baseUrl, '/api/technician/copilot', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ source: 'unauthorized', engineVehicle: 'Volvo D13', codeFamily: 'SPN/FMI' })
+    });
+    assert.equal(denied.response.status, 403);
+
+    const allowed = await jsonRequest(ctx.baseUrl, '/api/technician/copilot', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ source: 'internal_sop', domain: 'legal', engineVehicle: 'Volvo D13', codeFamily: 'SPN/FMI' })
+    });
+    assert.equal(allowed.response.status, 200);
+    assert.equal(allowed.body.result.source, 'internal_sop');
+    assert.equal(allowed.body.result.escalation, 'professional_review_required');
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('supports backup export and restore APIs', async () => {
+  const ctx = await startTestServer();
+  try {
+    await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ description: 'Backup export test', serviceType: 'battery_electrical_help' })
+    });
+    const exported = await jsonRequest(ctx.baseUrl, '/api/admin/backup/export', {
+      method: 'GET',
+      headers: { 'x-ops-token': 'test-token' }
+    });
+    assert.equal(exported.response.status, 200);
+    assert.ok(Array.isArray(exported.body.audit));
+    assert.ok(exported.body.state.dispatchQueue.length >= 1);
+
+    exported.body.state.dispatchQueue = [];
+    const restore = await jsonRequest(ctx.baseUrl, '/api/admin/backup/restore', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(exported.body)
+    });
+    assert.equal(restore.response.status, 202);
   } finally {
     await ctx.stop();
   }
