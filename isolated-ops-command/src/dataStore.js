@@ -3,7 +3,15 @@ const path = require('path');
 const crypto = require('crypto');
 
 function stableJson(value) {
-  return JSON.stringify(value, Object.keys(value).sort());
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJson(item)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    const entries = keys.map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`);
+    return `{${entries.join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function writeJsonAtomic(filePath, value) {

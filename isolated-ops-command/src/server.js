@@ -13,7 +13,10 @@ function createServer(options = {}) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  const authToken = options.authToken || process.env.OPS_COMMAND_TOKEN || 'dev-ops-token';
+  const authToken = options.authToken || process.env.OPS_COMMAND_TOKEN;
+  if (!authToken) {
+    throw new Error('OPS_COMMAND_TOKEN required for isolated-ops-command');
+  }
   const store = new DataStore(dataDir);
   const learning = new LearningSystem(store);
 
@@ -63,7 +66,8 @@ function createServer(options = {}) {
         return res.status(400).json({ error: 'idempotency_key_required' });
       }
 
-      const existing = store.getIdempotency(key);
+      const scopeKey = `${req.method}:${req.path}:${req.headers['x-ops-user'] || req.opsRole || 'anonymous'}:${key}`;
+      const existing = store.getIdempotency(scopeKey);
       if (existing) {
         return res.status(existing.status).json(existing.body);
       }
@@ -76,7 +80,7 @@ function createServer(options = {}) {
 
         const status = result.status || 200;
         const body = result.body || result;
-        store.upsertIdempotency(key, { status, body });
+        store.upsertIdempotency(scopeKey, { status, body });
         store.persistAll();
         return res.status(status).json(body);
       } catch (error) {
@@ -228,6 +232,9 @@ function createServer(options = {}) {
     store.state.observations = Array.isArray(data.observations) ? data.observations : [];
     store.state.feedback = Array.isArray(data.feedback) ? data.feedback : [];
     store.state.lessons = Array.isArray(data.lessons) ? data.lessons : [];
+    store.state.knowledgeBases = data.knowledgeBases && typeof data.knowledgeBases === 'object'
+      ? data.knowledgeBases
+      : store.state.knowledgeBases;
     store.state.evaluations = Array.isArray(data.evaluations) ? data.evaluations : [];
     store.state.idempotency = data.idempotency && typeof data.idempotency === 'object' ? data.idempotency : {};
     store.state.audit = Array.isArray(data.audit) ? data.audit : [];
