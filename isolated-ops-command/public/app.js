@@ -141,7 +141,7 @@ function renderSnapshot(snapshot) {
         <div class="meta">${escapeHtml(session.origin)} • expires ${escapeHtml(new Date(session.expiresAt).toLocaleTimeString())}</div>
         ${iframe}
         <div class="session-actions">
-          ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${sessionUrl}">Open protected tab</button>` : ''}
+          ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${sessionUrl}" aria-label="Open protected tab in a new window for ${escapeHtml(session.hostname)}">Open protected tab (new window)</button>` : ''}
         </div>
       </div>
     `;
@@ -169,7 +169,7 @@ function renderSnapshot(snapshot) {
         <div class="media-actions">
           <button class="secondary" type="button" data-mute="${sourceKey}">${muted ? 'Unmute' : 'Mute'}</button>
           <button class="secondary" type="button" data-reconnect="${source.id}">Reconnect</button>
-          ${sourceUrl ? `<button class="secondary" type="button" data-open-source="${sourceUrl}">Open Source</button>` : ''}
+          ${sourceUrl ? `<button class="secondary" type="button" data-open-source="${sourceUrl}" aria-label="Open media source in a new window for ${escapeHtml(source.name)}">Open source (new window)</button>` : ''}
         </div>
       </article>
     `;

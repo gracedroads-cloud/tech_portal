@@ -398,6 +398,7 @@ function createServer(overrides = {}) {
   let state = createInitialState(config, storage);
   let simulationInterval = null;
   const sseClients = new Map();
+  let started = false;
 
   function persist() {
     state = refreshMonitors(state, config, teams.getHealth());
@@ -618,6 +619,10 @@ function createServer(overrides = {}) {
     }
     if (item.status === 'policy_rejected') {
       toJson(res, 409, { error: 'policy rejected items cannot be approved' });
+      return;
+    }
+    if (item.status !== 'awaiting_human_approval') {
+      toJson(res, 409, { error: 'only items awaiting human approval can be approved' });
       return;
     }
     updateState((draft) => {
@@ -901,6 +906,7 @@ function createServer(overrides = {}) {
   function start() {
     return new Promise((resolve) => {
       server.listen(config.port, () => {
+        started = true;
         persist();
         audit('system.started', { port: server.address().port, simulationMode: config.simulationMode });
         if (config.simulationMode && !simulationInterval) {
@@ -923,6 +929,10 @@ function createServer(overrides = {}) {
 
   function stop() {
     return new Promise((resolve) => {
+      if (!started || !server.listening) {
+        resolve();
+        return;
+      }
       audit('system.stopping', {});
       if (simulationInterval) {
         clearInterval(simulationInterval);
@@ -934,6 +944,7 @@ function createServer(overrides = {}) {
       }
       sseClients.clear();
       server.close(() => {
+        started = false;
         resolve();
       });
     });

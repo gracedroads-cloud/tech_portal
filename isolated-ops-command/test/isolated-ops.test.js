@@ -176,6 +176,13 @@ test('requires human approval by default and allows explicit approval', async ()
     });
     assert.equal(approved.response.status, 200);
 
+    const duplicateApproval = await jsonRequest(ctx.baseUrl, `/api/dispatch/${created.body.queueItem.id}/approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ operator: 'Dispatcher Two' })
+    });
+    assert.equal(duplicateApproval.response.status, 409);
+
     const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
     assert.equal(state.body.dispatchQueue[0].status, 'approved_dispatch');
   } finally {
@@ -404,4 +411,11 @@ test('expires authenticated SSE sessions when the TTL is reached', async () => {
   } finally {
     await ctx.stop();
   }
+});
+
+test('can stop safely before the server starts listening', async () => {
+  const dataDir = makeTempDir();
+  const app = createServer({ port: 0, dataDir, opsToken: 'test-token', silent: true });
+  await app.stop();
+  fs.rmSync(dataDir, { recursive: true, force: true });
 });
