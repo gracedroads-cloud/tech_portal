@@ -496,6 +496,23 @@ test('supports backup export and restore APIs', async () => {
       body: JSON.stringify(exported.body)
     });
     assert.equal(restore.response.status, 202);
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
+    assert.equal(state.response.status, 200);
+    assert.equal(state.body.dispatchQueue.length, 0);
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('rejects malformed backup restore payloads', async () => {
+  const ctx = await startTestServer();
+  try {
+    const malformed = await jsonRequest(ctx.baseUrl, '/api/admin/backup/restore', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ state: { bad: true }, audit: ['not-an-object'] })
+    });
+    assert.equal(malformed.response.status, 400);
   } finally {
     await ctx.stop();
   }

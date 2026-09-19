@@ -2,7 +2,7 @@
 
 ## Implemented controls
 
-- Token auth required for mutating and admin endpoints.
+- Token auth required for operational state/audit/event feeds and all mutating/admin endpoints.
 - Rate limiting, JSON size limits, malformed-payload handling.
 - Secure headers: CSP, frame policy, no-sniff, referrer policy, permissions policy.
 - Restricted CORS from configured origin allowlist only.

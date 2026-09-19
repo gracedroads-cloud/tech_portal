@@ -247,6 +247,23 @@ function redact(obj) {
   }));
 }
 
+function deepSanitize(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepSanitize(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  const output = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      continue;
+    }
+    output[key] = deepSanitize(child);
+  }
+  return output;
+}
+
 function readStaticFile(filePath) {
   return fs.readFileSync(filePath);
 }
@@ -652,10 +669,10 @@ function createServer(overrides = {}) {
       toJson(res, replay.statusCode, replay.body);
       return;
     }
-    if (state.dispatchQueue.length >= config.maxQueueItems) {
+    const activeQueueItems = state.dispatchQueue.filter((entry) => entry.status !== 'closed').length;
+    if (activeQueueItems >= config.maxQueueItems) {
       const responseBody = { error: 'Dispatch queue is at capacity. Pause intake and complete existing work orders.' };
-      state.idempotencyKeys[idempotencyKey] = { statusCode: 503, body: responseBody };
-      audit('dispatch.queue.capacity_reached', { queueLength: state.dispatchQueue.length, maxQueueItems: config.maxQueueItems });
+      audit('dispatch.queue.capacity_reached', { queueLength: activeQueueItems, maxQueueItems: config.maxQueueItems });
       toJson(res, 503, responseBody);
       return;
     }
@@ -873,8 +890,8 @@ function createServer(overrides = {}) {
   }
 
   function handleBackupExport(res) {
+    audit('backup.exported', { requestedAt: now() });
     const snapshot = storage.exportSnapshot();
-    audit('backup.exported', { exportedAt: snapshot.exportedAt, auditEvents: snapshot.audit.length });
     toJson(res, 200, snapshot);
   }
 
@@ -883,10 +900,35 @@ function createServer(overrides = {}) {
       toJson(res, 400, { error: 'state and audit snapshot payload is required' });
       return;
     }
-    storage.restoreSnapshot(body);
+    if (!Array.isArray(body.state.dispatchQueue) || !Array.isArray(body.state.incidents) || !Array.isArray(body.state.policyRejections)) {
+      toJson(res, 400, { error: 'snapshot state has an invalid shape' });
+      return;
+    }
+    if (!body.audit.every((entry) => entry && typeof entry === 'object')) {
+      toJson(res, 400, { error: 'snapshot audit entries must be objects' });
+      return;
+    }
+    const safeState = deepSanitize({
+      label: String(body.state.label || config.appLabel),
+      simulationMode: Boolean(body.state.simulationMode),
+      automationPaused: Boolean(body.state.automationPaused),
+      automationPauseReason: String(body.state.automationPauseReason || ''),
+      incidents: body.state.incidents,
+      dispatchQueue: body.state.dispatchQueue,
+      activeUnits: Array.isArray(body.state.activeUnits) ? body.state.activeUnits : [],
+      policyRejections: body.state.policyRejections,
+      mediaSources: Array.isArray(body.state.mediaSources) ? body.state.mediaSources : [],
+      secureBrowserSessions: Array.isArray(body.state.secureBrowserSessions) ? body.state.secureBrowserSessions : [],
+      idempotencyKeys: body.state.idempotencyKeys && typeof body.state.idempotencyKeys === 'object' ? body.state.idempotencyKeys : {},
+      transitionIdempotencyKeys: body.state.transitionIdempotencyKeys && typeof body.state.transitionIdempotencyKeys === 'object' ? body.state.transitionIdempotencyKeys : {},
+      teamsEvents: Array.isArray(body.state.teamsEvents) ? body.state.teamsEvents : [],
+      lastGraceAiDecision: body.state.lastGraceAiDecision && typeof body.state.lastGraceAiDecision === 'object' ? body.state.lastGraceAiDecision : null
+    });
+    const safeAudit = deepSanitize(body.audit);
+    storage.restoreSnapshot({ state: safeState, audit: safeAudit });
     state = createInitialState(config, storage);
+    persist();
     emit('snapshot', { state: getPublicState() });
-    audit('backup.restored', { restoredAt: now(), auditEvents: body.audit.length });
     toJson(res, 202, { restored: true, restoredAt: now() });
   }
 
@@ -1003,9 +1045,10 @@ function createServer(overrides = {}) {
         connection: 'keep-alive',
         'cache-control': 'no-cache'
       });
-      res.write(`data: ${JSON.stringify({ type: 'snapshot', at: now(), payload: getPublicState() })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'snapshot', at: now(), payload: { state: getPublicState() } })}\n\n`);
       const timeoutId = setTimeout(() => {
         if (!res.destroyed) {
+          res.write(`data: ${JSON.stringify({ type: 'session_expiring', at: now(), payload: { reason: 'ttl_reached' } })}\n\n`);
           res.end();
         }
       }, config.sseSessionTtlMs);
@@ -1105,9 +1148,15 @@ function createServer(overrides = {}) {
   });
 
   function start() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       validateStartupConfig(config, storage);
+      const onError = (error) => {
+        server.off('error', onError);
+        reject(error);
+      };
+      server.once('error', onError);
       server.listen(config.port, () => {
+        server.off('error', onError);
         started = true;
         persist();
         audit('system.started', { port: server.address().port, simulationMode: config.simulationMode });
@@ -1131,15 +1180,15 @@ function createServer(overrides = {}) {
 
   function stop() {
     return new Promise((resolve) => {
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+      }
       if (!started || !server.listening) {
         resolve();
         return;
       }
       audit('system.stopping', {});
-      if (simulationInterval) {
-        clearInterval(simulationInterval);
-        simulationInterval = null;
-      }
       for (const [client, timeoutId] of sseClients.entries()) {
         clearTimeout(timeoutId);
         client.end();

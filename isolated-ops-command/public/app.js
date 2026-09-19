@@ -145,9 +145,10 @@ function renderSnapshot(snapshot) {
 
   secureSessions.innerHTML = snapshot.secureBrowserSessions.length ? snapshot.secureBrowserSessions.map((session) => {
     const sessionUrl = state.sessionLaunchUrls[session.id] || '';
+    const safeSessionUrl = escapeHtml(sessionUrl);
     const iframe = session.mode === 'iframe'
       ? (sessionUrl
-        ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts" src="${sessionUrl}" data-fallback-url="${sessionUrl}" title="Secure session ${escapeHtml(session.hostname)}"></iframe></div>`
+        ? `<div class="media-preview"><iframe sandbox="allow-forms allow-scripts" src="${safeSessionUrl}" data-fallback-url="${safeSessionUrl}" title="Secure session ${escapeHtml(session.hostname)}"></iframe></div>`
         : '<div class="media-preview">Refresh-safe state hides the full launch URL. Re-launch to embed again, or use the protected-tab flow.</div>')
       : '<div class="media-preview">Destination opened in protected tab or window. Embedding may be blocked by policy headers.</div>';
     return `
@@ -156,7 +157,7 @@ function renderSnapshot(snapshot) {
         <div class="meta">${escapeHtml(session.origin)} • expires ${escapeHtml(new Date(session.expiresAt).toLocaleTimeString())}</div>
         ${iframe}
         <div class="session-actions">
-          ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${sessionUrl}" aria-label="Open protected tab in a new window for ${escapeHtml(session.hostname)}">Open protected tab (new window)</button>` : ''}
+          ${sessionUrl ? `<button class="secondary" type="button" data-open-session="${safeSessionUrl}" aria-label="Open protected tab in a new window for ${escapeHtml(session.hostname)}">Open protected tab (new window)</button>` : ''}
         </div>
       </div>
     `;
@@ -166,11 +167,12 @@ function renderSnapshot(snapshot) {
     const sourceKey = `${source.kind}-${source.id}`;
     const muted = state.mediaMute[sourceKey] !== false;
     const sourceUrl = state.mediaLaunchUrls[source.id] || '';
+    const safeSourceUrl = escapeHtml(sourceUrl);
     const status = `${source.simulated ? 'SIMULATED' : source.state.toUpperCase()}`;
     const preview = source.simulated || !sourceUrl
       ? `<div class="media-preview">${escapeHtml(source.kind.toUpperCase())} ${escapeHtml(status)}<br>${escapeHtml(source.name)}</div>`
       : source.type === 'EMBED'
-        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="Embedded media preview for ${escapeHtml(source.name)}"></iframe></div>`
+        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${safeSourceUrl}" title="Embedded media preview for ${escapeHtml(source.name)}"></iframe></div>`
         : `<div class="media-preview">Authorized ${escapeHtml(source.type)} source configured for operator-managed playback.<br>${escapeHtml(source.displayOrigin || 'configured source')}</div>`;
     return `
       <article class="media-card" data-status="${source.state}">
@@ -184,7 +186,7 @@ function renderSnapshot(snapshot) {
         <div class="media-actions">
           <button class="secondary" type="button" data-mute="${sourceKey}">${muted ? 'Unmute' : 'Mute'}</button>
           <button class="secondary" type="button" data-reconnect="${source.id}">Reconnect</button>
-          ${sourceUrl ? `<button class="secondary" type="button" data-open-source="${sourceUrl}" aria-label="Open media source in a new window for ${escapeHtml(source.name)}">Open source (new window)</button>` : ''}
+          ${sourceUrl ? `<button class="secondary" type="button" data-open-source="${safeSourceUrl}" aria-label="Open media source in a new window for ${escapeHtml(source.name)}">Open source (new window)</button>` : ''}
         </div>
       </article>
     `;
@@ -226,6 +228,10 @@ async function connectEvents() {
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
+        setMessage('Live stream session rotated. Reconnecting…');
+        window.setTimeout(() => {
+          connectEvents().catch((streamError) => setMessage(streamError.message));
+        }, 200);
         break;
       }
       buffer += decoder.decode(value, { stream: true });
@@ -375,31 +381,6 @@ document.addEventListener('click', async (event) => {
         setMessage('Enter the approving operator name before approving a dispatch.');
         return;
       }
-
-      if (transitionId && transition) {
-        try {
-          const operator = operatorNameInput.value.trim();
-          if (!operator) {
-            setMessage('Enter the operator name before transitioning a work order.');
-            return;
-          }
-          const payload = { operator, transition };
-          if (transition === 'technician_assigned') {
-            payload.technician = window.prompt('Technician name', operator) || operator;
-          } else if (transition === 'completed') {
-            payload.completionNotes = window.prompt('Completion notes', 'Diagnostics completed and vehicle stabilized.') || '';
-          } else if (transition === 'closed') {
-            payload.customerSafeSummary = window.prompt('Customer-safe summary', 'Roadside support completed. Unit returned to service readiness.') || '';
-          }
-          await api(`/api/work-orders/${transitionId}/transition`, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-          setMessage(`Work order moved to ${transition.replace(/_/g, ' ')}.`);
-        } catch (error) {
-          setMessage(error.message);
-        }
-      }
       await api(`/api/dispatch/${approveId}/approve`, {
         method: 'POST',
         body: JSON.stringify({ operator })
@@ -410,8 +391,34 @@ document.addEventListener('click', async (event) => {
     }
   }
 
+  if (transitionId && transition) {
+    try {
+      const operator = operatorNameInput.value.trim();
+      if (!operator) {
+        setMessage('Enter the operator name before transitioning a work order.');
+        return;
+      }
+      const payload = { operator, transition };
+      if (transition === 'technician_assigned') {
+        payload.technician = `${operator} (assigned)`;
+      } else if (transition === 'completed') {
+        payload.completionNotes = 'Diagnostics completed and vehicle stabilized.';
+      } else if (transition === 'closed') {
+        payload.customerSafeSummary = 'Roadside support completed. Unit returned to service readiness.';
+      }
+      await api(`/api/work-orders/${transitionId}/transition`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setMessage(`Work order moved to ${transition.replace(/_/g, ' ')}.`);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
   if (sourceUrl || sessionUrl) {
     window.open(sourceUrl || sessionUrl, '_blank', 'noopener,noreferrer');
+    setMessage('Opened destination in a new protected window.');
   }
 
   if (muteId) {
@@ -437,6 +444,19 @@ document.getElementById('fullscreenButton').addEventListener('click', async () =
 });
 
 tokenInput.addEventListener('change', async () => {
+  try {
+    await refresh();
+    await connectEvents();
+  } catch (error) {
+    setMessage(error.message);
+  }
+});
+
+tokenInput.addEventListener('keydown', async (event) => {
+  if (event.key !== 'Enter') {
+    return;
+  }
+  event.preventDefault();
   try {
     await refresh();
     await connectEvents();
