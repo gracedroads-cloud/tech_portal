@@ -28,7 +28,6 @@
             margin: 0 auto;
         }
 
-        /* 150-MILE LIVE BREAKDOWN TICKER BAR */
         .ticker-wrapper {
             background: #021a10;
             border: 2px solid var(--accent-green);
@@ -59,7 +58,6 @@
             font-size: 1rem;
         }
 
-        /* GRID LAYOUT */
         .grid-2col {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -76,6 +74,7 @@
         .btn-group {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -92,8 +91,95 @@
             opacity: 0.85;
         }
 
-        /* TERMINAL LOG */
-        #terminalLog {
+        .progress-pane {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .eyebrow {
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            font-weight: 700;
+        }
+
+        .progress-header h3 {
+            margin: 4px 0 0;
+            font-size: 1rem;
+            color: #f8fafc;
+        }
+
+        .status-chip-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .status-ready { background: rgba(16,185,129,0.12); border: 1px solid #10b981; color: #86efac; }
+        .status-active { background: rgba(59,130,246,0.12); border: 1px solid #3b82f6; color: #93c5fd; }
+        .status-blocked { background: rgba(239,68,68,0.12); border: 1px solid #ef4444; color: #fca5a5; }
+        .status-complete { background: rgba(251,146,60,0.12); border: 1px solid #fb923c; color: #fdba74; }
+
+        .progress-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .progress-step {
+            display: grid;
+            grid-template-columns: 12px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            background: rgba(2,6,23,0.4);
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .progress-step.active { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .progress-step.complete { border-color: #fb923c; background: rgba(251,146,60,0.08); }
+        .progress-step.blocked { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #475569;
+            box-shadow: 0 0 0 4px rgba(148,163,184,0.08);
+        }
+
+        .progress-step.active .step-dot { background: #3b82f6; }
+        .progress-step.complete .step-dot { background: #fb923c; }
+        .progress-step.blocked .step-dot { background: #ef4444; }
+
+        .step-name { color: #f8fafc; font-size: 12px; font-weight: 700; }
+        .step-meta { color: #94a3b8; font-size: 10px; margin-top: 2px; }
+        .step-time { color: #cbd5e1; font-size: 10px; font-family: monospace; }
+
+        #graceLog {
             background: #000;
             color: var(--accent-green);
             font-family: monospace;
@@ -106,210 +192,349 @@
     </style>
 </head>
 <body>
-
 <div class="dashboard-container">
-
-    <!-- 150-MILE LIVE BREAKDOWN TICKER BAR -->
     <div class="ticker-wrapper">
         <div class="ticker-header">
-            <span class="ticker-badge">📡 EASTON PA 150-MILE RADAR TICKER</span>
+            <span class="ticker-badge">📡 WATCH FILTER: 150-MILE OPERATIONAL SCAN</span>
             <marquee id="breakdown-ticker" behavior="scroll" direction="left" scrollamount="6">
-                [LOADING LIVE 150-MILE BREAKDOWN FEED...]
+                [LOADING SERVER-FILTERED BREAKDOWNS...]
             </marquee>
         </div>
     </div>
 
-    <!-- GRACE LIVE STREAM MONITOR & ADVANCED DISPATCH CONSOLE -->
     <div class="grid-2col">
+        <div class="op-card" style="border: 1px solid #1e293b;">
+            <div class="progress-pane">
+                <div class="progress-header">
+                    <div>
+                        <div class="eyebrow">Operations</div>
+                        <h3>Grace Dispatch Progress</h3>
+                    </div>
+                    <span id="progressStateBadge" class="status-badge status-ready">READY</span>
+                </div>
 
-        <!-- MODULE 1: GRACE VOICE & CALL STREAM INTERCEPTOR -->
+                <div class="status-chip-group">
+                    <span class="status-badge status-ready">Ready</span>
+                    <span class="status-badge status-active">Active</span>
+                    <span class="status-badge status-blocked">Blocked</span>
+                    <span class="status-badge status-complete">Complete</span>
+                </div>
+
+                <div id="progressSteps" class="progress-steps">
+                    <div class="progress-step" data-step="answered"><div class="step-dot"></div><div class="step-body"><div class="step-name">Call Answered</div><div class="step-meta">Waiting for intake</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="intake"><div class="step-dot"></div><div class="step-body"><div class="step-name">Intake Captured</div><div class="step-meta">Location, unit, callback</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="scope"><div class="step-dot"></div><div class="step-body"><div class="step-name">Scope Verified</div><div class="step-meta">Heavy-duty diesel only</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="quote"><div class="step-dot"></div><div class="step-body"><div class="step-name">Quote Ready</div><div class="step-meta">Estimate (not final)</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="payment"><div class="step-dot"></div><div class="step-body"><div class="step-name">Payment Link Sent</div><div class="step-meta">Secure processor handoff/mock</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="offer"><div class="step-dot"></div><div class="step-body"><div class="step-name">Technician Offered</div><div class="step-meta">Awaiting acceptance</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="accepted"><div class="step-dot"></div><div class="step-body"><div class="step-name">Technician Accepted</div><div class="step-meta">Dispatch gate unlock</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="workorder"><div class="step-dot"></div><div class="step-body"><div class="step-name">Work Order Created</div><div class="step-meta">Dispatch confirmed</div></div><div class="step-time">--:--</div></div>
+                    <div class="progress-step" data-step="closeout"><div class="step-dot"></div><div class="step-body"><div class="step-name">Closeout Complete</div><div class="step-meta">Proof/invoice complete</div></div><div class="step-time">--:--</div></div>
+                </div>
+
+                <div class="btn-group" style="margin-top: 12px;">
+                    <button id="btn-start-demo" class="btn" style="background:#10B981;color:#021a10;">Start Demo Call</button>
+                    <button id="btn-next-stage" class="btn" style="background:#3B82F6;color:white;">Run Next Stage</button>
+                    <button id="btn-refresh-progress" class="btn" style="background:#334155;color:white;">Refresh Status</button>
+                </div>
+
+                <div style="margin-top: 12px; background:#111827; border-left: 3px solid #ef4444; padding: 8px 10px; font-size: 12px; color:#fca5a5;">
+                    Guardrails: Heavy-duty mobile diesel repair only. No towing. No winching. No recovery.
+                </div>
+            </div>
+        </div>
+
         <div class="op-card" style="border: 2px solid var(--accent-gold);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="color: var(--accent-gold); margin: 0; font-size: 1.15rem;">
-                    🎙️ GRACE STREAM MONITOR & VOICE INTERCEPT 2.0
-                </h3>
-                <span id="call-status-badge" style="background: #15803D; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
-                    ● GRACE AI HANDLING
-                </span>
+                <h3 style="color: var(--accent-gold); margin: 0; font-size: 1.15rem;">🎙️ GRACE STREAM MONITOR & CALL CONTROL</h3>
+                <span id="call-status-badge" style="background: #15803D; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">● GRACE AI HANDLING</span>
             </div>
 
-            <!-- Caller Info -->
-            <div style="display: flex; gap: 12px; background: #000; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
-                <div style="flex: 1.2;">
-                    <div style="font-size: 0.75rem; color: #64748B; font-weight: bold;">INCOMING LINE / FLEET</div>
-                    <div id="caller-id-display" style="font-weight: bold; color: var(--accent-blue);">Keystone Freight (+1 610-555-0192)</div>
+            <div style="display:flex; gap:10px; margin-bottom:12px;">
+                <div style="flex:1;background:#000;padding:10px;border-radius:6px;border:1px solid var(--border-color);">
+                    <div style="font-size:0.75rem;color:#94A3B8;">Watch Center</div>
+                    <div id="watch-center-source" style="color:var(--accent-blue);font-weight:700;">Loading...</div>
+                    <div id="watch-center-radius" style="font-size:0.75rem;color:#cbd5e1;">Radius: --</div>
                 </div>
-                <div style="flex: 0.8;">
-                    <div style="font-size: 0.75rem; color: #64748B; font-weight: bold;">ORIGIN LOCATION</div>
-                    <div id="caller-loc-display" style="font-weight: bold; color: var(--accent-gold);">I-78 Corridor (Easton, PA)</div>
+                <div style="flex:1;background:#000;padding:10px;border-radius:6px;border:1px solid var(--border-color);">
+                    <div style="font-size:0.75rem;color:#94A3B8;">Freshness</div>
+                    <div id="watch-center-freshness" style="font-weight:700;color:#facc15;">--</div>
+                    <div id="watch-center-update" style="font-size:0.75rem;color:#cbd5e1;">Last update: --</div>
                 </div>
             </div>
 
-            <!-- Live Transcript Screen -->
+            <div class="btn-group" style="margin-bottom:12px;">
+                <button id="btn-use-gps" class="btn" style="background:#C084FC;color:black;">Use Browser GPS</button>
+                <button id="btn-refresh-watch" class="btn" style="background:#334155;color:white;">Refresh Watch Center</button>
+            </div>
+
             <div style="font-size: 0.75rem; color: #94A3B8; margin-bottom: 4px; font-weight: bold;">LIVE AUDIO STREAM TRANSCRIPT:</div>
-            <div id="stream-transcript-screen" style="background: #020604; color: #38BDF8; font-family: monospace; padding: 12px; border-radius: 6px; height: 110px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--accent-green); font-size: 0.88rem; line-height: 1.4;">
-                [GRACE AI]: EH Graced Roads Solutions, GRACE speaking. How can we assist your fleet near Easton today?
-            </div>
+            <div id="stream-transcript-screen" style="background: #020604; color: #38BDF8; font-family: monospace; padding: 12px; border-radius: 6px; height: 110px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--accent-green); font-size: 0.88rem; line-height: 1.4;">[GRACE AI]: EH Graced Roads Solutions, GRACE speaking. How can we assist your heavy-duty unit today?</div>
 
-            <!-- Override Buttons -->
             <div class="btn-group">
-                <button id="btn-pickup-call" class="btn" style="background: #00E676; color: black; flex: 1;">
-                    📞 PICK UP / OVERRIDE LINE
-                </button>
-                <button id="btn-resume-grace" class="btn" style="background: #334155; color: white; flex: 1;">
-                    🤖 RETURN TO GRACE AI
-                </button>
-                <button id="btn-convert-wo" class="btn" style="background: #FB923C; color: black; flex: 1;">
-                    ⚡ CONVERT TO WORK ORDER
-                </button>
+                <button id="btn-pickup-call" class="btn" style="background: #00E676; color: black; flex: 1;">📞 PICK UP / OVERRIDE LINE</button>
+                <button id="btn-resume-grace" class="btn" style="background: #334155; color: white; flex: 1;">🤖 RETURN TO GRACE AI</button>
             </div>
         </div>
-
-        <!-- MODULE 2: DISPATCH COMMAND CONSOLE -->
-        <div class="op-card" style="border: 2px solid var(--accent-blue);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="color: var(--accent-blue); margin: 0; font-size: 1.15rem;">
-                    🚨 DISPATCH CONSOLE 2.0 (EASTON BASE)
-                </h3>
-                <span style="background: #0284C7; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
-                    RADAR: 150 MI
-                </span>
-            </div>
-
-            <!-- Fleet Unit Status -->
-            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #1 (EASTON HQ)</div>
-                    <div style="color: var(--accent-green); font-weight: bold; font-size: 0.88rem;">● DISPATCH READY</div>
-                </div>
-                <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #2 (I-78 EN ROUTE)</div>
-                    <div style="color: var(--accent-gold); font-weight: bold; font-size: 0.88rem;">▲ ON SCENE (BD-101)</div>
-                </div>
-            </div>
-
-            <!-- Dispatch Controls -->
-            <div style="font-size: 0.75rem; color: #94A3B8; margin-bottom: 6px; font-weight: bold;">DIRECT DISPATCH ACTIONS:</div>
-            <div class="btn-group">
-                <button id="pttBtn" class="btn" style="background: #3B82F6; color: white; flex: 1;">
-                    📻 PTT RADIO
-                </button>
-                <button id="dispatchBtn" class="btn" style="background: #10B981; color: white; flex: 1;">
-                    🚨 ROADSIDE DISPATCH
-                </button>
-                <button id="btn-assign-closest" class="btn" style="background: #C084FC; color: black; flex: 1.2;">
-                    📍 DISPATCH CLOSEST
-                </button>
-            </div>
-
-            <div style="margin-top: 12px; background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #94A3B8; border-left: 3px solid var(--accent-blue);">
-                <strong style="color: white;">Base Location:</strong> Easton, PA | GPS: 40.6884, -75.2207
-            </div>
-        </div>
-
     </div>
 
-    <!-- TERMINAL OUTPUT -->
+    <div class="op-card" style="border: 2px solid var(--accent-blue); margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 style="color: var(--accent-blue); margin: 0; font-size: 1.15rem;">🚨 DISPATCH CONSOLE</h3>
+            <span style="background: #0284C7; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">150-MILE OPERATIONAL FILTER</span>
+        </div>
+        <div id="dispatch-summary" style="background:#000;padding:10px;border-radius:6px;border-left:3px solid var(--accent-blue);font-size:0.85rem;color:#cbd5e1;">Dispatch status: waiting for active call.</div>
+    </div>
+
     <div class="op-card" style="border: 1px solid var(--border-color);">
         <h4 style="margin: 0 0 10px 0; color: #94A3B8;">CONSOLE TERMINAL LOG</h4>
-        <div id="graceLog">SYSTEM INITIALIZED - EASTON PA RADAR ONLINE</div>
+        <div id="graceLog">SYSTEM INITIALIZED - LEHIGH VALLEY WATCH CENTER READY</div>
     </div>
-
 </div>
 
 <script>
-    // Variable Declarations (Declared ONCE globally at top)
-    const pttBtn = document.getElementById('pttBtn');
-    const dispatchBtn = document.getElementById('dispatchBtn');
     const graceLog = document.getElementById('graceLog');
     const statusBadge = document.getElementById('call-status-badge');
     const transcriptScreen = document.getElementById('stream-transcript-screen');
     const ticker = document.getElementById('breakdown-ticker');
+    const progressStateBadge = document.getElementById('progressStateBadge');
+    const dispatchSummary = document.getElementById('dispatch-summary');
 
-    // Helper TTS speech wrapper
-    function speakGrace(text) {
-        if ('speechSynthesis' in window) {
-            const msg = new SpeechSynthesisUtterance(text);
-            window.speechSynthesis.speak(msg);
+    const progressMap = [
+        ['answered', 'answeredAt'],
+        ['intake', 'intakeAt'],
+        ['scope', 'scopeVerifiedAt'],
+        ['quote', 'quoteReadyAt'],
+        ['payment', 'paymentLinkSentAt'],
+        ['offer', 'technicianOfferedAt'],
+        ['accepted', 'technicianAcceptedAt'],
+        ['workorder', 'workOrderCreatedAt'],
+        ['closeout', 'closeoutCompleteAt']
+    ];
+
+    let activeCallId = null;
+
+    function formatShortTime(iso) {
+        if (!iso) return '--:--';
+        const dt = new Date(iso);
+        return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function setProgressStatus(label, type) {
+        progressStateBadge.textContent = label;
+        progressStateBadge.classList.remove('status-ready', 'status-active', 'status-blocked', 'status-complete');
+        progressStateBadge.classList.add(type);
+    }
+
+    function updateProgressStep(stepName, status, timeText) {
+        const step = document.querySelector(`[data-step="${stepName}"]`);
+        if (!step) return;
+        step.classList.remove('active', 'complete', 'blocked');
+        if (status === 'active') step.classList.add('active');
+        if (status === 'complete') step.classList.add('complete');
+        if (status === 'blocked') step.classList.add('blocked');
+        const time = step.querySelector('.step-time');
+        if (time) time.textContent = timeText;
+    }
+
+    function renderProgress(call) {
+        const progress = call?.lifecycleProgress || {};
+        progressMap.forEach(([step, key]) => {
+            if (progress[key]) {
+                updateProgressStep(step, 'complete', formatShortTime(progress[key]));
+            } else {
+                updateProgressStep(step, '', '--:--');
+            }
+        });
+
+        if (!call) {
+            setProgressStatus('READY', 'status-ready');
+            dispatchSummary.textContent = 'Dispatch status: waiting for active call.';
+            return;
+        }
+
+        if (call.lifecycleState === 'scope_blocked') {
+            setProgressStatus('BLOCKED', 'status-blocked');
+            updateProgressStep('scope', 'blocked', formatShortTime(progress.scopeVerifiedAt));
+        } else if (call.lifecycleState === 'closeout_complete') {
+            setProgressStatus('COMPLETE', 'status-complete');
+        } else if (call.dispatchStatus === 'dispatch_confirmed') {
+            setProgressStatus('ACTIVE', 'status-active');
+        } else {
+            setProgressStatus('ACTIVE', 'status-active');
+        }
+
+        dispatchSummary.textContent = `Call ${call.callId} | Lifecycle: ${call.lifecycleState} | Dispatch: ${call.dispatchStatus}`;
+    }
+
+    async function refreshBreakdownTicker() {
+        try {
+            const res = await fetch('/api/breakdowns/scanner');
+            const data = await res.json();
+            if (data.breakdowns && data.breakdowns.length > 0) {
+                ticker.innerText = data.breakdowns.map((b) => `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance})`).join('   |   ');
+            } else {
+                ticker.innerText = 'NO BREAKDOWNS DETECTED WITHIN CURRENT 150-MILE OPERATIONAL FILTER.';
+            }
+        } catch (error) {
+            ticker.innerText = 'BREAKDOWN TICKER OFFLINE.';
         }
     }
 
-    // 1. Fetch 150-Mile Radius Breakdowns and Update Ticker
-    function refreshBreakdownTicker() {
-        fetch('/api/breakdowns/scanner?radius=150')
-            .then(res => res.json())
-            .then(data => {
-                if (data.breakdowns && data.breakdowns.length > 0) {
-                    const tickerText = data.breakdowns.map(b => 
-                        `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance} away) - STATUS: ${b.severity}`
-                    ).join('   |   ');
-                    ticker.innerText = tickerText;
-                } else {
-                    ticker.innerText = "NO BREAKDOWNS DETECTED WITHIN 150-MILE RADIUS OF EASTON, PA.";
-                }
-            })
-            .catch(() => {
-                ticker.innerText = "150-MILE BREAKDOWN TICKER OFFLINE.";
-            });
+    async function refreshWatchCenter() {
+        try {
+            const res = await fetch('/api/watch-center');
+            const data = await res.json();
+            document.getElementById('watch-center-source').textContent = `Watch Center: ${data.sourceMode === 'live_gps' ? 'Live GPS' : 'Lehigh Valley fallback'} (${data.center.lat.toFixed(4)}, ${data.center.lng.toFixed(4)})`;
+            document.getElementById('watch-center-radius').textContent = `Radius: ${data.radiusMiles} miles`;
+            document.getElementById('watch-center-freshness').textContent = data.freshness.toUpperCase();
+            document.getElementById('watch-center-update').textContent = `Last update: ${data.lastUpdate || 'none'}`;
+        } catch (error) {
+            document.getElementById('watch-center-source').textContent = 'Watch Center unavailable';
+        }
     }
 
-    // 2. Call Intercept (Pickup)
-    document.getElementById('btn-pickup-call').addEventListener('click', () => {
-        fetch('/api/stream/override', {
+    async function getActiveCall() {
+        if (!activeCallId) {
+            renderProgress(null);
+            return null;
+        }
+        const res = await fetch(`/api/grace/call/${encodeURIComponent(activeCallId)}`);
+        if (!res.ok) {
+            activeCallId = null;
+            renderProgress(null);
+            return null;
+        }
+        const call = await res.json();
+        renderProgress(call);
+        return call;
+    }
+
+    async function postLifecycle(path, payload) {
+        const res = await fetch(path, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'pickup' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            statusBadge.innerText = "● HUMAN OPERATOR OVERRIDE ACTIVE";
-            statusBadge.style.background = "#DC2626";
-
-            transcriptScreen.innerText += "\n\n[HUMAN INTERCEPT]: Elijah Wright picked up the active call. GRACE AI muted.";
-            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
-
-            graceLog.innerText = "[STREAM INTERCEPT] Active line transferred to operator headset.";
-            speakGrace("Call override engaged. You are now live on the call line.");
+            body: JSON.stringify(payload)
         });
+        const data = await res.json();
+        if (!res.ok) {
+            graceLog.textContent = `[ERROR] ${data.error || data.message || 'Request failed'}`;
+            if (data.callId) activeCallId = data.callId;
+            if (data.callId || data.lifecycleState) renderProgress(data);
+            return null;
+        }
+        if (data.callId) {
+            activeCallId = data.callId;
+        }
+        graceLog.textContent = `[${path}] ${data.message || 'ok'}`;
+        renderProgress(data);
+        return data;
+    }
+
+    async function runNextStage() {
+        const call = await getActiveCall();
+        if (!call) {
+            return postLifecycle('/api/grace/call/answer', { fleetName: 'Keystone Freight', callbackNumber: '+1 610-555-0192' });
+        }
+
+        if (!call.lifecycleProgress.intakeAt) {
+            return postLifecycle('/api/grace/call/intake', {
+                callId: call.callId,
+                location: 'I-78 near Allentown, PA',
+                unitNumber: 'KF-107',
+                issue: 'No crank condition',
+                vehicleType: 'tractor-trailer',
+                serviceType: 'mobile diesel repair'
+            });
+        }
+        if (!call.lifecycleProgress.scopeVerifiedAt || call.lifecycleState === 'scope_blocked') {
+            return postLifecycle('/api/grace/call/scope-check', {
+                callId: call.callId,
+                vehicleType: 'tractor-trailer',
+                serviceType: 'mobile diesel repair',
+                issue: 'No crank condition'
+            });
+        }
+        if (!call.lifecycleProgress.quoteReadyAt) {
+            return postLifecycle('/api/grace/call/quote', { callId: call.callId, laborTier: 'standard', laborHours: 2, travelMiles: 36 });
+        }
+        if (!call.lifecycleProgress.paymentLinkSentAt) {
+            return postLifecycle('/api/grace/call/payment-link', { callId: call.callId, sendTo: 'fleet@keystonefreight.example' });
+        }
+        if (!call.lifecycleProgress.technicianOfferedAt) {
+            return postLifecycle('/api/grace/call/technician-offer', { callId: call.callId, technicianId: 'tech-lv-08', technicianName: 'M. Rivera', etaMinutes: 35 });
+        }
+        if (!call.lifecycleProgress.technicianAcceptedAt) {
+            return postLifecycle('/api/grace/call/technician-acceptance', { callId: call.callId, technicianAccepted: true });
+        }
+        if (!call.lifecycleProgress.workOrderCreatedAt) {
+            return postLifecycle('/api/grace/call/work-order-create', { callId: call.callId, notes: 'Dispatch approved by operator.' });
+        }
+        if (!call.lifecycleProgress.closeoutCompleteAt) {
+            return postLifecycle('/api/grace/call/closeout', { callId: call.callId, resolution: 'Repair complete and returned to service.' });
+        }
+        graceLog.textContent = '[INFO] Demo call already complete.';
+        return call;
+    }
+
+    document.getElementById('btn-pickup-call').addEventListener('click', async () => {
+        const response = await postLifecycle('/api/stream/override', { action: 'pickup' });
+        if (!response) return;
+        statusBadge.innerText = '● HUMAN OPERATOR OVERRIDE ACTIVE';
+        statusBadge.style.background = '#DC2626';
+        transcriptScreen.innerText += '\n[HUMAN INTERCEPT]: Operator override active. Compatibility mode only.';
+        transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
     });
 
-    // 3. Return Control to GRACE AI
-    document.getElementById('btn-resume-grace').addEventListener('click', () => {
-        fetch('/api/stream/override', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'resume_grace' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            statusBadge.innerText = "● GRACE AI HANDLING";
-            statusBadge.style.background = "#15803D";
-
-            transcriptScreen.innerText += "\n\n[GRACE RESUMED]: Control returned to GRACE AI Core.";
-            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
-
-            graceLog.innerText = "[STREAM CONTROL] GRACE AI Core resumed primary line monitoring.";
-            speakGrace("GRACE AI core back online on the call line.");
-        });
+    document.getElementById('btn-resume-grace').addEventListener('click', async () => {
+        const response = await postLifecycle('/api/stream/override', { action: 'resume_grace' });
+        if (!response) return;
+        statusBadge.innerText = '● GRACE AI HANDLING';
+        statusBadge.style.background = '#15803D';
+        transcriptScreen.innerText += '\n[GRACE RESUMED]: Call-control returned to Grace AI mode.';
+        transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
     });
 
-    // 4. Dispatch Closest Breakdown
-    document.getElementById('btn-assign-closest').addEventListener('click', () => {
-        fetch('/api/breakdowns/scanner?radius=150')
-        .then(r => r.json())
-        .then(data => {
-            if (data.breakdowns && data.breakdowns.length > 0) {
-                const closest = data.breakdowns[0];
-                graceLog.innerText = `[DISPATCHING CLOSEST UNIT]\nTarget: ${closest.id}\nVehicle: ${closest.vehicle}\nLocation: ${closest.location} (${closest.distance} from Easton)\nIssue: ${closest.issue}`;
-                speakGrace(`Dispatching mobile service van to ${closest.vehicle} at ${closest.location}.`);
+    document.getElementById('btn-start-demo').addEventListener('click', async () => {
+        const data = await postLifecycle('/api/grace/call/answer', { fleetName: 'Keystone Freight', callbackNumber: '+1 610-555-0192' });
+        if (data) {
+            transcriptScreen.innerText += `\n[GRACE]: New demo call answered (${data.callId}).`;
+            transcriptScreen.scrollTop = transcriptScreen.scrollHeight;
+        }
+    });
+
+    document.getElementById('btn-next-stage').addEventListener('click', runNextStage);
+    document.getElementById('btn-refresh-progress').addEventListener('click', getActiveCall);
+    document.getElementById('btn-refresh-watch').addEventListener('click', refreshWatchCenter);
+
+    document.getElementById('btn-use-gps').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            graceLog.textContent = '[WATCH CENTER] Browser geolocation unavailable.';
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const response = await postLifecycle('/api/watch-center/location', {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            });
+            if (response) {
+                graceLog.textContent = '[WATCH CENTER] Live GPS coordinates accepted.';
+                refreshWatchCenter();
+                refreshBreakdownTicker();
             }
+        }, () => {
+            graceLog.textContent = '[WATCH CENTER] GPS request denied; using Lehigh Valley fallback.';
         });
     });
 
-    // Initial load & 30-second ticker interval
+    refreshWatchCenter();
     refreshBreakdownTicker();
-    setInterval(refreshBreakdownTicker, 30000);
+    getActiveCall();
+    setInterval(() => {
+        refreshWatchCenter();
+        refreshBreakdownTicker();
+        getActiveCall();
+    }, 30000);
 </script>
-
 </body>
 </html>
