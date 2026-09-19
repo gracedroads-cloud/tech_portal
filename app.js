@@ -39,6 +39,7 @@ const watchCenterState = {
 };
 
 const graceCalls = new Map();
+const requestRateState = new Map();
 
 const demoBreakdowns = [
     {
@@ -382,10 +383,34 @@ function resetInMemoryState() {
     watchCenterState.radiusMiles = DEFAULT_RADIUS_MILES;
     callControl.mode = 'grace_ai';
     callControl.updatedAt = nowIso();
+    requestRateState.clear();
+}
+
+function createRateLimiter({ windowMs, maxRequests }) {
+    return (req, res, next) => {
+        const key = `${req.path}:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+        const now = Date.now();
+        const existing = requestRateState.get(key);
+
+        if (!existing || now > existing.resetAt) {
+            requestRateState.set(key, { count: 1, resetAt: now + windowMs });
+            return next();
+        }
+
+        if (existing.count >= maxRequests) {
+            return res.status(429).json({
+                error: 'Too many requests, please retry shortly.'
+            });
+        }
+
+        existing.count += 1;
+        requestRateState.set(key, existing);
+        return next();
+    };
 }
 
 // DVIR API Endpoint
-app.post('/api/dvir', (req, res) => {
+app.post('/api/dvir', createRateLimiter({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
     try {
         const dvirData = req.body;
         const filePath = path.join(dataDir, `dvir_${Date.now()}.json`);
@@ -568,6 +593,14 @@ app.post('/api/grace/call/quote', (req, res) => {
     const call = getCallOr404(req, res);
     if (!call) {
         return;
+    }
+
+    if (call.lifecycleState === 'scope_blocked' || call.scope?.accepted === false) {
+        return res.status(422).json({
+            error: 'Out-of-scope requests cannot generate quotes.',
+            dispatchStatus: 'estimate',
+            ...toCallResponse(call)
+        });
     }
 
     if (!call.scope?.accepted) {

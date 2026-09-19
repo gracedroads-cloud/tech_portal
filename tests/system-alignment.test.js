@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const root = '/home/runner/work/tech_portal/tech_portal';
+const root = path.resolve(__dirname, '..');
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
