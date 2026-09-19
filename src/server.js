@@ -81,6 +81,7 @@ function constantTimeMatch(a, b) {
 
 function createApp(overrides = {}) {
   const config = createRuntimeConfig(overrides);
+  const rootDir = process.cwd();
   const app = express();
 
   app.disable('x-powered-by');
@@ -135,8 +136,7 @@ function createApp(overrides = {}) {
   app.use(express.json({ limit: config.requestSizeLimit }));
   app.use(express.urlencoded({ extended: false, limit: config.requestSizeLimit }));
 
-  app.use(express.static(path.join(process.cwd(), 'public')));
-  app.use(express.static(process.cwd()));
+  app.use(express.static(path.join(rootDir, 'public')));
 
   let persistenceReady = false;
   let persistenceError = null;
@@ -197,6 +197,12 @@ function createApp(overrides = {}) {
   }
 
   async function writeOperation(req, res, normalizeResult, storeOptions, successMessage, responseBuilder) {
+    try {
+      await persistenceReadyPromise;
+    } catch (_error) {
+      return rejectWithError(res, 503, 'persistence_unavailable', 'Persistence layer is not ready.', req.requestId);
+    }
+
     if (!persistenceReady) {
       return rejectWithError(res, 503, 'persistence_unavailable', 'Persistence layer is not ready.', req.requestId);
     }
@@ -228,6 +234,18 @@ function createApp(overrides = {}) {
 
   app.get('/healthz', (req, res) => {
     res.status(200).json({ ok: true, status: 'healthy', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(rootDir, 'index.html'));
+  });
+
+  app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(rootDir, 'index.html'));
+  });
+
+  app.get('/no_tow_authorization.html', (req, res) => {
+    res.sendFile(path.join(rootDir, 'no_tow_authorization.html'));
   });
 
   app.get('/readyz', (req, res) => {

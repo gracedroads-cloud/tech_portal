@@ -17,6 +17,22 @@ async function makeTestApp(overrides = {}) {
   return { app, dataDir };
 }
 
+async function collectFrontendHtmlFiles() {
+  const targets = [process.cwd(), path.join(process.cwd(), 'public')];
+  const htmlFiles = [];
+
+  for (const directory of targets) {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.endsWith('.html')) {
+        htmlFiles.push(path.relative(process.cwd(), path.join(directory, entry.name)));
+      }
+    }
+  }
+
+  return htmlFiles;
+}
+
 test('health and status endpoints respond with operational metadata', async () => {
   const { app } = await makeTestApp();
 
@@ -133,13 +149,7 @@ test('frontend API calls have backend route parity', async () => {
   const routeResponse = await request(app).get('/api/routes').expect(200);
   const routeSet = new Set(routeResponse.body.frontendRouteInventory.map((entry) => `${entry.method} ${entry.path}`));
 
-  const filesToScan = [
-    'public/business_dashboard.html',
-    'public/client_onboarding.html',
-    'public/owners_draw_vault.html',
-    'public/grace_dispatch_console.html',
-    'no_tow_authorization.html',
-  ];
+  const filesToScan = await collectFrontendHtmlFiles();
 
   for (const relPath of filesToScan) {
     const filePath = path.join(process.cwd(), relPath);
