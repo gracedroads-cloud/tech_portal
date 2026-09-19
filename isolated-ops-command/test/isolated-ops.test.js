@@ -183,6 +183,24 @@ test('requires human approval by default and allows explicit approval', async ()
   }
 });
 
+test('replays the original idempotent incident response shape and status', async () => {
+  const ctx = await startTestServer();
+  try {
+    const options = {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'fixed-key' }),
+      body: JSON.stringify({ description: 'Battery diagnostics requested', serviceType: 'battery_electrical_help' })
+    };
+    const first = await jsonRequest(ctx.baseUrl, '/api/incidents', options);
+    const replay = await jsonRequest(ctx.baseUrl, '/api/incidents', options);
+    assert.equal(first.response.status, 202);
+    assert.equal(replay.response.status, 202);
+    assert.deepEqual(replay.body, first.body);
+  } finally {
+    await ctx.stop();
+  }
+});
+
 test('supports automation pause and reports it in state', async () => {
   const ctx = await startTestServer();
   try {
@@ -363,6 +381,26 @@ test('streams monitor updates over SSE when simulation events occur', async () =
     assert.match(buffer, /snapshot/);
     assert.match(buffer, /incident_updated/);
     res.destroy();
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('expires authenticated SSE sessions when the TTL is reached', async () => {
+  const ctx = await startTestServer({ sseSessionTtlMs: 50 });
+  try {
+    const url = new URL('/api/events', ctx.baseUrl);
+    const req = http.request({
+      method: 'GET',
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      headers: { 'x-ops-token': 'test-token', connection: 'close' }
+    });
+    req.end();
+    const [res] = await once(req, 'response');
+    res.resume();
+    await once(res, 'end');
   } finally {
     await ctx.stop();
   }

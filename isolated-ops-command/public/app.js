@@ -15,6 +15,7 @@ const auditFeed = document.getElementById('auditFeed');
 const messageBar = document.getElementById('messageBar');
 const simulationBanner = document.getElementById('simulationBanner');
 const tokenInput = document.getElementById('tokenInput');
+const operatorNameInput = document.getElementById('operatorNameInput');
 const secureSessions = document.getElementById('secureSessions');
 const automationState = document.getElementById('automationState');
 const lastUpdated = document.getElementById('lastUpdated');
@@ -154,7 +155,7 @@ function renderSnapshot(snapshot) {
     const preview = source.simulated || !sourceUrl
       ? `<div class="media-preview">${escapeHtml(source.kind.toUpperCase())} ${escapeHtml(status)}<br>${escapeHtml(source.name)}</div>`
       : source.type === 'EMBED'
-        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="${escapeHtml(source.name)}"></iframe></div>`
+        ? `<div class="media-preview"><iframe sandbox="allow-scripts" src="${sourceUrl}" title="Embedded media preview for ${escapeHtml(source.name)}"></iframe></div>`
         : `<div class="media-preview">Authorized ${escapeHtml(source.type)} source configured for operator-managed playback.<br>${escapeHtml(source.displayOrigin || 'configured source')}</div>`;
     return `
       <article class="media-card" data-status="${source.state}">
@@ -336,7 +337,15 @@ document.addEventListener('click', async (event) => {
 
   if (approveId) {
     try {
-      await api(`/api/dispatch/${approveId}/approve`, { method: 'POST', body: JSON.stringify({ operator: 'Local Operator' }) });
+      const operator = operatorNameInput.value.trim();
+      if (!operator) {
+        setMessage('Enter the approving operator name before approving a dispatch.');
+        return;
+      }
+      await api(`/api/dispatch/${approveId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ operator })
+      });
       setMessage('Dispatch approved.');
     } catch (error) {
       setMessage(error.message);

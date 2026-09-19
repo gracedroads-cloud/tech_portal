@@ -257,12 +257,18 @@ function toJson(res, statusCode, payload, extraHeaders = {}) {
 function createCsp(config) {
   const frameSources = ["'self'", ...config.cspFrameSources];
   const mediaSources = ["'self'", 'blob:', 'data:', ...config.cspMediaSources];
+  const connectSources = ["'self'", ...new Set([
+    ...config.cspFrameSources,
+    ...config.cspMediaSources,
+    ...config.mediaAllowlist,
+    ...config.secureBrowserAllowlist
+  ])];
   return [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
-    `connect-src 'self'`,
+    `connect-src ${connectSources.join(' ')}`,
     `frame-src ${frameSources.join(' ')}`,
     `media-src ${mediaSources.join(' ')}`,
     "object-src 'none'",
@@ -497,7 +503,8 @@ function createServer(overrides = {}) {
 
     const idempotencyKey = String(req.headers['idempotency-key'] || validated.incidentId);
     if (state.idempotencyKeys[idempotencyKey]) {
-      toJson(res, 200, { duplicate: true, incident: state.idempotencyKeys[idempotencyKey] });
+      const replay = state.idempotencyKeys[idempotencyKey];
+      toJson(res, replay.statusCode, replay.body);
       return;
     }
 
@@ -512,14 +519,15 @@ function createServer(overrides = {}) {
         rejection: policyRejection,
         routedTo: policyRejection.referralProvider
       };
+      const responseBody = { error: policyRejection.message, rejection };
       updateState((draft) => {
         draft.policyRejections.push(rejection);
         draft.incidents.push({ ...validated, status: 'policy_rejected', createdAt: now() });
-        draft.idempotencyKeys[idempotencyKey] = rejection;
+        draft.idempotencyKeys[idempotencyKey] = { statusCode: 422, body: responseBody };
       }, 'policy_rejection');
       audit('policy.rejected', rejection);
       await teams.postStatusSummary({ text: `Policy rejection logged for incident ${validated.incidentId}. External referral required.` });
-      toJson(res, 422, { error: policyRejection.message, rejection });
+      toJson(res, 422, responseBody);
       return;
     }
 
@@ -547,14 +555,15 @@ function createServer(overrides = {}) {
         rejection: decision.rejection,
         routedTo: decision.rejection.referralProvider
       };
+      const responseBody = { error: decision.rejection.message, rejection };
       updateState((draft) => {
         draft.policyRejections.push(rejection);
         draft.incidents.push({ ...validated, status: 'policy_rejected', createdAt: now() });
         draft.lastGraceAiDecision = decision;
-        draft.idempotencyKeys[idempotencyKey] = rejection;
+        draft.idempotencyKeys[idempotencyKey] = { statusCode: 422, body: responseBody };
       }, 'policy_rejection');
       audit('policy.rejected_ai_output', rejection);
-      toJson(res, 422, { error: decision.rejection.message, rejection });
+      toJson(res, 422, responseBody);
       return;
     }
 
@@ -584,15 +593,16 @@ function createServer(overrides = {}) {
       queueItem.dispatchedAt = now();
     }
 
+    const responseBody = { incident: validated, queueItem, decision, automationPaused: state.automationPaused };
     updateState((draft) => {
       draft.lastGraceAiDecision = decision;
       draft.incidents.push({ ...validated, status: queueItem.status, createdAt: now() });
       draft.dispatchQueue.push(queueItem);
-      draft.idempotencyKeys[idempotencyKey] = queueItem;
+      draft.idempotencyKeys[idempotencyKey] = { statusCode: 202, body: responseBody };
     }, 'incident_updated');
     audit(canAutoDispatch ? 'dispatch.auto_dispatched' : 'dispatch.recommendation_created', { incidentId: validated.incidentId, queueItemId: queueItem.id });
     await teams.postStatusSummary({ text: `Incident ${validated.incidentId} triaged for ${queueItem.recommendedServiceType.replace(/_/g, ' ')}.` });
-    toJson(res, 202, { incident: validated, queueItem, decision, automationPaused: state.automationPaused });
+    toJson(res, 202, responseBody);
   }
 
   function handleApprove(res, body, queueId) {
@@ -812,13 +822,15 @@ function createServer(overrides = {}) {
       }, config.sseSessionTtlMs);
       timeoutId.unref();
       sseClients.set(res, timeoutId);
-      req.on('close', () => {
+      const cleanup = () => {
         const activeTimeout = sseClients.get(res);
         if (activeTimeout) {
           clearTimeout(activeTimeout);
         }
         sseClients.delete(res);
-      });
+      };
+      req.on('close', cleanup);
+      res.on('close', cleanup);
       return;
     }
 
