@@ -52,6 +52,9 @@ function Write-StartupReport {
     if ($operationsAccessConfigured) {
         try {
             $headers = @{ 'X-Operations-Access-Key' = $env:OPERATIONS_ACCESS_KEY }
+            if (-not [string]::IsNullOrWhiteSpace($env:DISPATCH_API_KEY)) {
+                $headers['X-API-Key'] = $env:DISPATCH_API_KEY
+            }
             $response = Invoke-RestMethod -Uri "http://127.0.0.1:$LocalPort/api/operations/live" -Headers $headers -TimeoutSec 5
             $operationsWallStatus = if ($response.success) { 'HEALTHY' } else { 'UNHEALTHY' }
         } catch {
@@ -142,6 +145,10 @@ if ($OpenOperationsWall) {
         Write-Warning 'OPERATIONS_ACCESS_KEY is not configured; the Operations Wall was not opened.'
     } else {
         $operationsKey = [uri]::EscapeDataString($env:OPERATIONS_ACCESS_KEY)
-        Start-Process "http://127.0.0.1:$Port/operations.html?operationsKey=$operationsKey"
+        $query = "operationsKey=$operationsKey"
+        if (-not [string]::IsNullOrWhiteSpace($env:DISPATCH_API_KEY)) {
+            $query += "&apiKey=$([uri]::EscapeDataString($env:DISPATCH_API_KEY))"
+        }
+        Start-Process "http://127.0.0.1:$Port/post_login.html?$query"
     }
 }

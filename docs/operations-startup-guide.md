@@ -14,6 +14,10 @@ Windows Hello sign-in.
 6. The launcher writes the latest status report to
    `data\startup-report.json`.
 
+The post-login page now requires you to confirm five checks before opening the
+Operations Wall: console health, live SSE connection, current location/150-mile
+radius, urgent event review, and the permanent no-towing/no-winching policy.
+
 The active startup entry is the per-user Windows Startup shortcut:
 
 ```text
