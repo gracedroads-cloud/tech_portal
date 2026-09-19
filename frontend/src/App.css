@@ -66,6 +66,10 @@ body {
   min-height: 420px;
 }
 
+.tile-breakdowns {
+  min-height: 420px;
+}
+
 .tile-suite {
   min-height: 220px;
 }

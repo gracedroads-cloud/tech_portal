@@ -12,6 +12,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 const CHANNELS = Object.freeze({
     DISPATCH: 'dispatch.activity',
+    BREAKDOWN_ALERTS: 'breakdown.alerts',
     FLEET: 'fleet.telemetry',
     HR_PAYROLL: 'hr.payroll.activity',
     ALERTS: 'system.alerts',
@@ -20,6 +21,7 @@ const CHANNELS = Object.freeze({
 
 const RETENTION = Object.freeze({
     [CHANNELS.DISPATCH]: 500,
+    [CHANNELS.BREAKDOWN_ALERTS]: 500,
     [CHANNELS.FLEET]: 500,
     [CHANNELS.HR_PAYROLL]: 500,
     [CHANNELS.ALERTS]: 300,
@@ -28,6 +30,7 @@ const RETENTION = Object.freeze({
 
 const eventBus = {
     [CHANNELS.DISPATCH]: [],
+    [CHANNELS.BREAKDOWN_ALERTS]: [],
     [CHANNELS.FLEET]: [],
     [CHANNELS.HR_PAYROLL]: [],
     [CHANNELS.ALERTS]: [],
@@ -36,6 +39,7 @@ const eventBus = {
 
 const DOMAIN_BASELINE = Object.freeze({
     dispatch: { eventChannel: CHANNELS.DISPATCH, apiBase: '/api/dispatch', ownerRole: 'operator' },
+    breakdowns: { eventChannel: CHANNELS.BREAKDOWN_ALERTS, apiBase: '/api/breakdowns', ownerRole: 'operator' },
     fleet: { eventChannel: CHANNELS.FLEET, apiBase: '/api/fleet', ownerRole: 'operator' },
     hr_payroll: { eventChannel: CHANNELS.HR_PAYROLL, apiBase: '/api/hr', ownerRole: 'hr' },
     billing: { eventChannel: 'billing.activity', apiBase: '/api/billing', ownerRole: 'admin' },
@@ -45,13 +49,14 @@ const DOMAIN_BASELINE = Object.freeze({
 });
 
 const ROLE_BOUNDARIES = Object.freeze({
-    operator: ['dispatch', 'fleet', 'alerts', 'system_health'],
+    operator: ['dispatch', 'breakdowns', 'fleet', 'alerts', 'system_health'],
     hr: ['hr_payroll', 'alerts'],
-    admin: ['dispatch', 'fleet', 'hr_payroll', 'billing', 'compliance', 'system_health', 'ai_oversight', 'alerts']
+    admin: ['dispatch', 'breakdowns', 'fleet', 'hr_payroll', 'billing', 'compliance', 'system_health', 'ai_oversight', 'alerts']
 });
 
 const FEATURE_FLAGS = {
     monitor_dispatch: true,
+    monitor_breakdowns: true,
     monitor_fleet: false,
     monitor_hr_payroll: false,
     monitor_billing: false,
@@ -69,6 +74,29 @@ const SLO_POLICY = Object.freeze({
 
 const auditTrail = [];
 const AUDIT_RETENTION = 400;
+const LEHIGH_VALLEY_BASE = Object.freeze({
+    label: 'Lehigh Valley, PA',
+    lat: 40.6884,
+    lng: -75.2207
+});
+
+const BREAKDOWN_CAUSES = [
+    'Air brake pressure loss',
+    'Trailer tire blowout',
+    'Alternator charging fault',
+    'Coolant leak',
+    'Fuel delivery interruption',
+    'Starter failure'
+];
+
+const BREAKDOWN_LOCATIONS = [
+    { name: 'I-78 EB MM 71, Easton PA', lat: 40.6823, lng: -75.2415 },
+    { name: 'US-22 WB near Bethlehem PA', lat: 40.647, lng: -75.3752 },
+    { name: 'PA-33 NB near Wind Gap PA', lat: 40.8608, lng: -75.3114 },
+    { name: 'I-476 near Allentown Service Area', lat: 40.5634, lng: -75.5426 },
+    { name: 'I-80 EB near Stroudsburg PA', lat: 40.9902, lng: -75.2153 },
+    { name: 'Route 309 near Coopersburg PA', lat: 40.5102, lng: -75.3907 }
+];
 
 // Middleware
 app.use(express.json());
@@ -93,6 +121,26 @@ const statusPriority = {
 
 function getPriority(type) {
     return statusPriority[type] || 'normal';
+}
+
+function toNumber(value, fallback) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toRadians(value) {
+    return (value * Math.PI) / 180;
+}
+
+function distanceMiles(fromLat, fromLng, toLat, toLng) {
+    const earthRadiusMiles = 3958.8;
+    const latDiff = toRadians(toLat - fromLat);
+    const lngDiff = toRadians(toLng - fromLng);
+    const a =
+        Math.sin(latDiff / 2) * Math.sin(latDiff / 2) +
+        Math.cos(toRadians(fromLat)) * Math.cos(toRadians(toLat)) * Math.sin(lngDiff / 2) * Math.sin(lngDiff / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusMiles * c;
 }
 
 function createDispatchEvent(log) {
@@ -171,7 +219,53 @@ function getReplaySince(channel, since) {
     return (eventBus[channel] || []).filter((event) => new Date(event.timestamp).getTime() > sinceTs);
 }
 
+function createBreakdownAlert(overrides = {}) {
+    const candidate = BREAKDOWN_LOCATIONS[Math.floor(Math.random() * BREAKDOWN_LOCATIONS.length)];
+    const cause = BREAKDOWN_CAUSES[Math.floor(Math.random() * BREAKDOWN_CAUSES.length)];
+    const lat = toNumber(overrides.lat, candidate.lat);
+    const lng = toNumber(overrides.lng, candidate.lng);
+    const distanceFromBase = Number(distanceMiles(LEHIGH_VALLEY_BASE.lat, LEHIGH_VALLEY_BASE.lng, lat, lng).toFixed(1));
+
+    return {
+        id: overrides.id || `BD-${Date.now()}`,
+        timestamp: overrides.timestamp || new Date().toISOString(),
+        channel: CHANNELS.BREAKDOWN_ALERTS,
+        type: overrides.type || 'Breakdown Alert',
+        priority: overrides.priority || (distanceFromBase <= 50 ? 'high' : 'normal'),
+        vehicle: overrides.vehicle || `Tractor ${Math.floor(Math.random() * 900) + 100}`,
+        location: overrides.location || candidate.name,
+        lat,
+        lng,
+        cause: overrides.cause || cause,
+        radiusMiles: 150,
+        base: LEHIGH_VALLEY_BASE,
+        distanceFromBaseMiles: distanceFromBase
+    };
+}
+
+function getBreakdownFeed(centerLat, centerLng, radiusMiles) {
+    return eventBus[CHANNELS.BREAKDOWN_ALERTS]
+        .filter((alert) => distanceMiles(centerLat, centerLng, alert.lat, alert.lng) <= radiusMiles)
+        .map((alert) => ({
+            ...alert,
+            distanceMiles: Number(distanceMiles(centerLat, centerLng, alert.lat, alert.lng).toFixed(1))
+        }))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
 loadDispatchHistory();
+BREAKDOWN_LOCATIONS.forEach((location, index) => {
+    publishEvent(
+        CHANNELS.BREAKDOWN_ALERTS,
+        createBreakdownAlert({
+            id: `BD-SEED-${index + 1}`,
+            lat: location.lat,
+            lng: location.lng,
+            location: location.name,
+            timestamp: new Date(Date.now() - (index + 1) * 120000).toISOString()
+        })
+    );
+});
 
 let simulatedStatusIndex = 0;
 const simulatedStatuses = ['Dispatched', 'En-route', 'Completed', 'Cancelled'];
@@ -190,6 +284,10 @@ setInterval(() => {
         mode: 'Live Monitor Stream'
     });
 }, 8000);
+
+setInterval(() => {
+    publishEvent(CHANNELS.BREAKDOWN_ALERTS, createBreakdownAlert());
+}, 10000);
 
 // DVIR API Endpoint
 app.post('/api/dvir', (req, res) => {
@@ -244,12 +342,47 @@ app.get('/api/events/model', (req, res) => {
             text: 'string',
             operator: 'string',
             mode: 'string'
+        },
+        breakdownPayloadSchema: {
+            id: 'string',
+            timestamp: 'ISO8601',
+            channel: CHANNELS.BREAKDOWN_ALERTS,
+            type: 'Breakdown Alert',
+            priority: 'critical | high | normal',
+            vehicle: 'string',
+            location: 'string',
+            lat: 'number',
+            lng: 'number',
+            cause: 'string',
+            distanceFromBaseMiles: 'number'
         }
     });
 });
 
 app.get('/api/dispatch/live', (req, res) => {
     res.json(getDispatchFeed());
+});
+
+app.get('/api/breakdowns/live', (req, res) => {
+    const centerLat = toNumber(req.query.lat, LEHIGH_VALLEY_BASE.lat);
+    const centerLng = toNumber(req.query.lng, LEHIGH_VALLEY_BASE.lng);
+    const radiusMiles = Math.min(Math.max(toNumber(req.query.radius, 150), 10), 300);
+
+    res.json({
+        center: {
+            lat: centerLat,
+            lng: centerLng,
+            radiusMiles
+        },
+        alerts: getBreakdownFeed(centerLat, centerLng, radiusMiles)
+    });
+});
+
+app.get('/api/location/base', (req, res) => {
+    res.json({
+        base: LEHIGH_VALLEY_BASE,
+        defaultRadiusMiles: 150
+    });
 });
 
 app.get('/api/mastersuite/contracts', (req, res) => {

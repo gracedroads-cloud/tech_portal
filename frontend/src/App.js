@@ -2,14 +2,16 @@ import './App.css';
 import { useState } from 'react';
 import DispatchFeed from './components/DispatchFeed';
 import MasterSuitePanel from './components/MasterSuitePanel';
+import BreakdownAlertsMonitor from './components/BreakdownAlertsMonitor';
 
 const rolePanels = {
-  operator: ['dispatch', 'fleet', 'health', 'alerts'],
+  operator: ['dispatch', 'breakdowns', 'fleet', 'health', 'alerts'],
   hr: ['hr', 'alerts'],
-  admin: ['dispatch', 'fleet', 'hr', 'health', 'alerts', 'video', 'ai']
+  admin: ['dispatch', 'breakdowns', 'fleet', 'hr', 'health', 'alerts', 'video', 'ai']
 };
 
 const panelLabels = {
+  breakdowns: 'Breakdown Alerts',
   fleet: 'Fleet Telemetry',
   hr: 'HR & Payroll Activity',
   health: 'System Health',
@@ -19,6 +21,7 @@ const panelLabels = {
 };
 
 const panelStatus = {
+  breakdowns: { tone: 'status-critical', text: 'Live 150mi' },
   fleet: { tone: 'status-info', text: 'Staged' },
   hr: { tone: 'status-warning', text: 'Governed' },
   health: { tone: 'status-good', text: 'Monitored' },
@@ -58,8 +61,13 @@ function App() {
             <DispatchFeed />
           </div>
         )}
+        {visiblePanels.includes('breakdowns') && (
+          <div className="tile tile-breakdowns">
+            <BreakdownAlertsMonitor />
+          </div>
+        )}
         {visiblePanels
-          .filter((panel) => panel !== 'dispatch')
+          .filter((panel) => panel !== 'dispatch' && panel !== 'breakdowns')
           .map((panel) => (
             <section key={panel} className="tile tile-placeholder">
               <div className="tile-header">
