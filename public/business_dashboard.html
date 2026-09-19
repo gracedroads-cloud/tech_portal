@@ -527,13 +527,23 @@
         });
     });
 
-    refreshWatchCenter();
-    refreshBreakdownTicker();
-    getActiveCall();
+    async function refreshAllPanels() {
+        try {
+            await Promise.all([
+                refreshWatchCenter(),
+                refreshBreakdownTicker(),
+                getActiveCall()
+            ]);
+        } catch (error) {
+            graceLog.textContent = `[POLL ERROR] ${error.message}`;
+        }
+    }
+
+    refreshAllPanels();
     setInterval(() => {
-        refreshWatchCenter();
-        refreshBreakdownTicker();
-        getActiveCall();
+        refreshAllPanels().catch((error) => {
+            graceLog.textContent = `[POLL ERROR] ${error.message}`;
+        });
     }, 30000);
 </script>
 </body>

@@ -24,33 +24,43 @@
 </div>
 <script>
 async function refresh() {
-  const [watchRes, scannerRes] = await Promise.all([
-    fetch('/api/watch-center'),
-    fetch('/api/breakdowns/scanner')
-  ]);
-  const watch = await watchRes.json();
-  const scanner = await scannerRes.json();
+  try {
+    const [watchRes, scannerRes] = await Promise.all([
+      fetch('/api/watch-center'),
+      fetch('/api/breakdowns/scanner')
+    ]);
+    const watch = await watchRes.json();
+    const scanner = await scannerRes.json();
 
-  document.getElementById('watchMeta').textContent = `Watch Center: ${watch.sourceMode === 'live_gps' ? 'Live GPS' : 'Lehigh Valley fallback'} | radius: ${watch.radiusMiles} miles | freshness: ${watch.freshness} | last update: ${watch.lastUpdate || 'none'}`;
+    document.getElementById('watchMeta').textContent = `Watch Center: ${watch.sourceMode === 'live_gps' ? 'Live GPS' : 'Lehigh Valley fallback'} | radius: ${watch.radiusMiles} miles | freshness: ${watch.freshness} | last update: ${watch.lastUpdate || 'none'}`;
 
-  const list = document.getElementById('list');
-  list.innerHTML = '';
+    const list = document.getElementById('list');
+    list.innerHTML = '';
 
-  if (!scanner.breakdowns || scanner.breakdowns.length === 0) {
-    list.innerHTML = '<div class="card">No active breakdowns within server-side watch filter.</div>';
-    return;
+    if (!scanner.breakdowns || scanner.breakdowns.length === 0) {
+      list.innerHTML = '<div class="card">No active breakdowns within server-side watch filter.</div>';
+      return;
+    }
+
+    scanner.breakdowns.forEach((b) => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `<div class="row"><strong>${b.id} • ${b.vehicle}</strong><span>${b.distance}</span></div><div class="item">${b.issue} @ ${b.location} • severity: ${b.severity}</div>`;
+      list.appendChild(div);
+    });
+  } catch (error) {
+    document.getElementById('watchMeta').textContent = 'Watch-center lookup failed. Retrying...';
+    document.getElementById('list').innerHTML = `<div class=\"card\">Scanner temporarily offline: ${error.message}</div>`;
   }
-
-  scanner.breakdowns.forEach((b) => {
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = `<div class="row"><strong>${b.id} • ${b.vehicle}</strong><span>${b.distance}</span></div><div class="item">${b.issue} @ ${b.location} • severity: ${b.severity}</div>`;
-    list.appendChild(div);
-  });
 }
 
 refresh();
-setInterval(refresh, 30000);
+setInterval(() => {
+  refresh().catch((error) => {
+    document.getElementById('watchMeta').textContent = 'Watch-center lookup failed. Retrying...';
+    document.getElementById('list').innerHTML = `<div class=\"card\">Scanner temporarily offline: ${error.message}</div>`;
+  });
+}, 30000);
 </script>
 </body>
 </html>

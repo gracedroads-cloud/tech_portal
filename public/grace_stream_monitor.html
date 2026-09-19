@@ -34,11 +34,16 @@ const statusEl = document.getElementById('status');
 const logEl = document.getElementById('log');
 
 async function refresh() {
-  const statusRes = await fetch('/api/status');
-  const status = await statusRes.json();
-  const callsRes = await fetch('/api/grace/calls');
-  const calls = await callsRes.json();
-  statusEl.textContent = `Call-control: ${status.callControl.mode} | base: ${status.base} | tracked calls: ${calls.totalCalls}`;
+  try {
+    const statusRes = await fetch('/api/status');
+    const status = await statusRes.json();
+    const callsRes = await fetch('/api/grace/calls');
+    const calls = await callsRes.json();
+    statusEl.textContent = `Call-control: ${status.callControl.mode} | base: ${status.base} | tracked calls: ${calls.totalCalls}`;
+  } catch (error) {
+    statusEl.textContent = 'Call-control monitor offline. Retrying...';
+    logEl.textContent = `Error: ${error.message}`;
+  }
 }
 
 async function override(action) {
@@ -60,7 +65,12 @@ document.getElementById('pickup').addEventListener('click', () => override('pick
 document.getElementById('resume').addEventListener('click', () => override('resume_grace'));
 
 refresh();
-setInterval(refresh, 15000);
+setInterval(() => {
+  refresh().catch((error) => {
+    statusEl.textContent = 'Call-control monitor offline. Retrying...';
+    logEl.textContent = `Error: ${error.message}`;
+  });
+}, 15000);
 </script>
 </body>
 </html>
