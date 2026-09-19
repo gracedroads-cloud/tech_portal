@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>Grace Field DVIR</title>
+  <link rel="manifest" href="/field-app-manifest.json">
+  <style>
+    :root { --bg:#0b1220; --card:#111827; --line:#334155; --txt:#e5e7eb; --accent:#38bdf8; --ok:#22c55e; --bad:#ef4444; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+    .wrap { max-width:760px; margin:0 auto; padding:14px; display:grid; gap:12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+    h1 { margin:0; font-size:20px; }
+    h2 { margin:0 0 8px; font-size:15px; color:#93c5fd; text-transform:uppercase; letter-spacing:.04em; }
+    .row { display:grid; gap:8px; margin-top:8px; }
+    input, textarea, select, button { width:100%; border:1px solid var(--line); border-radius:8px; padding:10px; font:inherit; background:#0f172a; color:var(--txt); }
+    button { cursor:pointer; background:#1d4ed8; border-color:#2563eb; }
+    .small { font-size:12px; color:#cbd5e1; }
+    .status { font-size:12px; color:var(--accent); }
+    .ok { color:var(--ok); }
+    .bad { color:var(--bad); }
+    .report { border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Grace DVIR Mobile</h1>
+      <p class="small">Field-service only. No admin controls, payroll, billing, or company secrets.</p>
+      <div class="status" id="statusMsg">Status: Waiting for login token</div>
+      <div style="margin-top:8px;"><a href="/field_technician_app.html" style="color:#93c5fd; font-size:13px;">Back to Field Jobs App</a></div>
+    </section>
+
+    <section class="card">
+      <h2>Submit DVIR</h2>
+      <div class="row">
+        <input id="vehicleId" placeholder="Vehicle ID / Unit Number">
+        <input id="odometer" placeholder="Odometer">
+        <textarea id="defectsSummary" rows="3" placeholder="Defects summary"></textarea>
+        <select id="safeToOperate">
+          <option value="true">Safe to operate</option>
+          <option value="false">Out of service</option>
+        </select>
+        <textarea id="outOfServiceReason" rows="2" placeholder="Out of service reason (required if unsafe)"></textarea>
+        <button id="submitDvirBtn">Submit DVIR</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Recent DVIR Reports</h2>
+      <div id="reportList" class="small">No reports loaded.</div>
+    </section>
+  </main>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('grace_field_token') || '';
+    const statusMsg = document.getElementById('statusMsg');
+    const reportList = document.getElementById('reportList');
+    const submitBtn = document.getElementById('submitDvirBtn');
+
+    function setStatus(text, mood = 'status') {
+      statusMsg.className = `status ${mood}`;
+      statusMsg.textContent = `Status: ${text}`;
+    }
+
+    function headers() {
+      return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+    }
+
+    async function getGps() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: Number(pos.coords.latitude.toFixed(6)), lng: Number(pos.coords.longitude.toFixed(6)) }),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+
+    async function loadReports() {
+      if (!token) return;
+      const res = await fetch(`${API}/api/field/dvir?limit=20`, { headers: headers() });
+      if (!res.ok) {
+        setStatus('Login required in Field Jobs app', 'bad');
+        return;
+      }
+      const data = await res.json();
+      if (!data.reports.length) {
+        reportList.textContent = 'No reports yet.';
+        return;
+      }
+      reportList.innerHTML = data.reports.map((report) => `
+        <div class="report">
+          <strong>${report.vehicleId}</strong> • ${new Date(report.submittedAt).toLocaleString()}<br>
+          Odometer: ${report.odometer}<br>
+          Safe: ${report.safeToOperate ? 'Yes' : 'No'}<br>
+          Defects: ${report.defectsSummary}
+        </div>
+      `).join('');
+    }
+
+    submitBtn.onclick = async () => {
+      if (!token) {
+        setStatus('Login required in Field Jobs app', 'bad');
+        return;
+      }
+      const gps = await getGps();
+      if (!gps) {
+        setStatus('Location permission required', 'bad');
+        return;
+      }
+      const safeToOperate = document.getElementById('safeToOperate').value === 'true';
+      const body = {
+        vehicleId: document.getElementById('vehicleId').value.trim(),
+        odometer: document.getElementById('odometer').value.trim(),
+        defectsSummary: document.getElementById('defectsSummary').value.trim(),
+        safeToOperate,
+        outOfServiceReason: document.getElementById('outOfServiceReason').value.trim(),
+        lat: gps.lat,
+        lng: gps.lng,
+        submittedAt: new Date().toISOString()
+      };
+      const res = await fetch(`${API}/api/field/dvir`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setStatus(data.error || 'DVIR submission failed', 'bad');
+        return;
+      }
+      setStatus('DVIR submitted', 'ok');
+      await loadReports();
+    };
+
+    if (!token) {
+      setStatus('Please login in Field Jobs app first', 'bad');
+    } else {
+      setStatus('Connected', 'ok');
+      loadReports().catch(() => setStatus('Unable to load reports', 'bad'));
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

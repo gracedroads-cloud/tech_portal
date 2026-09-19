@@ -171,6 +171,7 @@ if (!fs.existsSync(dataDir)) {
 }
 
 const dispatchLogsPath = path.join(__dirname, 'radio_dispatch_logs.json');
+const fieldDvirPath = path.join(dataDir, 'field_dvir_reports.json');
 const statusPriority = {
     Dispatched: 'high',
     'En-route': 'normal',
@@ -303,6 +304,24 @@ function writeAuditEntry(entry) {
 
 function createFieldToken(techId) {
     return `field-${techId}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function readFieldDvirReports() {
+    if (!fs.existsSync(fieldDvirPath)) {
+        return [];
+    }
+    try {
+        const raw = fs.readFileSync(fieldDvirPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error('Error reading field DVIR reports:', error);
+        return [];
+    }
+}
+
+function writeFieldDvirReports(reports) {
+    fs.writeFileSync(fieldDvirPath, JSON.stringify(reports, null, 2));
 }
 
 function sanitizeFieldJob(job) {
@@ -509,6 +528,18 @@ app.get('/api/events/model', (req, res) => {
             laborMinutes: 'string',
             signaturePresent: 'boolean',
             photosCount: 'number'
+        },
+        fieldDvirPayloadSchema: {
+            id: 'string',
+            techId: 'string',
+            vehicleId: 'string',
+            odometer: 'string',
+            defectsSummary: 'string',
+            safeToOperate: 'boolean',
+            outOfServiceReason: 'string?',
+            lat: 'number',
+            lng: 'number',
+            submittedAt: 'ISO8601'
         }
     });
 });
@@ -601,7 +632,8 @@ app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
             'job acceptance and workflow state updates',
             'navigation and location proof',
             'diagnostics, parts/labor notes, photos, signature',
-            'job completion submission'
+            'job completion submission',
+            'DVIR inspection submission and history'
         ],
         denied: [
             'payroll administration',
@@ -611,6 +643,64 @@ app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
             'company secrets and codes'
         ]
     });
+});
+
+app.get('/api/field/dvir', requireFieldTechnician, (req, res) => {
+    const limit = Math.min(Math.max(toNumber(req.query.limit, 25), 1), 100);
+    const reports = readFieldDvirReports()
+        .filter((report) => report.techId === req.fieldTechnician.techId)
+        .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+        .slice(0, limit);
+    res.json({ reports });
+});
+
+app.post('/api/field/dvir', requireFieldTechnician, (req, res) => {
+    const vehicleId = String(req.body.vehicleId || '').trim();
+    const odometer = String(req.body.odometer || '').trim();
+    const defectsSummary = String(req.body.defectsSummary || '').trim();
+    const safeToOperate = req.body.safeToOperate === true || req.body.safeToOperate === 'true';
+    const outOfServiceReason = String(req.body.outOfServiceReason || '').trim();
+    const lat = toNumber(req.body.lat, Number.NaN);
+    const lng = toNumber(req.body.lng, Number.NaN);
+    const submittedAt = toIsoTimestamp(req.body.submittedAt);
+
+    const missing = [];
+    if (!vehicleId) missing.push('vehicleId');
+    if (!odometer) missing.push('odometer');
+    if (!defectsSummary) missing.push('defectsSummary');
+    if (!isValidCoordinates(lat, lng)) missing.push('valid GPS coordinates');
+    if (!safeToOperate && !outOfServiceReason) missing.push('outOfServiceReason');
+
+    if (missing.length) {
+        return res.status(400).json({ error: 'DVIR submission blocked. Missing required fields.', missing });
+    }
+
+    const reports = readFieldDvirReports();
+    const report = {
+        id: `DVIR-${Date.now()}`,
+        techId: req.fieldTechnician.techId,
+        technicianName: req.fieldTechnician.name,
+        vehicleId,
+        odometer,
+        defectsSummary,
+        safeToOperate,
+        outOfServiceReason: safeToOperate ? '' : outOfServiceReason,
+        lat,
+        lng,
+        submittedAt
+    };
+    reports.push(report);
+    writeFieldDvirReports(reports);
+
+    writeAuditEntry({
+        actor: req.fieldTechnician.techId,
+        action: 'field_dvir_submitted',
+        channel: 'field.dvir',
+        summary: `${report.vehicleId} DVIR submitted`,
+        policy: 'field_dvir_required'
+    });
+
+    return res.status(201).json({ report });
 });
 
 app.patch('/api/field/jobs/:jobId/state', requireFieldTechnician, (req, res) => {

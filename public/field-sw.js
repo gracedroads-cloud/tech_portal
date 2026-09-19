@@ -1,5 +1,5 @@
 const CACHE_NAME = 'grace-field-v1';
-const STATIC_ASSETS = ['/field_technician_app.html', '/field-app-manifest.json'];
+const STATIC_ASSETS = ['/field_technician_app.html', '/field_dvir_app.html', '/field-app-manifest.json'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
