@@ -29,6 +29,29 @@ if (!fs.existsSync(graceDataDir)) {
 
 const auditFilePath = path.join(dataDir, 'grace_audit.log');
 const graceCalls = new Map();
+const rateLimitState = new Map();
+
+function createSimpleRateLimiter({ windowMs, max }) {
+  return (req, res, next) => {
+    const key = `${req.ip}:${req.path}`;
+    const now = Date.now();
+    const entry = rateLimitState.get(key);
+
+    if (!entry || now > entry.resetAt) {
+      rateLimitState.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (entry.count >= max) {
+      return res.status(429).json({ success: false, error: 'Rate limit exceeded. Please retry shortly.' });
+    }
+
+    entry.count += 1;
+    return next();
+  };
+}
+
+const writeRateLimit = createSimpleRateLimiter({ windowMs: 60 * 1000, max: 120 });
 
 function createGraceCall(payload) {
   const now = new Date().toISOString();
@@ -113,7 +136,7 @@ function generateSecurePaymentLink(callId) {
 }
 
 // DVIR API Endpoint
-app.post('/api/dvir', (req, res) => {
+app.post('/api/dvir', writeRateLimit, (req, res) => {
   try {
     const dvirData = req.body;
     const filePath = path.join(dataDir, `dvir_${Date.now()}.json`);
@@ -145,7 +168,7 @@ app.get('/api/grace/calls/:callId', (req, res) => {
   }
 });
 
-app.post('/api/grace/answer', (req, res) => {
+app.post('/api/grace/answer', writeRateLimit, (req, res) => {
   try {
     const call = createGraceCall(req.body);
     const stateEvent = transitionState(call, 'answer', { channel: req.body.channel || 'voice' });
@@ -157,7 +180,7 @@ app.post('/api/grace/answer', (req, res) => {
   }
 });
 
-app.post('/api/grace/intake', (req, res) => {
+app.post('/api/grace/intake', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     call.intake = sanitizeForStorage({
@@ -177,7 +200,7 @@ app.post('/api/grace/intake', (req, res) => {
   }
 });
 
-app.post('/api/grace/scope_check', (req, res) => {
+app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const stateEvent = transitionState(call, 'scope_check', { initiatedBy: 'grace' });
@@ -210,7 +233,7 @@ app.post('/api/grace/scope_check', (req, res) => {
   }
 });
 
-app.post('/api/grace/quote', (req, res) => {
+app.post('/api/grace/quote', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     if (!call.gates.scopeApproved) {
@@ -242,7 +265,7 @@ app.post('/api/grace/quote', (req, res) => {
   }
 });
 
-app.post('/api/grace/payment_link', (req, res) => {
+app.post('/api/grace/payment_link', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const stateEvent = transitionState(call, 'payment_link', { providerType: 'pci-compliant' });
@@ -259,7 +282,7 @@ app.post('/api/grace/payment_link', (req, res) => {
   }
 });
 
-app.post('/api/grace/technician_offer', (req, res) => {
+app.post('/api/grace/technician_offer', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const stateEvent = transitionState(call, 'technician_offer', { technicianId: req.body.technicianId });
@@ -276,7 +299,7 @@ app.post('/api/grace/technician_offer', (req, res) => {
   }
 });
 
-app.post('/api/grace/technician_acceptance', (req, res) => {
+app.post('/api/grace/technician_acceptance', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
 
@@ -296,15 +319,18 @@ app.post('/api/grace/technician_acceptance', (req, res) => {
   }
 });
 
-app.post('/api/grace/work_order_create', (req, res) => {
+app.post('/api/grace/work_order_create', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
-    call.gates.safetyCheckPassed = Boolean(req.body.safetyCheckPassed);
+    const effectiveGates = {
+      ...call.gates,
+      safetyCheckPassed: Boolean(req.body.safetyCheckPassed)
+    };
     if (typeof req.body.estimateApprovedOrAccepted === 'boolean') {
-      call.gates.pricingEstimateApprovedOrAccepted = req.body.estimateApprovedOrAccepted;
+      effectiveGates.pricingEstimateApprovedOrAccepted = req.body.estimateApprovedOrAccepted;
     }
 
-    const missingGates = Object.entries(call.gates)
+    const missingGates = Object.entries(effectiveGates)
       .filter(([, passed]) => !passed)
       .map(([gate]) => gate);
 
@@ -316,12 +342,14 @@ app.post('/api/grace/work_order_create', (req, res) => {
         callId: call.callId,
         dispatchType: 'estimate',
         finalDispatchConfirmed: false,
+        gates: call.gates,
         missingGates,
         message: 'Dispatch not final until all approval gates pass, including technician acceptance.'
       });
     }
 
     const stateEvent = transitionState(call, 'work_order_create', { approvedBy: req.body.approvedBy || 'operator' });
+    call.gates = effectiveGates;
     call.workOrder = {
       workOrderId: `wo_${Date.now()}`,
       createdAt: new Date().toISOString()
@@ -340,7 +368,7 @@ app.post('/api/grace/work_order_create', (req, res) => {
   }
 });
 
-app.post('/api/grace/closeout', (req, res) => {
+app.post('/api/grace/closeout', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const stateEvent = transitionState(call, 'closeout', { closedBy: req.body.closedBy || 'operator' });
