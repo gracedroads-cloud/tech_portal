@@ -331,22 +331,31 @@ function buildLifecycleProgress(call) {
     };
 }
 
-function toCallResponse(call) {
-    return {
+function toCallResponse(call, options = {}) {
+    const { includeSensitive = true } = options;
+    const base = {
         callId: call.callId,
         lifecycleState: call.lifecycleState,
         dispatchStatus: getDispatchStatus(call),
         technicianAccepted: call.technicianAccepted,
+        lifecycleProgress: buildLifecycleProgress(call),
+        updatedAt: call.updatedAt,
+        createdAt: call.createdAt
+    };
+
+    if (!includeSensitive) {
+        return base;
+    }
+
+    return {
+        ...base,
         scope: call.scope,
         estimate: call.quote,
         payment: call.payment,
         technicianOffer: call.technicianOffer,
         workOrder: call.workOrder,
         closeout: call.closeout,
-        lifecycleProgress: buildLifecycleProgress(call),
-        auditLog: call.auditLog,
-        updatedAt: call.updatedAt,
-        createdAt: call.createdAt
+        auditLog: call.auditLog
     };
 }
 
@@ -941,7 +950,7 @@ app.get('/api/grace/call/:callId', (req, res) => {
         return;
     }
 
-    return res.json(toCallResponse(call));
+    return res.json(toCallResponse(call, { includeSensitive: false }));
 });
 
 app.get('/api/grace/calls', (req, res) => {
