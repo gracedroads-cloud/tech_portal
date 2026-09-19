@@ -88,6 +88,8 @@ const AUDIT_RETENTION = 400;
 const FIELD_SESSION_TTL_MS = 1000 * 60 * 60 * 8;
 const FIELD_LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const FIELD_LOGIN_MAX_ATTEMPTS = 8;
+const FIELD_RATE_LIMIT_WINDOW_MS = 1000 * 60;
+const FIELD_RATE_LIMIT_MAX = 120;
 const TEAMS_WEBHOOK_URL = String(process.env.TEAMS_WEBHOOK_URL || '').trim();
 const teamsIntegration = {
     enabled: TEAMS_WEBHOOK_URL.length > 0,
@@ -97,6 +99,7 @@ const teamsIntegration = {
 };
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
+const fieldRequestBuckets = new Map();
 const fieldTechnicians = [
     { techId: 'tech-101', name: 'Elijah Wright', pin: '1101', role: 'field_technician' },
     { techId: 'tech-202', name: 'Jordan Miles', pin: '2202', role: 'field_technician' }
@@ -528,6 +531,22 @@ function requireFieldTechnician(req, res, next) {
     return next();
 }
 
+function requireFieldRateLimit(req, res, next) {
+    const key = req.fieldTechnician.techId;
+    const now = Date.now();
+    const bucket = fieldRequestBuckets.get(key);
+    if (!bucket || now - bucket.windowStart > FIELD_RATE_LIMIT_WINDOW_MS) {
+        fieldRequestBuckets.set(key, { count: 1, windowStart: now });
+        return next();
+    }
+    if (bucket.count >= FIELD_RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: 'Rate limit exceeded for field requests. Try again shortly.' });
+    }
+    bucket.count += 1;
+    fieldRequestBuckets.set(key, bucket);
+    return next();
+}
+
 function getAssignedJobOrError(req, res) {
     const job = fieldJobs.find((entry) => entry.id === req.params.jobId);
     if (!job) {
@@ -824,7 +843,7 @@ app.post('/api/field/auth/login', (req, res) => {
     });
 });
 
-app.post('/api/field/auth/logout', requireFieldTechnician, (req, res) => {
+app.post('/api/field/auth/logout', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const authHeader = req.headers.authorization || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     fieldSessions.delete(token);
@@ -838,7 +857,7 @@ app.post('/api/field/auth/logout', requireFieldTechnician, (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/api/field/jobs', requireFieldTechnician, (req, res) => {
+app.get('/api/field/jobs', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const jobs = fieldJobs
         .filter((job) => job.assignedTo === req.fieldTechnician.techId)
         .map((job) => sanitizeFieldJob(job));
@@ -848,7 +867,7 @@ app.get('/api/field/jobs', requireFieldTechnician, (req, res) => {
     });
 });
 
-app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
+app.get('/api/field/policy', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     res.json({
         role: 'field_technician',
         allowed: [
@@ -868,7 +887,7 @@ app.get('/api/field/policy', requireFieldTechnician, (req, res) => {
     });
 });
 
-app.get('/api/field/security/session', requireFieldTechnician, (req, res) => {
+app.get('/api/field/security/session', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const ttlMs = Math.max(req.fieldSession.expiresAt - Date.now(), 0);
     res.json({
         role: req.fieldTechnician.role,
@@ -878,7 +897,7 @@ app.get('/api/field/security/session', requireFieldTechnician, (req, res) => {
     });
 });
 
-app.get('/api/field/dvir', requireFieldTechnician, (req, res) => {
+app.get('/api/field/dvir', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const limit = Math.min(Math.max(toNumber(req.query.limit, 25), 1), 100);
     const reports = readFieldDvirReports()
         .filter((report) => report.techId === req.fieldTechnician.techId)
@@ -887,7 +906,7 @@ app.get('/api/field/dvir', requireFieldTechnician, (req, res) => {
     res.json({ reports });
 });
 
-app.post('/api/field/dvir', requireFieldTechnician, (req, res) => {
+app.post('/api/field/dvir', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const vehicleId = String(req.body.vehicleId || '').trim();
     const odometer = String(req.body.odometer || '').trim();
     const defectsSummary = String(req.body.defectsSummary || '').trim();
@@ -972,7 +991,7 @@ app.post('/api/field/dvir', requireFieldTechnician, (req, res) => {
     return res.status(201).json({ report });
 });
 
-app.patch('/api/field/jobs/:jobId/state', requireFieldTechnician, (req, res) => {
+app.patch('/api/field/jobs/:jobId/state', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const job = getAssignedJobOrError(req, res);
     if (!job) {
         return;
@@ -1020,7 +1039,7 @@ app.patch('/api/field/jobs/:jobId/state', requireFieldTechnician, (req, res) => 
     return res.json({ job: sanitizeFieldJob(job) });
 });
 
-app.patch('/api/field/jobs/:jobId/proof', requireFieldTechnician, (req, res) => {
+app.patch('/api/field/jobs/:jobId/proof', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const job = getAssignedJobOrError(req, res);
     if (!job) {
         return;
@@ -1052,7 +1071,7 @@ app.patch('/api/field/jobs/:jobId/proof', requireFieldTechnician, (req, res) => 
     return res.json({ job: sanitizeFieldJob(job) });
 });
 
-app.post('/api/field/jobs/:jobId/complete', requireFieldTechnician, (req, res) => {
+app.post('/api/field/jobs/:jobId/complete', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
     const job = getAssignedJobOrError(req, res);
     if (!job) {
         return;
