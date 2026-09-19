@@ -38,7 +38,7 @@ async function refresh() {
   const status = await statusRes.json();
   const callsRes = await fetch('/api/grace/calls');
   const calls = await callsRes.json();
-  statusEl.textContent = `Call-control: ${status.callControl.mode} | base: ${status.base} | tracked calls: ${calls.calls.length}`;
+  statusEl.textContent = `Call-control: ${status.callControl.mode} | base: ${status.base} | tracked calls: ${calls.totalCalls}`;
 }
 
 async function override(action) {

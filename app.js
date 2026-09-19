@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +39,7 @@ const watchCenterState = {
 
 const graceCalls = new Map();
 const requestRateState = new Map();
+const dvirRecords = [];
 
 const demoBreakdowns = [
     {
@@ -97,12 +97,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (_req, res) => {
     res.redirect('/business_dashboard.html');
 });
-
-// Ensure local data directory exists for JSON backups
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
 
 function nowIso() {
     return new Date().toISOString();
@@ -384,6 +378,7 @@ function resetInMemoryState() {
     callControl.mode = 'grace_ai';
     callControl.updatedAt = nowIso();
     requestRateState.clear();
+    dvirRecords.length = 0;
 }
 
 function createRateLimiter({ windowMs, maxRequests }) {
@@ -413,9 +408,13 @@ function createRateLimiter({ windowMs, maxRequests }) {
 app.post('/api/dvir', createRateLimiter({ windowMs: 60 * 1000, maxRequests: 20 }), (req, res) => {
     try {
         const dvirData = req.body;
-        const filePath = path.join(dataDir, `dvir_${Date.now()}.json`);
-        fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
-        res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
+        const id = `dvir_${Date.now()}`;
+        dvirRecords.push({
+            id,
+            createdAt: nowIso(),
+            payload: dvirData
+        });
+        res.status(200).json({ success: true, message: 'DVIR record saved successfully', id });
     } catch (error) {
         console.error('Error saving DVIR:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -830,7 +829,10 @@ app.get('/api/grace/calls', (req, res) => {
             updatedAt: call.updatedAt
         }));
 
-    return res.json({ calls });
+    return res.json({
+        totalCalls: calls.length,
+        latestCall: calls[0] || null
+    });
 });
 
 if (require.main === module) {
@@ -852,6 +854,11 @@ module.exports = {
     validateServiceScope,
     containsDisallowedPaymentFields,
     getActiveWatchCenter,
-    resetInMemoryState,
+    resetInMemoryState: () => {
+        if (process.env.NODE_ENV !== 'test') {
+            throw new Error('resetInMemoryState is test-only.');
+        }
+        resetInMemoryState();
+    },
     watchCenterState
 };
