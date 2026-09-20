@@ -41,7 +41,7 @@
             <article class="card"><h2>4. Billing & Financial Support</h2><p class="sub">Audit labor, emergency call-outs, and parts markup before invoices reach fleet AP.</p><div class="list" id="work-orders"></div></article>
             <article class="card"><h2>5. On-Call & Emergency Logistics</h2><p class="sub">24/7 coverage balancing, safety equipment readiness, and rapid incident escalation.</p><div class="list" id="roster"></div><div class="alert" id="safety"></div><div class="actions"><button class="warning" onclick="act('mobilize-incident')">Mobilize incident response</button></div></article>
             <article class="card"><h2>6. Office Operations & Software Ownership</h2><p class="sub">GRACE is the operating record for dispatch, work orders, vendor follow-ups, reporting, and junior-admin handoffs.</p><div class="list" id="activity"></div></article>
-            <article class="card wide"><h2>Automation Coverage Matrix</h2><p class="sub">Every operational domain has four distinct executable workflow paths. Run a path to record the operating action and surface its outcome in GRACE's activity log.</p><div class="list" id="automations"></div></article>
+            <article class="card wide"><h2>Automation Coverage Matrix</h2><p class="sub">Operational domains and executable workflow paths are loaded from GRACE's persisted operations data. Run a path to record the operating action and surface its outcome in GRACE's activity log.</p><div class="list" id="automations"></div></article>
         </section>
     </main>
     <div id="toast" role="status"></div>
@@ -63,7 +63,7 @@
             list('roster', data.roster.map(r => row(r.shift, `Primary: ${r.primary} | Backup: ${r.backup} | ${r.coverage}`, 'Covered')));
             document.getElementById('safety').textContent = `PPE: ${data.safety.ppe}. Incident status: ${data.safety.incident}.`;
             list('activity', data.activity.map(a => `<div class="sub">${escapeHtml(a)}</div>`));
-            list('automations', data.automations.map(domain => `<div class="row"><div><div class="strong">${escapeHtml(domain.domain)}</div><div class="sub">4 automation paths</div></div><div>${domain.paths.map(path => `<div class="actions"><button class="secondary" onclick="act('run-automation','${escapeHtml(path.id)}')">${escapeHtml(path.name)}</button></div>`).join('')}</div></div>`));
+            list('automations', data.automations.map(domain => `<div class="row"><div><div class="strong">${escapeHtml(domain.domain)}</div><div class="sub">${domain.paths.length} automation path${domain.paths.length === 1 ? '' : 's'}</div></div><div>${domain.paths.map(path => `<div class="actions"><button class="secondary" onclick="act('run-automation','${escapeHtml(path.id)}')">${escapeHtml(path.name)}</button></div>`).join('')}</div></div>`));
         }
         async function load() { const response = await fetch('/api/grace/operations'); if (!response.ok) throw new Error('Unable to load operational data.'); render(await response.json()); }
         async function act(type, id) { document.querySelectorAll('button').forEach(b => b.disabled = true); try { const response = await fetch('/api/grace/actions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type,id}) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); render(result.operations); show(result.message); } catch (error) { show(error.message, true); } finally { document.querySelectorAll('button').forEach(b => b.disabled = false); } }

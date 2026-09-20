@@ -113,6 +113,27 @@ function logActivity(operations, message) {
     operations.activity = operations.activity.slice(0, 12);
 }
 
+function findAutomation(operations, id) {
+    for (const domain of operations.automations) {
+        const automation = domain.paths.find((workflow) => workflow.id === id);
+        if (automation) {
+            return { domain, automation };
+        }
+    }
+    return null;
+}
+
+function readAutomationFields(body, requiredFields) {
+    const fields = {};
+    for (const field of requiredFields) {
+        if (typeof body[field] !== 'string' || !body[field].trim()) {
+            return null;
+        }
+        fields[field] = body[field].trim();
+    }
+    return fields;
+}
+
 app.get('/api/grace/operations', (_req, res) => {
     try {
         res.json(readOperations());
@@ -120,6 +141,57 @@ app.get('/api/grace/operations', (_req, res) => {
         console.error('Unable to load GRACE operations:', error);
         res.status(500).json({ error: 'Unable to load operations data.' });
     }
+});
+
+app.post('/api/grace/automations', (req, res) => {
+    const domainName = typeof req.body.domain === 'string' ? req.body.domain.trim() : '';
+    const fields = req.body.automation && typeof req.body.automation === 'object'
+        ? readAutomationFields(req.body.automation, ['id', 'name', 'trigger', 'outcome'])
+        : null;
+    if (!domainName || !fields || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(fields.id)) {
+        return res.status(400).json({ error: 'Provide a domain and automation id, name, trigger, and outcome. Automation ids use lowercase letters, numbers, and hyphens.' });
+    }
+
+    const operations = readOperations();
+    if (findAutomation(operations, fields.id)) {
+        return res.status(409).json({ error: 'An automation workflow already uses that id.' });
+    }
+
+    let domain = operations.automations.find((item) => item.domain === domainName);
+    if (!domain) {
+        domain = { domain: domainName, paths: [] };
+        operations.automations.push(domain);
+    }
+    domain.paths.push(fields);
+    logActivity(operations, `Automation added: ${fields.name} for ${domainName}.`);
+    writeOperations(operations);
+    res.status(201).json({ success: true, automation: fields, operations });
+});
+
+app.put('/api/grace/automations/:id', (req, res) => {
+    const changes = {};
+    for (const field of ['name', 'trigger', 'outcome']) {
+        if (field in req.body) {
+            if (typeof req.body[field] !== 'string' || !req.body[field].trim()) {
+                return res.status(400).json({ error: `${field} must be a non-empty string.` });
+            }
+            changes[field] = req.body[field].trim();
+        }
+    }
+    if (!Object.keys(changes).length) {
+        return res.status(400).json({ error: 'Provide at least one of name, trigger, or outcome to update.' });
+    }
+
+    const operations = readOperations();
+    const match = findAutomation(operations, req.params.id);
+    if (!match) {
+        return res.status(404).json({ error: 'Automation workflow not found.' });
+    }
+
+    Object.assign(match.automation, changes);
+    logActivity(operations, `Automation updated: ${match.automation.name} for ${match.domain.domain}.`);
+    writeOperations(operations);
+    res.json({ success: true, automation: match.automation, operations });
 });
 
 app.post('/api/grace/actions', (req, res) => {
@@ -165,17 +237,12 @@ app.post('/api/grace/actions', (req, res) => {
         operations.safety.incident = 'Backup unit and insurance incident workflow mobilized';
         message = 'Incident response mobilized: backup coverage, safety check, and insurance intake initiated.';
     } else if (type === 'run-automation') {
-        const automationDomain = operations.automations.find((domain) =>
-            domain.paths.some((workflow) => workflow.id === id)
-        );
-        const automation = automationDomain
-            ? automationDomain.paths.find((workflow) => workflow.id === id)
-            : null;
-        if (!automation || !automationDomain) {
+        const match = findAutomation(operations, id);
+        if (!match) {
             return res.status(404).json({ error: 'Automation workflow not found.' });
         }
-        automation.lastRunAt = new Date().toISOString();
-        message = `${automation.name} run for ${automationDomain.domain}: ${automation.outcome}`;
+        match.automation.lastRunAt = new Date().toISOString();
+        message = `${match.automation.name} run for ${match.domain.domain}: ${match.automation.outcome}`;
     } else {
         return res.status(400).json({ error: 'Unsupported GRACE action.' });
     }
