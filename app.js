@@ -1304,7 +1304,7 @@ app.post('/api/field/auth/login', fieldAuthLoginLimiter, requireFieldAuthRateLim
     });
 });
 
-app.post('/api/field/auth/logout', requireFieldTechnician, requireFieldRateLimit, (req, res) => {
+app.post('/api/field/auth/logout', requireFieldTechnician, (req, res) => {
     const authHeader = req.headers.authorization || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     fieldSessions.delete(token);
@@ -1726,8 +1726,8 @@ function startServer() {
     if (server.listening) {
         return server;
     }
-    startAutomationLoops();
     return server.listen(PORT, () => {
+        startAutomationLoops();
         console.log('=======================================================');
         console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
         console.log('📍 OPERATING BASE: LEHIGH VALLEY, PA (150-MILE RADAR LIVE)');
@@ -1736,6 +1736,9 @@ function startServer() {
 }
 
 server.on('close', () => {
+    stopAutomationLoops();
+});
+server.on('error', () => {
     stopAutomationLoops();
 });
 

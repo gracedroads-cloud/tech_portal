@@ -222,6 +222,12 @@ export default function DispatchFeed() {
 
   useEffect(() => {
     if (feedRef.current) {
+      const distanceFromBottom =
+        feedRef.current.scrollHeight - (feedRef.current.scrollTop + feedRef.current.clientHeight);
+      const shouldAutoScroll = distanceFromBottom < 80;
+      if (!shouldAutoScroll) {
+        return;
+      }
       feedRef.current.scrollTo({
         top: feedRef.current.scrollHeight,
         behavior: 'smooth'
@@ -294,6 +300,9 @@ export default function DispatchFeed() {
             onTouchEnd={stopRecognition}
             onTouchCancel={stopRecognition}
             onKeyDown={(event) => {
+              if (event.repeat) {
+                return;
+              }
               if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();
                 startRecognition('PTT');

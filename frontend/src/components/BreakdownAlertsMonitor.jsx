@@ -28,6 +28,10 @@ function withDistance(alert, center) {
   };
 }
 
+function incidentKey(alert) {
+  return alert.sourceRef || alert.id;
+}
+
 export default function BreakdownAlertsMonitor() {
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [radius] = useState(DEFAULT_RADIUS);
@@ -78,7 +82,7 @@ export default function BreakdownAlertsMonitor() {
       const nextAlert = withDistance(alert, centerRef.current);
       if (nextAlert.distanceMiles > radiusRef.current) return;
       setAlerts((current) =>
-        [nextAlert, ...current.filter((item) => item.id !== nextAlert.id)].slice(0, 60)
+        [nextAlert, ...current.filter((item) => incidentKey(item) !== incidentKey(nextAlert))].slice(0, 60)
       );
     });
     return () => socket.disconnect();

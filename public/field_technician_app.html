@@ -87,9 +87,11 @@
     const API = '';
     const tokenKey = 'grace_field_token';
     const tokenExpiryKey = 'grace_field_token_expiry';
+    const techKey = 'grace_field_tech_id';
     const queueKey = 'grace_field_queue';
     let currentToken = sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
     let currentTokenExpiry = sessionStorage.getItem(tokenExpiryKey) || localStorage.getItem(tokenExpiryKey) || '';
+    let currentTechId = sessionStorage.getItem(techKey) || localStorage.getItem(techKey) || '';
     let selectedJobId = null;
 
     const syncStatus = document.getElementById('syncStatus');
@@ -101,19 +103,24 @@
     const jobDetail = document.getElementById('jobDetail');
 
     function setSyncLabel(msg) { syncStatus.textContent = `Sync: ${msg}`; }
-    function setToken(token, expiresAt) {
+    function setToken(token, expiresAt, techId = '') {
       currentToken = token || '';
       currentTokenExpiry = expiresAt || '';
+      currentTechId = techId || '';
       if (token) {
         sessionStorage.setItem(tokenKey, token);
         sessionStorage.setItem(tokenExpiryKey, expiresAt || '');
+        sessionStorage.setItem(techKey, currentTechId);
         localStorage.removeItem(tokenKey);
         localStorage.removeItem(tokenExpiryKey);
+        localStorage.removeItem(techKey);
       } else {
         sessionStorage.removeItem(tokenKey);
         sessionStorage.removeItem(tokenExpiryKey);
+        sessionStorage.removeItem(techKey);
         localStorage.removeItem(tokenKey);
         localStorage.removeItem(tokenExpiryKey);
+        localStorage.removeItem(techKey);
       }
     }
     function isTokenExpired() {
@@ -126,7 +133,7 @@
     }
     function queueAction(action) {
       const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-      queue.push(action);
+      queue.push({ ...action, techId: currentTechId });
       localStorage.setItem(queueKey, JSON.stringify(queue));
       setSyncLabel('Queued Offline Actions');
     }
@@ -135,6 +142,10 @@
       if (!queue.length || !currentToken) return;
       const pending = [];
       for (const action of queue) {
+        if (action.techId && action.techId !== currentTechId) {
+          pending.push(action);
+          continue;
+        }
         try {
           const res = await fetch(action.url, { method: action.method, headers: headers(), body: JSON.stringify(action.body) });
           if (!res.ok) {
@@ -230,7 +241,11 @@
     async function callWithOfflineFallback(method, url, body) {
       try {
         const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-        if (!res.ok) throw new Error('Request failed');
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          alert(payload.error || `Request failed (${res.status})`);
+          return;
+        }
         await loadJobs();
         await syncQueue();
       } catch {
@@ -248,7 +263,8 @@
       });
       if (!res.ok) return alert('Invalid credentials');
       const data = await res.json();
-      setToken(data.token, data.expiresAt);
+      localStorage.removeItem(queueKey);
+      setToken(data.token, data.expiresAt, data.technician?.techId || '');
       renderAuthState(true);
       await loadJobs();
       await syncQueue();
@@ -258,7 +274,8 @@
       if (currentToken) {
         try { await fetch(`${API}/api/field/auth/logout`, { method: 'POST', headers: headers() }); } catch {}
       }
-      setToken('', '');
+      localStorage.removeItem(queueKey);
+      setToken('', '', '');
       selectedJobId = null;
       renderAuthState(false);
     };
