@@ -133,8 +133,21 @@
     async function syncQueue() {
       const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
       if (!queue.length || !currentToken) return;
+      const pending = [];
       for (const action of queue) {
-        await fetch(action.url, { method: action.method, headers: headers(), body: JSON.stringify(action.body) });
+        try {
+          const res = await fetch(action.url, { method: action.method, headers: headers(), body: JSON.stringify(action.body) });
+          if (!res.ok) {
+            pending.push(action);
+          }
+        } catch (error) {
+          pending.push(action);
+        }
+      }
+      if (pending.length) {
+        localStorage.setItem(queueKey, JSON.stringify(pending));
+        setSyncLabel('Offline Queue Pending');
+        return;
       }
       localStorage.removeItem(queueKey);
       setSyncLabel('Online');

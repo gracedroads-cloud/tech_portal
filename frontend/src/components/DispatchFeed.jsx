@@ -45,6 +45,7 @@ export default function DispatchFeed() {
   const lastSeenRef = useRef(null);
   const recognitionRef = useRef(null);
   const handsFreeRef = useRef(false);
+  const blockAutoRestartRef = useRef(false);
 
   function injectVoiceEvent(text, mode = 'Hands-Free') {
     const voiceEvent = {
@@ -123,14 +124,22 @@ export default function DispatchFeed() {
       }
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
+      const fatalErrors = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'aborted']);
+      const errorCode = String(event?.error || '');
+      blockAutoRestartRef.current = fatalErrors.has(errorCode);
+      if (blockAutoRestartRef.current) {
+        handsFreeRef.current = false;
+        setHandsFreeEnabled(false);
+      }
       setVoiceStatus('Voice Error');
     };
 
     recognition.onend = () => {
-      if (handsFreeRef.current) {
+      if (handsFreeRef.current && !blockAutoRestartRef.current) {
         startRecognition('Hands-Free');
       } else {
+        blockAutoRestartRef.current = false;
         setVoiceStatus('Voice Ready');
       }
     };
@@ -150,6 +159,9 @@ export default function DispatchFeed() {
     async function loadInitial() {
       try {
         const response = await fetch(`${API_BASE}/api/dispatch/live`);
+        if (!response.ok) {
+          throw new Error(`Dispatch feed unavailable: ${response.status}`);
+        }
         const data = await response.json();
         if (isMounted && Array.isArray(data)) {
           setEvents(data);
@@ -175,6 +187,9 @@ export default function DispatchFeed() {
 
     socket.on('connect', () => setConnectionStatus('Live'));
     socket.on('disconnect', () => setConnectionStatus('Reconnecting'));
+    socket.io.on('reconnect_attempt', () => {
+      socket.auth = { lastSeen: lastSeenRef.current };
+    });
 
     socket.on('dispatch.snapshot', (snapshot) => {
       if (Array.isArray(snapshot)) {
@@ -247,7 +262,12 @@ export default function DispatchFeed() {
           <span className="connection-pill">{connectionStatus}</span>
         </div>
         <div className="voice-controls">
-          <button type="button" className={`grace-face grace-face-${faceMood}`} onClick={handleFaceInteract}>
+          <button
+            type="button"
+            className={`grace-face grace-face-${faceMood}`}
+            onClick={handleFaceInteract}
+            aria-label="Activate Grace voice assistant"
+          >
             <span className="face-halo" />
             <span className="face-core">
               <span className="face-eyes">
@@ -268,6 +288,18 @@ export default function DispatchFeed() {
             onMouseLeave={stopRecognition}
             onTouchStart={() => startRecognition('PTT')}
             onTouchEnd={stopRecognition}
+            onKeyDown={(event) => {
+              if (event.key === ' ' || event.key === 'Enter') {
+                event.preventDefault();
+                startRecognition('PTT');
+              }
+            }}
+            onKeyUp={(event) => {
+              if (event.key === ' ' || event.key === 'Enter') {
+                event.preventDefault();
+                stopRecognition();
+              }
+            }}
           >
             Hold to Talk (PTT)
           </button>

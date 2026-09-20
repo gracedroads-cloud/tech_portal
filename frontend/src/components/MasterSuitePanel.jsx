@@ -18,6 +18,9 @@ export default function MasterSuitePanel({ role }) {
           fetch(`${API_BASE}/api/mastersuite/observability`),
           fetch(`${API_BASE}/api/mastersuite/kpis`)
         ]);
+        if (!contractsRes.ok || !flagsRes.ok || !observabilityRes.ok || !kpisRes.ok) {
+          throw new Error('MasterSuite APIs unavailable');
+        }
         const [contractsData, flagsData, observabilityData, kpisData] = await Promise.all([
           contractsRes.json(),
           flagsRes.json(),

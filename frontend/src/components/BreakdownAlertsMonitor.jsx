@@ -34,6 +34,16 @@ export default function BreakdownAlertsMonitor() {
   const [alerts, setAlerts] = useState([]);
   const [status, setStatus] = useState('Connecting');
   const containerRef = useRef(null);
+  const centerRef = useRef(center);
+  const radiusRef = useRef(radius);
+
+  useEffect(() => {
+    centerRef.current = center;
+  }, [center]);
+
+  useEffect(() => {
+    radiusRef.current = radius;
+  }, [radius]);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +52,9 @@ export default function BreakdownAlertsMonitor() {
         const response = await fetch(
           `${API_BASE}/api/breakdowns/live?lat=${activeCenter.lat}&lng=${activeCenter.lng}&radius=${radius}`
         );
+        if (!response.ok) {
+          throw new Error(`Breakdown API unavailable: ${response.status}`);
+        }
         const data = await response.json();
         if (!active) return;
         setAlerts((data.alerts || []).map((alert) => withDistance(alert, activeCenter)));
@@ -62,14 +75,14 @@ export default function BreakdownAlertsMonitor() {
     socket.on('connect', () => setStatus('Live'));
     socket.on('disconnect', () => setStatus('Reconnecting'));
     socket.on('breakdown.alerts', (alert) => {
-      const nextAlert = withDistance(alert, center);
-      if (nextAlert.distanceMiles > radius) return;
+      const nextAlert = withDistance(alert, centerRef.current);
+      if (nextAlert.distanceMiles > radiusRef.current) return;
       setAlerts((current) =>
         [nextAlert, ...current.filter((item) => item.id !== nextAlert.id)].slice(0, 60)
       );
     });
     return () => socket.disconnect();
-  }, [center, radius]);
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {
