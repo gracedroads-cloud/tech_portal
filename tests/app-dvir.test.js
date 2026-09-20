@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
+const fs = require('node:fs');
 const net = require('node:net');
+const os = require('node:os');
 const path = require('node:path');
 
 async function allocatePort() {
@@ -42,13 +44,14 @@ async function login(baseUrl, techId, pin) {
 let serverProcess;
 let baseUrl;
 const repoRoot = path.resolve(__dirname, '..');
+const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tech-portal-dvir-'));
 
 test.before(async () => {
   const port = await allocatePort();
   baseUrl = `http://127.0.0.1:${port}`;
   serverProcess = spawn('node', ['app.js'], {
     cwd: repoRoot,
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, PORT: String(port), DATA_DIR: testDataDir },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   await waitForServer(baseUrl);
@@ -61,6 +64,7 @@ test.after(async () => {
     serverProcess.once('exit', () => resolve());
     setTimeout(resolve, 1500);
   });
+  fs.rmSync(testDataDir, { recursive: true, force: true });
 });
 
 test('rejects DVIR submission with missing required fields', async () => {

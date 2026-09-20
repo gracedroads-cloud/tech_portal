@@ -21,7 +21,15 @@ self.addEventListener('fetch', (event) => {
     (async () => {
       try {
         const networkResponse = await fetch(event.request);
-        if (networkResponse.ok) return networkResponse;
+        if (networkResponse.ok) {
+          try {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(event.request, networkResponse.clone());
+          } catch (error) {
+            // ignore cache write failures
+          }
+          return networkResponse;
+        }
       } catch (error) {
         // fallback below
       }

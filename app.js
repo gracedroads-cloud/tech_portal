@@ -239,7 +239,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname)); // Serves root-level files like index.html
 
 // Ensure local data directory exists for JSON backups
-const dataDir = path.join(__dirname, 'data');
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -343,6 +343,17 @@ function publishEvent(channel, event) {
     io.emit(channel, event);
 }
 
+function bufferEvent(channel, event) {
+    if (!eventBus[channel]) {
+        eventBus[channel] = [];
+    }
+    eventBus[channel].push(event);
+    const retentionCount = RETENTION[channel] || 300;
+    if (eventBus[channel].length > retentionCount) {
+        eventBus[channel].splice(0, eventBus[channel].length - retentionCount);
+    }
+}
+
 function loadDispatchHistory() {
     if (!fs.existsSync(dispatchLogsPath)) {
         return;
@@ -353,7 +364,7 @@ function loadDispatchHistory() {
         if (!Array.isArray(logs)) {
             return;
         }
-        logs.forEach((log) => publishEvent(CHANNELS.DISPATCH, createDispatchEvent(log)));
+        logs.forEach((log) => bufferEvent(CHANNELS.DISPATCH, createDispatchEvent(log)));
     } catch (error) {
         console.error('Error loading dispatch history:', error);
     }
@@ -976,7 +987,7 @@ function getBreakdownFeed(centerLat, centerLng, radiusMiles) {
 
 loadDispatchHistory();
 BREAKDOWN_LOCATIONS.forEach((location, index) => {
-    publishEvent(
+    bufferEvent(
         CHANNELS.BREAKDOWN_ALERTS,
         createBreakdownAlert({
             id: `BD-SEED-${index + 1}`,

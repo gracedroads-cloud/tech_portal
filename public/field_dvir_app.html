@@ -167,9 +167,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () =>
-        navigator.serviceWorker.register('/field-sw.js', { scope: '/field_dvir_app.html' }).catch(() => {})
-      );
+      window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js', { scope: '/' }).catch(() => {}));
     }
   </script>
 </body>

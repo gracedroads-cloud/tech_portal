@@ -311,9 +311,7 @@
     window.addEventListener('offline', () => setSyncLabel('Offline'));
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () =>
-        navigator.serviceWorker.register('/field-sw.js', { scope: '/field_technician_app.html' }).catch(() => {})
-      );
+      window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js', { scope: '/' }).catch(() => {}));
     }
 
     renderAuthState(Boolean(currentToken) && !isTokenExpired());
