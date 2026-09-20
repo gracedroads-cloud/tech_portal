@@ -86,6 +86,12 @@ const defaultOperations = {
             { id: 'ppe-readiness-check', name: 'PPE readiness check', trigger: 'Shift start or stock threshold', outcome: 'Checks highway-safety vest, glove, boot, and cone inventory.' },
             { id: 'shift-handoff', name: 'Shift handoff', trigger: 'On-call rotation change', outcome: 'Packages open jobs and priority notes for the next team.' }
         ]},
+        { domain: 'Safety leadership', paths: [
+            { id: 'safety-briefing-review', name: 'Safety briefing review', trigger: 'Shift start or elevated roadside risk', outcome: 'Records the safety briefing, work-zone risks, and required controls for the responding team.' },
+            { id: 'incident-root-cause-review', name: 'Incident root-cause review', trigger: 'Safety incident or near miss reported', outcome: 'Routes the incident for leadership review, corrective actions, and follow-up ownership.' },
+            { id: 'field-safety-observation', name: 'Field safety observation', trigger: 'Scheduled leadership observation', outcome: 'Tracks roadside work-zone, PPE, and traffic-control observations through resolution.' },
+            { id: 'safety-kpi-review', name: 'Safety KPI review', trigger: 'Weekly safety leadership review', outcome: 'Surfaces incident, near-miss, training, and corrective-action trends for leadership.' }
+        ]},
         { domain: 'Office operations & software ownership', paths: [
             { id: 'software-health-check', name: 'Operations software health check', trigger: 'Daily opening', outcome: 'Confirms dispatch and garage-management workspace readiness.' },
             { id: 'executive-kpi-report', name: 'Executive KPI report', trigger: 'Weekly or monthly close', outcome: 'Compiles response, profitability, efficiency, and repeat-customer metrics.' },
