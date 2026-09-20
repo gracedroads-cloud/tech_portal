@@ -32,6 +32,23 @@ function incidentKey(alert) {
   return alert.sourceRef || alert.id;
 }
 
+function mergeAlerts(currentAlerts, nextAlerts, center, radius) {
+  const seen = new Set();
+
+  return [...currentAlerts, ...nextAlerts]
+    .map((alert) => withDistance(alert, center))
+    .filter((alert) => alert.distanceMiles <= radius)
+    .filter((alert) => {
+      const key = incidentKey(alert);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 60);
+}
+
 export default function BreakdownAlertsMonitor() {
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [radius] = useState(DEFAULT_RADIUS);
@@ -61,7 +78,9 @@ export default function BreakdownAlertsMonitor() {
         }
         const data = await response.json();
         if (!active) return;
-        setAlerts((data.alerts || []).map((alert) => withDistance(alert, activeCenter)));
+        setAlerts((current) =>
+          mergeAlerts(current, data.alerts || [], activeCenter, radiusRef.current)
+        );
       } catch (error) {
         if (active) {
           setStatus('API Unavailable');
