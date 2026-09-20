@@ -1,10 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
+const net = require('node:net');
 const path = require('node:path');
 
-function randomPort() {
-  return 3500 + Math.floor(Math.random() * 500);
+async function allocatePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
 }
 
 async function waitForServer(baseUrl, timeoutMs = 12000) {
@@ -36,7 +44,7 @@ let baseUrl;
 const repoRoot = path.resolve(__dirname, '..');
 
 test.before(async () => {
-  const port = randomPort();
+  const port = await allocatePort();
   baseUrl = `http://127.0.0.1:${port}`;
   serverProcess = spawn('node', ['app.js'], {
     cwd: repoRoot,

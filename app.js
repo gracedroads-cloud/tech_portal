@@ -988,25 +988,35 @@ BREAKDOWN_LOCATIONS.forEach((location, index) => {
     );
 });
 
-setInterval(() => {
-    runAutomationDomain('dispatch');
-}, AUTOMATION_INTERVAL_MS.dispatch);
+let automationTimers = [];
 
-setInterval(() => {
-    runAutomationDomain('hrPayroll');
-}, AUTOMATION_INTERVAL_MS.hrPayroll);
+function startAutomationLoops() {
+    if (automationTimers.length) {
+        return;
+    }
+    automationTimers = [
+        setInterval(() => {
+            runAutomationDomain('dispatch');
+        }, AUTOMATION_INTERVAL_MS.dispatch),
+        setInterval(() => {
+            runAutomationDomain('hrPayroll');
+        }, AUTOMATION_INTERVAL_MS.hrPayroll),
+        setInterval(() => {
+            runAutomationDomain('systemOps');
+        }, AUTOMATION_INTERVAL_MS.systemOps),
+        setInterval(() => {
+            runAutomationDomain('field');
+        }, AUTOMATION_INTERVAL_MS.field),
+        setInterval(() => {
+            publishEvent(CHANNELS.BREAKDOWN_ALERTS, createBreakdownAlert());
+        }, 10000)
+    ];
+}
 
-setInterval(() => {
-    runAutomationDomain('systemOps');
-}, AUTOMATION_INTERVAL_MS.systemOps);
-
-setInterval(() => {
-    runAutomationDomain('field');
-}, AUTOMATION_INTERVAL_MS.field);
-
-setInterval(() => {
-    publishEvent(CHANNELS.BREAKDOWN_ALERTS, createBreakdownAlert());
-}, 10000);
+function stopAutomationLoops() {
+    automationTimers.forEach((timer) => clearInterval(timer));
+    automationTimers = [];
+}
 
 // DVIR API Endpoint
 app.post('/api/dvir', (req, res) => {
@@ -1705,6 +1715,7 @@ function startServer() {
     if (server.listening) {
         return server;
     }
+    startAutomationLoops();
     return server.listen(PORT, () => {
         console.log('=======================================================');
         console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
@@ -1712,6 +1723,10 @@ function startServer() {
         console.log('=======================================================');
     });
 }
+
+server.on('close', () => {
+    stopAutomationLoops();
+});
 
 if (require.main === module) {
     startServer();

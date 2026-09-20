@@ -21,12 +21,18 @@ function toKey(event, index) {
   return event.id || `${event.timestamp}-${event.type}-${index}`;
 }
 
+function eventIdentity(event) {
+  return event.id || `${event.timestamp || ''}-${event.type || ''}-${event.text || ''}`;
+}
+
 function mergeEvents(currentEvents, incomingEvents) {
   const merged = [...currentEvents];
+  const seen = new Set(merged.map((entry) => eventIdentity(entry)));
   incomingEvents.forEach((event) => {
-    const exists = merged.some((entry) => entry.id && event.id && entry.id === event.id);
-    if (!exists) {
+    const identity = eventIdentity(event);
+    if (!seen.has(identity)) {
       merged.push(event);
+      seen.add(identity);
     }
   });
   return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -286,6 +292,7 @@ export default function DispatchFeed() {
             onMouseLeave={stopRecognition}
             onTouchStart={() => startRecognition('PTT')}
             onTouchEnd={stopRecognition}
+            onTouchCancel={stopRecognition}
             onKeyDown={(event) => {
               if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();

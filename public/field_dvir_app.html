@@ -92,7 +92,11 @@
       if (!token) return;
       const res = await fetch(`${API}/api/field/dvir?limit=20`, { headers: headers() });
       if (!res.ok) {
-        setStatus('Login required in Field Jobs app', 'bad');
+        if (res.status === 401 || res.status === 403) {
+          setStatus('Login required in Field Jobs app', 'bad');
+        } else {
+          setStatus('Unable to load DVIR reports right now', 'bad');
+        }
         return;
       }
       const data = await res.json();
@@ -163,7 +167,9 @@
     }
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js').catch(() => {}));
+      window.addEventListener('load', () =>
+        navigator.serviceWorker.register('/field-sw.js', { scope: '/field_dvir_app.html' }).catch(() => {})
+      );
     }
   </script>
 </body>

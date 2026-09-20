@@ -18,7 +18,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request).catch(async () => {
+    (async () => {
+      try {
+        const networkResponse = await fetch(event.request);
+        if (networkResponse.ok) return networkResponse;
+      } catch (error) {
+        // fallback below
+      }
       const cached = await caches.match(event.request);
       if (cached) return cached;
       if (event.request.mode === 'navigate') {
@@ -29,6 +35,6 @@ self.addEventListener('fetch', (event) => {
         return caches.match(fallbackPath);
       }
       return new Response('Offline', { status: 503, statusText: 'Offline' });
-    })
+    })()
   );
 });

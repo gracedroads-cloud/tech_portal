@@ -50,7 +50,7 @@ export default function BreakdownAlertsMonitor() {
     async function loadAlerts(activeCenter) {
       try {
         const response = await fetch(
-          `${API_BASE}/api/breakdowns/live?lat=${activeCenter.lat}&lng=${activeCenter.lng}&radius=${radius}`
+          `${API_BASE}/api/breakdowns/live?lat=${activeCenter.lat}&lng=${activeCenter.lng}&radius=${radiusRef.current}`
         );
         if (!response.ok) {
           throw new Error(`Breakdown API unavailable: ${response.status}`);
