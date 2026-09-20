@@ -115,11 +115,9 @@ export default function DispatchFeed() {
     };
 
     recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0]?.transcript || '')
-        .join(' ')
-        .trim();
-      if (transcript && event.results[event.results.length - 1].isFinal) {
+      const latest = event.results[event.resultIndex];
+      const transcript = latest?.[0]?.transcript?.trim() || '';
+      if (transcript && latest?.isFinal) {
         injectVoiceEvent(transcript, handsFreeRef.current ? 'Hands-Free' : 'PTT');
       }
     };

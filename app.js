@@ -1185,11 +1185,12 @@ app.get('/api/breakdowns/live', (req, res) => {
 });
 
 app.post('/api/breakdowns/ingest', (req, res) => {
-    if (BREAKDOWN_INGEST_KEY) {
-        const providedKey = String(req.headers['x-ingest-key'] || '').trim();
-        if (!providedKey || providedKey !== BREAKDOWN_INGEST_KEY) {
-            return res.status(401).json({ error: 'Invalid ingest key' });
-        }
+    if (!BREAKDOWN_INGEST_KEY) {
+        return res.status(503).json({ error: 'Breakdown ingest is disabled until BREAKDOWN_INGEST_KEY is configured' });
+    }
+    const providedKey = String(req.headers['x-ingest-key'] || '').trim();
+    if (!providedKey || providedKey !== BREAKDOWN_INGEST_KEY) {
+        return res.status(401).json({ error: 'Invalid ingest key' });
     }
 
     const vehicle = String(req.body.vehicle || '').trim();
@@ -1646,7 +1647,7 @@ app.post('/api/integrations/teams/test', requireAdminAccess, adminOpsLimiter, re
         sections: [
             {
                 facts: [
-                    { name: 'Environment', value: 'localhost' },
+                    { name: 'Environment', value: process.env.NODE_ENV || 'development' },
                     { name: 'Timestamp', value: new Date().toISOString() }
                 ]
             }

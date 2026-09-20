@@ -100,14 +100,24 @@
         reportList.textContent = 'No reports yet.';
         return;
       }
-      reportList.innerHTML = data.reports.map((report) => `
-        <div class="report">
-          <strong>${report.vehicleId}</strong> • ${new Date(report.submittedAt).toLocaleString()}<br>
-          Odometer: ${report.odometer}<br>
-          Safe: ${report.safeToOperate ? 'Yes' : 'No'}<br>
-          Defects: ${report.defectsSummary}
-        </div>
-      `).join('');
+      reportList.innerHTML = '';
+      data.reports.forEach((report) => {
+        const item = document.createElement('div');
+        item.className = 'report';
+
+        const top = document.createElement('strong');
+        top.textContent = report.vehicleId;
+        item.appendChild(top);
+        item.appendChild(document.createTextNode(` • ${new Date(report.submittedAt).toLocaleString()}`));
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode(`Odometer: ${report.odometer}`));
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode(`Safe: ${report.safeToOperate ? 'Yes' : 'No'}`));
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode(`Defects: ${report.defectsSummary}`));
+
+        reportList.appendChild(item);
+      });
     }
 
     submitBtn.onclick = async () => {

@@ -182,13 +182,31 @@
         return;
       }
       const data = await res.json();
-      jobsList.innerHTML = data.jobs.map((job) => `
-        <div class="job-item ${selectedJobId === job.id ? 'active' : ''}" data-id="${job.id}">
-          <strong>${job.id}</strong> — ${job.customer}<br>
-          <span class="small">${job.unit} • ${job.location.label}</span><br>
-          <span class="badge">State: ${job.state}</span>
-        </div>
-      `).join('');
+      jobsList.innerHTML = '';
+      data.jobs.forEach((job) => {
+        const row = document.createElement('div');
+        row.className = `job-item ${selectedJobId === job.id ? 'active' : ''}`;
+        row.dataset.id = job.id;
+
+        const top = document.createElement('strong');
+        top.textContent = job.id;
+        row.appendChild(top);
+        row.appendChild(document.createTextNode(` — ${job.customer}`));
+        row.appendChild(document.createElement('br'));
+
+        const unit = document.createElement('span');
+        unit.className = 'small';
+        unit.textContent = `${job.unit} • ${job.location.label}`;
+        row.appendChild(unit);
+        row.appendChild(document.createElement('br'));
+
+        const state = document.createElement('span');
+        state.className = 'badge';
+        state.textContent = `State: ${job.state}`;
+        row.appendChild(state);
+
+        jobsList.appendChild(row);
+      });
       if (!selectedJobId && data.jobs.length) selectedJobId = data.jobs[0].id;
       const selected = data.jobs.find((j) => j.id === selectedJobId);
       jobDetail.textContent = selected

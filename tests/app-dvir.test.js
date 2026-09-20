@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
+const path = require('node:path');
 
 function randomPort() {
   return 3500 + Math.floor(Math.random() * 500);
@@ -32,12 +33,13 @@ async function login(baseUrl, techId, pin) {
 
 let serverProcess;
 let baseUrl;
+const repoRoot = path.resolve(__dirname, '..');
 
 test.before(async () => {
   const port = randomPort();
   baseUrl = `http://127.0.0.1:${port}`;
   serverProcess = spawn('node', ['app.js'], {
-    cwd: '/home/runner/work/tech_portal/tech_portal',
+    cwd: repoRoot,
     env: { ...process.env, PORT: String(port) },
     stdio: ['ignore', 'pipe', 'pipe']
   });

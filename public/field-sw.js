@@ -22,7 +22,11 @@ self.addEventListener('fetch', (event) => {
       const cached = await caches.match(event.request);
       if (cached) return cached;
       if (event.request.mode === 'navigate') {
-        return caches.match('/field_technician_app.html');
+        const requestPath = new URL(event.request.url).pathname;
+        const fallbackPath = requestPath.includes('field_dvir_app.html')
+          ? '/field_dvir_app.html'
+          : '/field_technician_app.html';
+        return caches.match(fallbackPath);
       }
       return new Response('Offline', { status: 503, statusText: 'Offline' });
     })
