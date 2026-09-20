@@ -1,0 +1,109 @@
+.breakdown-panel {
+  background: #0d0d0d;
+  border: 1px solid #262626;
+  border-radius: 14px;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  color: #e2e8f0;
+}
+
+.breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.breakdown-header h2 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.breakdown-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.breakdown-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.breakdown-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+.breakdown-actions button {
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.breakdown-feed {
+  flex: 1;
+  min-height: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.breakdown-row {
+  border: 1px solid #1f2937;
+  border-left: 3px solid #ef4444;
+  border-radius: 10px;
+  padding: 10px;
+  background: #0f172a;
+}
+
+.breakdown-row-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.breakdown-priority {
+  color: #facc15;
+  text-transform: uppercase;
+}
+
+.breakdown-location {
+  margin: 6px 0 4px;
+  font-size: 13px;
+  color: #f8fafc;
+}
+
+.breakdown-cause,
+.breakdown-distance {
+  margin: 0;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.breakdown-source {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #93c5fd;
+  text-transform: uppercase;
+}
+
+.breakdown-empty {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}

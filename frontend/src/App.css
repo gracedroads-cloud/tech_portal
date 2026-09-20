@@ -1,0 +1,190 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #05070a;
+  color: #e2e8f0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.command-center {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.command-center-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #1f2937;
+  padding-bottom: 14px;
+}
+
+.command-center-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.command-center-header p {
+  margin: 4px 0 0;
+  color: #94a3b8;
+}
+
+.role-selector {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-selector select {
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.monitor-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.tile {
+  min-height: 220px;
+}
+
+.tile-dispatch {
+  min-height: 420px;
+}
+
+.tile-breakdowns {
+  min-height: 420px;
+}
+
+.tile-suite {
+  min-height: 220px;
+}
+
+.tile-placeholder {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tile-placeholder h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #38bdf8;
+}
+
+.tile-placeholder p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.tile-badge {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid;
+}
+
+.status-info {
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.status-warning {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.status-good {
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+.status-critical {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.suite-panel {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 16px;
+  height: 100%;
+}
+
+.suite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.suite-header h2 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a5b4fc;
+}
+
+.suite-pill {
+  font-size: 10px;
+  color: #93c5fd;
+  border: 1px solid #2563eb;
+  border-radius: 999px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.suite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.suite-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.suite-card h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #93c5fd;
+  letter-spacing: 0.08em;
+}
+
+.suite-card p {
+  margin: 4px 0;
+  color: #cbd5e1;
+  font-size: 12px;
+}
