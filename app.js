@@ -97,6 +97,35 @@ const teamsIntegration = {
     lastSuccessAt: null,
     lastError: null
 };
+const AUTOMATION_INTERVAL_MS = Object.freeze({
+    dispatch: 12000,
+    hrPayroll: 15000,
+    systemOps: 20000,
+    field: 25000
+});
+const SYSTEM_HEAP_ALERT_BYTES = 450 * 1024 * 1024;
+const FIELD_STALE_REMINDER_MS = 1000 * 60 * 30;
+const DVIR_REMINDER_COOLDOWN_MS = 1000 * 60 * 60 * 4;
+const automationState = {
+    dispatch: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
+    hrPayroll: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
+    systemOps: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
+    field: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null }
+};
+const hrPayrollAutomationTemplates = [
+    { type: 'Clock In', text: 'Field technician clock-in event captured.', priority: 'normal' },
+    { type: 'Payroll Sync', text: 'Payroll draft sync completed for active technicians.', priority: 'normal' },
+    { type: 'Compliance Check', text: 'Compliance review completed for active shift records.', priority: 'high' },
+    { type: 'Benefits Update', text: 'Benefits eligibility refresh completed.', priority: 'low' }
+];
+const automationDispatchStatuses = ['Dispatched', 'En-route', 'Completed'];
+const automationDispatchJobs = [
+    { id: 'AUTO-DSP-1001', operator: 'Automation Control', mode: 'Auto Lifecycle', statusIndex: 0 },
+    { id: 'AUTO-DSP-1002', operator: 'Automation Control', mode: 'Auto Lifecycle', statusIndex: 0 }
+];
+let hrPayrollAutomationIndex = 0;
+let dispatchAutomationIndex = 0;
+const fieldDvirReminderTracker = new Map();
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
 const fieldRequestBuckets = new Map();
@@ -344,6 +373,246 @@ function writeAuditEntry(entry) {
     });
     if (auditTrail.length > AUDIT_RETENTION) {
         auditTrail.splice(0, auditTrail.length - AUDIT_RETENTION);
+    }
+}
+
+function markAutomationSuccess(domain, result) {
+    automationState[domain].runs += 1;
+    automationState[domain].lastRunAt = new Date().toISOString();
+    automationState[domain].lastResult = result;
+    automationState[domain].lastError = null;
+}
+
+function markAutomationFailure(domain, error) {
+    automationState[domain].runs += 1;
+    automationState[domain].lastRunAt = new Date().toISOString();
+    automationState[domain].lastError = error.message;
+}
+
+function cleanupLoginAttemptWindow() {
+    const now = Date.now();
+    Array.from(fieldLoginAttempts.entries()).forEach(([key, value]) => {
+        if (!value || now - value.firstAttemptAt > FIELD_LOGIN_WINDOW_MS) {
+            fieldLoginAttempts.delete(key);
+        }
+    });
+}
+
+function cleanupRateLimitBuckets() {
+    const now = Date.now();
+    Array.from(fieldRequestBuckets.entries()).forEach(([key, value]) => {
+        if (!value || now - value.windowStart > FIELD_RATE_LIMIT_WINDOW_MS) {
+            fieldRequestBuckets.delete(key);
+        }
+    });
+}
+
+function createHrPayrollEvent(template) {
+    return {
+        id: `HRP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: new Date().toISOString(),
+        channel: CHANNELS.HR_PAYROLL,
+        source: 'automation.hr_payroll',
+        type: template.type,
+        priority: template.priority,
+        text: template.text
+    };
+}
+
+function createSystemHealthSnapshot() {
+    const memoryUsage = process.memoryUsage();
+    return {
+        id: `HEALTH-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        channel: CHANNELS.SYSTEM_HEALTH,
+        source: 'automation.system_ops',
+        type: 'Health Snapshot',
+        priority: 'normal',
+        uptimeSeconds: Math.round(process.uptime()),
+        memory: {
+            rss: memoryUsage.rss,
+            heapUsed: memoryUsage.heapUsed,
+            heapTotal: memoryUsage.heapTotal
+        },
+        queueDepth: {
+            dispatch: eventBus[CHANNELS.DISPATCH].length,
+            breakdowns: eventBus[CHANNELS.BREAKDOWN_ALERTS].length,
+            hrPayroll: eventBus[CHANNELS.HR_PAYROLL].length,
+            alerts: eventBus[CHANNELS.ALERTS].length
+        }
+    };
+}
+
+function createSystemAlert({ type, text, priority = 'normal' }) {
+    return {
+        id: `ALERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: new Date().toISOString(),
+        channel: CHANNELS.ALERTS,
+        source: 'automation.system_ops',
+        type,
+        priority,
+        text
+    };
+}
+
+function getJobLastActivityAt(job) {
+    const candidates = [job.acceptedAt, job.enRouteAt, job.onSceneAt, job.workStartedAt, job.completedAt]
+        .filter(Boolean)
+        .map((value) => new Date(value).getTime())
+        .filter((value) => Number.isFinite(value));
+    return candidates.length ? Math.max(...candidates) : null;
+}
+
+function runDispatchAutomation() {
+    const job = automationDispatchJobs[dispatchAutomationIndex % automationDispatchJobs.length];
+    dispatchAutomationIndex = (dispatchAutomationIndex + 1) % automationDispatchJobs.length;
+    const status = automationDispatchStatuses[job.statusIndex];
+    job.statusIndex = (job.statusIndex + 1) % automationDispatchStatuses.length;
+    const event = {
+        id: `${job.id}-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        channel: CHANNELS.DISPATCH,
+        source: 'automation.dispatch',
+        type: status,
+        priority: getPriority(status),
+        text: `${job.operator} — ${job.id} ${status.toLowerCase()} by automation.`,
+        operator: job.operator,
+        mode: job.mode
+    };
+    publishEvent(CHANNELS.DISPATCH, event);
+    writeAuditEntry({
+        actor: 'automation.dispatch',
+        action: `dispatch_${status.toLowerCase().replace('-', '_')}`,
+        channel: CHANNELS.DISPATCH,
+        summary: `${job.id} moved to ${status} automatically`,
+        policy: 'backend_automation_dispatch_lifecycle'
+    });
+    return { jobId: job.id, status };
+}
+
+function runHrPayrollAutomation() {
+    const template = hrPayrollAutomationTemplates[hrPayrollAutomationIndex % hrPayrollAutomationTemplates.length];
+    hrPayrollAutomationIndex = (hrPayrollAutomationIndex + 1) % hrPayrollAutomationTemplates.length;
+    const event = createHrPayrollEvent(template);
+    publishEvent(CHANNELS.HR_PAYROLL, event);
+    writeAuditEntry({
+        actor: 'automation.hr_payroll',
+        action: template.type.toLowerCase().replace(/\s+/g, '_'),
+        channel: CHANNELS.HR_PAYROLL,
+        summary: template.text,
+        policy: 'backend_automation_hr_payroll'
+    });
+    return { type: template.type };
+}
+
+function runSystemOpsAutomation() {
+    cleanupExpiredFieldSessions();
+    cleanupLoginAttemptWindow();
+    cleanupRateLimitBuckets();
+    const healthSnapshot = createSystemHealthSnapshot();
+    publishEvent(CHANNELS.SYSTEM_HEALTH, healthSnapshot);
+
+    const alerts = [];
+    if (healthSnapshot.memory.heapUsed > SYSTEM_HEAP_ALERT_BYTES) {
+        const highMemoryAlert = createSystemAlert({
+            type: 'Resource Alert',
+            text: `Heap usage is elevated at ${Math.round(healthSnapshot.memory.heapUsed / (1024 * 1024))} MB.`,
+            priority: 'high'
+        });
+        publishEvent(CHANNELS.ALERTS, highMemoryAlert);
+        alerts.push(highMemoryAlert.type);
+    }
+    if (teamsIntegration.enabled && teamsIntegration.lastError) {
+        const teamsAlert = createSystemAlert({
+            type: 'Integration Alert',
+            text: `Teams integration error detected: ${teamsIntegration.lastError}`,
+            priority: 'normal'
+        });
+        publishEvent(CHANNELS.ALERTS, teamsAlert);
+        alerts.push(teamsAlert.type);
+    }
+
+    writeAuditEntry({
+        actor: 'automation.system_ops',
+        action: 'system_maintenance_cycle',
+        channel: CHANNELS.SYSTEM_HEALTH,
+        summary: `System automation cycle completed${alerts.length ? ` with ${alerts.length} alert(s)` : ''}`,
+        policy: 'backend_automation_system_ops'
+    });
+    return { alertsTriggered: alerts.length };
+}
+
+function runFieldAutomation() {
+    const now = Date.now();
+    const reports = readFieldDvirReports();
+    let reminders = 0;
+    let staleJobs = 0;
+
+    fieldTechnicians.forEach((technician) => {
+        const hasRecentDvir = reports.some((report) => {
+            if (report.techId !== technician.techId) return false;
+            const submittedMs = new Date(report.submittedAt).getTime();
+            return Number.isFinite(submittedMs) && now - submittedMs <= 24 * 60 * 60 * 1000;
+        });
+        const lastReminderAt = fieldDvirReminderTracker.get(technician.techId) || 0;
+        if (!hasRecentDvir && now - lastReminderAt >= DVIR_REMINDER_COOLDOWN_MS) {
+            const reminder = createSystemAlert({
+                type: 'DVIR Reminder',
+                text: `${technician.name} has no DVIR submission in the last 24 hours.`,
+                priority: 'high'
+            });
+            publishEvent(CHANNELS.ALERTS, reminder);
+            fieldDvirReminderTracker.set(technician.techId, now);
+            reminders += 1;
+        }
+    });
+
+    fieldJobs.forEach((job) => {
+        if (job.state === 'Completed') {
+            return;
+        }
+        const lastActivityAt = getJobLastActivityAt(job);
+        if (!lastActivityAt) {
+            return;
+        }
+        if (now - lastActivityAt < FIELD_STALE_REMINDER_MS) {
+            return;
+        }
+        const staleAlert = createSystemAlert({
+            type: 'Field Workflow Reminder',
+            text: `${job.id} is still ${job.state}. Please advance workflow or escalate.`,
+            priority: 'normal'
+        });
+        publishEvent(CHANNELS.ALERTS, staleAlert);
+        staleJobs += 1;
+    });
+
+    writeAuditEntry({
+        actor: 'automation.field',
+        action: 'field_workflow_cycle',
+        channel: 'field.jobs',
+        summary: `Field automation completed (${reminders} DVIR reminder(s), ${staleJobs} stale job alert(s))`,
+        policy: 'backend_automation_field_workflow'
+    });
+
+    return { reminders, staleJobs };
+}
+
+function runAutomationDomain(domain) {
+    if (!automationState[domain].enabled) {
+        return { skipped: true, reason: 'disabled' };
+    }
+    try {
+        let result = {};
+        if (domain === 'dispatch') result = runDispatchAutomation();
+        if (domain === 'hrPayroll') result = runHrPayrollAutomation();
+        if (domain === 'systemOps') result = runSystemOpsAutomation();
+        if (domain === 'field') result = runFieldAutomation();
+        markAutomationSuccess(domain, result);
+        return { success: true, ...result };
+    } catch (error) {
+        markAutomationFailure(domain, error);
+        return { success: false, error: error.message };
     }
 }
 
@@ -610,23 +879,21 @@ BREAKDOWN_LOCATIONS.forEach((location, index) => {
     );
 });
 
-let simulatedStatusIndex = 0;
-const simulatedStatuses = ['Dispatched', 'En-route', 'Completed', 'Cancelled'];
 setInterval(() => {
-    simulatedStatusIndex = (simulatedStatusIndex + 1) % simulatedStatuses.length;
-    const status = simulatedStatuses[simulatedStatusIndex];
-    publishEvent(CHANNELS.DISPATCH, {
-        id: `SIM-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        channel: CHANNELS.DISPATCH,
-        source: 'dispatch',
-        type: status,
-        priority: getPriority(status),
-        text: `Grace Operations — ${status} update received for live command-center monitor.`,
-        operator: 'Grace Operations',
-        mode: 'Live Monitor Stream'
-    });
-}, 8000);
+    runAutomationDomain('dispatch');
+}, AUTOMATION_INTERVAL_MS.dispatch);
+
+setInterval(() => {
+    runAutomationDomain('hrPayroll');
+}, AUTOMATION_INTERVAL_MS.hrPayroll);
+
+setInterval(() => {
+    runAutomationDomain('systemOps');
+}, AUTOMATION_INTERVAL_MS.systemOps);
+
+setInterval(() => {
+    runAutomationDomain('field');
+}, AUTOMATION_INTERVAL_MS.field);
 
 setInterval(() => {
     publishEvent(CHANNELS.BREAKDOWN_ALERTS, createBreakdownAlert());
@@ -728,6 +995,69 @@ app.get('/api/events/model', (req, res) => {
 
 app.get('/api/dispatch/live', (req, res) => {
     res.json(getDispatchFeed());
+});
+
+app.get('/api/hr/live', (req, res) => {
+    const limit = Math.min(Math.max(toNumber(req.query.limit, 100), 1), 500);
+    res.json(
+        eventBus[CHANNELS.HR_PAYROLL]
+            .slice(-limit)
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    );
+});
+
+app.get('/api/system/alerts/live', (req, res) => {
+    const limit = Math.min(Math.max(toNumber(req.query.limit, 100), 1), 300);
+    res.json(
+        eventBus[CHANNELS.ALERTS]
+            .slice(-limit)
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    );
+});
+
+app.get('/api/automation/status', (req, res) => {
+    res.json({
+        intervalsMs: AUTOMATION_INTERVAL_MS,
+        domains: automationState,
+        eventBuffers: {
+            dispatch: eventBus[CHANNELS.DISPATCH].length,
+            hrPayroll: eventBus[CHANNELS.HR_PAYROLL].length,
+            alerts: eventBus[CHANNELS.ALERTS].length,
+            systemHealth: eventBus[CHANNELS.SYSTEM_HEALTH].length
+        }
+    });
+});
+
+app.post('/api/automation/run', (req, res) => {
+    const domain = String(req.body.domain || 'all').trim();
+    const supported = ['dispatch', 'hrPayroll', 'systemOps', 'field'];
+    if (domain === 'all') {
+        const result = supported.reduce((acc, item) => {
+            acc[item] = runAutomationDomain(item);
+            return acc;
+        }, {});
+        return res.json({ result });
+    }
+    if (!supported.includes(domain)) {
+        return res.status(400).json({ error: 'Invalid automation domain', supported: ['all', ...supported] });
+    }
+    return res.json({ result: runAutomationDomain(domain) });
+});
+
+app.patch('/api/automation/config', (req, res) => {
+    const requested = req.body || {};
+    const mappings = {
+        dispatch: 'dispatch',
+        hrPayroll: 'hrPayroll',
+        systemOps: 'systemOps',
+        field: 'field'
+    };
+    Object.entries(mappings).forEach(([key, domain]) => {
+        if (typeof requested[key] === 'boolean') {
+            automationState[domain].enabled = requested[key];
+        }
+    });
+    res.json({ domains: automationState });
 });
 
 app.get('/api/breakdowns/live', (req, res) => {
