@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import './DispatchFeed.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3000';
+const API_BASE = process.env.REACT_APP_API_BASE || '';
 
 const statusClassMap = {
   Dispatched: 'status-dispatched',
