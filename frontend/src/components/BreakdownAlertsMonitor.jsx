@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import './BreakdownAlertsMonitor.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3000';
+const API_BASE = process.env.REACT_APP_API_BASE || '';
 const DEFAULT_CENTER = { label: 'Lehigh Valley Base', lat: 40.6884, lng: -75.2207 };
 const DEFAULT_RADIUS = 150;
 
