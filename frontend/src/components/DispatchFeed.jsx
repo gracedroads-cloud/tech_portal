@@ -52,6 +52,7 @@ export default function DispatchFeed() {
   const recognitionRef = useRef(null);
   const handsFreeRef = useRef(false);
   const blockAutoRestartRef = useRef(false);
+  const pttActiveRef = useRef(false);
 
   function injectVoiceEvent(text, mode = 'Hands-Free') {
     const voiceEvent = {
@@ -81,6 +82,22 @@ export default function DispatchFeed() {
     if (!recognition) return;
     recognition.stop();
     setVoiceStatus(handsFreeRef.current ? 'Hands-Free Listening' : 'Voice Ready');
+  }
+
+  function handlePttStart() {
+    if (pttActiveRef.current) {
+      return;
+    }
+    pttActiveRef.current = true;
+    startRecognition('PTT');
+  }
+
+  function handlePttStop() {
+    if (!pttActiveRef.current) {
+      return;
+    }
+    pttActiveRef.current = false;
+    stopRecognition();
   }
 
   useEffect(() => {
@@ -129,9 +146,15 @@ export default function DispatchFeed() {
     };
 
     recognition.onerror = (event) => {
-      const fatalErrors = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'aborted']);
+      const terminalErrors = new Set([
+        'audio-capture',
+        'bad-grammar',
+        'language-not-supported',
+        'not-allowed',
+        'service-not-allowed'
+      ]);
       const errorCode = String(event?.error || '');
-      blockAutoRestartRef.current = fatalErrors.has(errorCode);
+      blockAutoRestartRef.current = terminalErrors.has(errorCode);
       if (blockAutoRestartRef.current) {
         handsFreeRef.current = false;
         setHandsFreeEnabled(false);
@@ -142,8 +165,9 @@ export default function DispatchFeed() {
     recognition.onend = () => {
       if (handsFreeRef.current && !blockAutoRestartRef.current) {
         startRecognition('Hands-Free');
-      } else {
+      } else if (blockAutoRestartRef.current) {
         blockAutoRestartRef.current = false;
+      } else {
         setVoiceStatus('Voice Ready');
       }
     };
@@ -168,8 +192,13 @@ export default function DispatchFeed() {
         }
         const data = await response.json();
         if (isMounted && Array.isArray(data)) {
-          setEvents(data);
-          lastSeenRef.current = data.length ? data[data.length - 1].timestamp : null;
+          setEvents((current) => {
+            const next = mergeEvents(current, data);
+            lastSeenRef.current = next.length
+              ? next[next.length - 1].timestamp
+              : lastSeenRef.current;
+            return next;
+          });
         }
       } catch (error) {
         if (isMounted) {
@@ -293,25 +322,34 @@ export default function DispatchFeed() {
             type="button"
             className="voice-btn"
             disabled={!voiceSupported}
-            onMouseDown={() => startRecognition('PTT')}
-            onMouseUp={stopRecognition}
-            onMouseLeave={stopRecognition}
-            onTouchStart={() => startRecognition('PTT')}
-            onTouchEnd={stopRecognition}
-            onTouchCancel={stopRecognition}
-            onKeyDown={(event) => {
-              if (event.repeat) {
+            onPointerDown={(event) => {
+              if (event.pointerType === 'mouse' && event.button !== 0) {
                 return;
               }
-              if (event.key === ' ' || event.key === 'Enter') {
-                event.preventDefault();
-                startRecognition('PTT');
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+              handlePttStart();
+            }}
+            onPointerUp={(event) => {
+              event.currentTarget.releasePointerCapture?.(event.pointerId);
+              handlePttStop();
+            }}
+            onPointerCancel={(event) => {
+              event.currentTarget.releasePointerCapture?.(event.pointerId);
+              handlePttStop();
+            }}
+            onPointerLeave={() => handlePttStop()}
+            onBlur={() => handlePttStop()}
+            onKeyDown={(event) => {
+              if (event.repeat || (event.key !== ' ' && event.key !== 'Enter')) {
+                return;
               }
+              event.preventDefault();
+              handlePttStart();
             }}
             onKeyUp={(event) => {
               if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();
-                stopRecognition();
+                handlePttStop();
               }
             }}
           >
