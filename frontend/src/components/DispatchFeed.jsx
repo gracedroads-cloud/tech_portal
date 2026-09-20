@@ -17,6 +17,16 @@ const intelligenceProfiles = {
   apex: { label: 'Apex Growth', multiplier: 2 }
 };
 
+const terminalSpeechErrors = new Set([
+  'audio-capture',
+  'bad-grammar',
+  'language-not-supported',
+  'not-allowed',
+  'service-not-allowed'
+]);
+
+const transientSpeechErrors = new Set(['aborted', 'network', 'no-speech']);
+
 function toKey(event, index) {
   return event.id || `${event.timestamp}-${event.type}-${index}`;
 }
@@ -51,7 +61,8 @@ export default function DispatchFeed() {
   const lastSeenRef = useRef(null);
   const recognitionRef = useRef(null);
   const handsFreeRef = useRef(false);
-  const blockAutoRestartRef = useRef(false);
+  const retryHandsFreeOnEndRef = useRef(false);
+  const preserveVoiceErrorOnEndRef = useRef(false);
   const pttActiveRef = useRef(false);
 
   function injectVoiceEvent(text, mode = 'Hands-Free') {
@@ -69,6 +80,8 @@ export default function DispatchFeed() {
     const recognition = recognitionRef.current;
     if (!recognition) return;
     try {
+      retryHandsFreeOnEndRef.current = mode === 'Hands-Free';
+      preserveVoiceErrorOnEndRef.current = false;
       recognition.continuous = mode === 'Hands-Free';
       recognition.start();
       setVoiceStatus(mode === 'Hands-Free' ? 'Hands-Free Listening' : 'PTT Listening');
@@ -146,16 +159,12 @@ export default function DispatchFeed() {
     };
 
     recognition.onerror = (event) => {
-      const terminalErrors = new Set([
-        'audio-capture',
-        'bad-grammar',
-        'language-not-supported',
-        'not-allowed',
-        'service-not-allowed'
-      ]);
       const errorCode = String(event?.error || '');
-      blockAutoRestartRef.current = terminalErrors.has(errorCode);
-      if (blockAutoRestartRef.current) {
+      const isTerminalError = terminalSpeechErrors.has(errorCode);
+      const isTransientError = transientSpeechErrors.has(errorCode);
+      retryHandsFreeOnEndRef.current = handsFreeRef.current && isTransientError;
+      preserveVoiceErrorOnEndRef.current = !isTransientError;
+      if (isTerminalError) {
         handsFreeRef.current = false;
         setHandsFreeEnabled(false);
       }
@@ -163,11 +172,14 @@ export default function DispatchFeed() {
     };
 
     recognition.onend = () => {
-      if (handsFreeRef.current && !blockAutoRestartRef.current) {
+      const shouldRetryHandsFree = handsFreeRef.current && retryHandsFreeOnEndRef.current;
+      const shouldPreserveVoiceError = preserveVoiceErrorOnEndRef.current;
+      retryHandsFreeOnEndRef.current = false;
+      preserveVoiceErrorOnEndRef.current = false;
+
+      if (shouldRetryHandsFree) {
         startRecognition('Hands-Free');
-      } else if (blockAutoRestartRef.current) {
-        blockAutoRestartRef.current = false;
-      } else {
+      } else if (!shouldPreserveVoiceError) {
         setVoiceStatus('Voice Ready');
       }
     };

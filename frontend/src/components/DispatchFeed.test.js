@@ -138,12 +138,31 @@ describe('DispatchFeed', () => {
     expect(recognition.start).toHaveBeenCalledTimes(1);
 
     act(() => {
-      recognition.onerror({ error: 'not-allowed' });
+      recognition.onerror({ error: 'audio-capture' });
       recognition.onend();
     });
 
     expect(recognition.start).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /talk freely/i })).toBeInTheDocument();
+    expect(screen.getByText('Voice Error')).toBeInTheDocument();
+  });
+
+  test('does not auto-retry hands-free on unclassified recognition errors', async () => {
+    render(<DispatchFeed />);
+
+    await waitFor(() => expect(recognition).not.toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: /talk freely/i }));
+
+    expect(recognition.start).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      recognition.onerror({ error: 'unexpected-error' });
+      recognition.onend();
+    });
+
+    expect(recognition.start).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /stop hands-free/i })).toBeInTheDocument();
     expect(screen.getByText('Voice Error')).toBeInTheDocument();
   });
 
