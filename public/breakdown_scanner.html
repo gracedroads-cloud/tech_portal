@@ -104,6 +104,19 @@
             cursor: pointer;
             border: none;
         }
+        .meta-line {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .meta-pill {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--accent-green);
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
     </style>
 </head>
 <body>
@@ -112,27 +125,88 @@
             <h1><span class="pulse-beacon"></span> 100-Mile Commercial Breakdown Scanner</h1>
             <div style="font-family: monospace; font-size: 12px; color: var(--accent-green);">RADAR HUB ACTIVE — ZERO-COST PROFILE MAP</div>
         </div>
-        <div class="incident-grid">
-            <div class="incident-card">
-                <div class="card-top">
-                    <span class="corridor-pill">I-78 WEST • MM 49.2</span>
-                    <span class="distance-pill">26.4 MI FROM HUB</span>
-                </div>
-                <div class="issue-title">🚨 Freightliner Cascadia — Blown Type 30/30 Brake Chamber</div>
-                <div class="issue-details">Disabled on right shoulder near Fogelsville. Locked brakes on trailer axle 2, structural air leakage logged natively.</div>
-                <div class="card-actions">
-                    <span class="quote-rate">Standard Lock: $0.00</span>
-                    <button class="dispatch-cta" onclick="executeTriageRedirect()">Triage Job ➔</button>
-                </div>
-            </div>
-        </div>
+        <div class="incident-grid" id="incident-grid"></div>
     </div>
     <script>
-        function executeTriageRedirect() {
-            window.location.href = 'grace_dispatch_console.html?carrier=Werner%20Enterprises&location=I-78%20West%20MM%2049.2&serviceKey=brake_chamber_3030&estPrice=0.00';
+        const incidentGrid = document.getElementById('incident-grid');
+
+        function executeTriageRedirect(location, vehicle, issue) {
+            const params = new URLSearchParams({
+                carrier: vehicle || 'Fleet Unit',
+                location: location || 'Location Pending',
+                serviceKey: issue || 'vehicle_repair',
+                estPrice: '0.00'
+            });
+            window.location.href = `grace_dispatch_console.html?${params.toString()}`;
         }
+
+        function renderAlerts(alerts) {
+            if (!alerts.length) {
+                incidentGrid.innerHTML = `
+                    <div class="incident-card">
+                        <div class="issue-title">✅ No live breakdown or vehicle-repair alerts.</div>
+                        <div class="issue-details">The 100-mile scanner is online and waiting for dispatch, DVIR, telematics, or manual repair alerts.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            incidentGrid.innerHTML = alerts.map((alert) => {
+                const sourceType = (alert.sourceType || alert.source || 'dispatch').toUpperCase();
+                const technician = alert.technician ? `<span class="meta-pill">TECH: ${alert.technician}</span>` : '';
+                const coordinates = alert.coordinates
+                    ? `<span class="meta-pill">GPS: ${alert.coordinates.latitude}, ${alert.coordinates.longitude}</span>`
+                    : '';
+                return `
+                    <div class="incident-card">
+                        <div class="card-top">
+                            <span class="corridor-pill">${sourceType} • ${alert.severity || 'HIGH'}</span>
+                            <span class="distance-pill">${alert.distance || 'UNKNOWN'} FROM HUB</span>
+                        </div>
+                        <div class="issue-title">🚨 ${alert.vehicle || 'Fleet Unit'} — ${alert.issue || 'Issue pending'}</div>
+                        <div class="issue-details">${alert.location || 'Location pending'} • ${new Date(alert.timestamp).toLocaleString()}</div>
+                        <div class="meta-line">
+                            <span class="meta-pill">ID: ${alert.id}</span>
+                            ${technician}
+                            ${coordinates}
+                        </div>
+                        <div class="card-actions">
+                            <span class="quote-rate">${alert.alertType === 'vehicle_repair' ? 'VR Intake' : 'Dispatch Ready'}</span>
+                            <button
+                                class="dispatch-cta"
+                                data-location="${encodeURIComponent(alert.location || '')}"
+                                data-vehicle="${encodeURIComponent(alert.vehicle || '')}"
+                                data-issue="${encodeURIComponent(alert.issue || '')}"
+                            >
+                                Triage Job ➔
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            incidentGrid.querySelectorAll('.dispatch-cta').forEach((button) => {
+                button.addEventListener('click', () => {
+                    executeTriageRedirect(
+                        decodeURIComponent(button.dataset.location || ''),
+                        decodeURIComponent(button.dataset.vehicle || ''),
+                        decodeURIComponent(button.dataset.issue || '')
+                    );
+                });
+            });
+        }
+
+        fetch('/api/breakdowns/scanner?radius=100')
+            .then((response) => response.json())
+            .then((data) => renderAlerts(Array.isArray(data.breakdowns) ? data.breakdowns : []))
+            .catch(() => {
+                incidentGrid.innerHTML = `
+                    <div class="incident-card">
+                        <div class="issue-title">⚠️ Scanner feed offline.</div>
+                        <div class="issue-details">Unable to load live breakdown alerts from the backend feed.</div>
+                    </div>
+                `;
+            });
     </script>
 </body>
 </html>
-
-
