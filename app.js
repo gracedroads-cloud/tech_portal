@@ -106,6 +106,8 @@ const AUTOMATION_INTERVAL_MS = Object.freeze({
 const SYSTEM_HEAP_ALERT_BYTES = 450 * 1024 * 1024;
 const FIELD_STALE_REMINDER_MS = 1000 * 60 * 30;
 const DVIR_REMINDER_COOLDOWN_MS = 1000 * 60 * 60 * 4;
+const AUTH_RATE_LIMIT_WINDOW_MS = 1000 * 60;
+const AUTH_RATE_LIMIT_MAX = 40;
 const automationState = {
     dispatch: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
     hrPayroll: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
@@ -126,6 +128,8 @@ const automationDispatchJobs = [
 let hrPayrollAutomationIndex = 0;
 let dispatchAutomationIndex = 0;
 const fieldDvirReminderTracker = new Map();
+const fieldStaleReminderTracker = new Map();
+const fieldAuthRequestBuckets = new Map();
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
 const fieldRequestBuckets = new Map();
@@ -407,6 +411,31 @@ function cleanupRateLimitBuckets() {
     });
 }
 
+function cleanupAuthRateLimitBuckets() {
+    const now = Date.now();
+    Array.from(fieldAuthRequestBuckets.entries()).forEach(([key, value]) => {
+        if (!value || now - value.windowStart > AUTH_RATE_LIMIT_WINDOW_MS) {
+            fieldAuthRequestBuckets.delete(key);
+        }
+    });
+}
+
+function requireFieldAuthRateLimit(req, res, next) {
+    const key = req.ip || req.headers['x-forwarded-for'] || 'unknown-ip';
+    const now = Date.now();
+    const bucket = fieldAuthRequestBuckets.get(key);
+    if (!bucket || now - bucket.windowStart > AUTH_RATE_LIMIT_WINDOW_MS) {
+        fieldAuthRequestBuckets.set(key, { count: 1, windowStart: now });
+        return next();
+    }
+    if (bucket.count >= AUTH_RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: 'Too many auth requests. Try again shortly.' });
+    }
+    bucket.count += 1;
+    fieldAuthRequestBuckets.set(key, bucket);
+    return next();
+}
+
 function createHrPayrollEvent(template) {
     return {
         id: `HRP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -509,6 +538,7 @@ function runSystemOpsAutomation() {
     cleanupExpiredFieldSessions();
     cleanupLoginAttemptWindow();
     cleanupRateLimitBuckets();
+    cleanupAuthRateLimitBuckets();
     const healthSnapshot = createSystemHealthSnapshot();
     publishEvent(CHANNELS.SYSTEM_HEALTH, healthSnapshot);
 
@@ -569,13 +599,20 @@ function runFieldAutomation() {
 
     fieldJobs.forEach((job) => {
         if (job.state === 'Completed') {
+            fieldStaleReminderTracker.delete(job.id);
             return;
         }
         const lastActivityAt = getJobLastActivityAt(job);
         if (!lastActivityAt) {
+            fieldStaleReminderTracker.delete(job.id);
             return;
         }
         if (now - lastActivityAt < FIELD_STALE_REMINDER_MS) {
+            fieldStaleReminderTracker.delete(job.id);
+            return;
+        }
+        const lastReminderAt = fieldStaleReminderTracker.get(job.id) || 0;
+        if (now - lastReminderAt < FIELD_STALE_REMINDER_MS) {
             return;
         }
         const staleAlert = createSystemAlert({
@@ -584,6 +621,7 @@ function runFieldAutomation() {
             priority: 'normal'
         });
         publishEvent(CHANNELS.ALERTS, staleAlert);
+        fieldStaleReminderTracker.set(job.id, now);
         staleJobs += 1;
     });
 
@@ -1131,7 +1169,7 @@ app.get('/api/location/base', (req, res) => {
     });
 });
 
-app.post('/api/field/auth/login', (req, res) => {
+app.post('/api/field/auth/login', requireFieldAuthRateLimit, (req, res) => {
     const techId = String(req.body.techId || '').trim();
     const pin = String(req.body.pin || '').trim();
     if (isLoginBlocked(req, techId)) {
@@ -1591,10 +1629,25 @@ io.on('connection', (socket) => {
     socket.emit('dispatch.snapshot', getDispatchFeed().slice(-80));
 });
 
-// Start Server
-server.listen(PORT, () => {
-    console.log('=======================================================');
-    console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
-    console.log('📍 OPERATING BASE: LEHIGH VALLEY, PA (150-MILE RADAR LIVE)');
-    console.log('=======================================================');
-});
+function startServer() {
+    if (server.listening) {
+        return server;
+    }
+    return server.listen(PORT, () => {
+        console.log('=======================================================');
+        console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
+        console.log('📍 OPERATING BASE: LEHIGH VALLEY, PA (150-MILE RADAR LIVE)');
+        console.log('=======================================================');
+    });
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = {
+    app,
+    server,
+    startServer,
+    runAutomationDomain
+};
