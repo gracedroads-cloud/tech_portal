@@ -6,6 +6,7 @@ const http = require('http');
 const crypto = require('crypto');
 const https = require('https');
 const { Server } = require('socket.io');
+const { rateLimit } = require('express-rate-limit');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -91,6 +92,7 @@ const FIELD_LOGIN_MAX_ATTEMPTS = 8;
 const FIELD_RATE_LIMIT_WINDOW_MS = 1000 * 60;
 const FIELD_RATE_LIMIT_MAX = 120;
 const TEAMS_WEBHOOK_URL = String(process.env.TEAMS_WEBHOOK_URL || '').trim();
+const ADMIN_API_KEY = String(process.env.ADMIN_API_KEY || '').trim();
 const teamsIntegration = {
     enabled: TEAMS_WEBHOOK_URL.length > 0,
     lastAttemptAt: null,
@@ -108,6 +110,8 @@ const FIELD_STALE_REMINDER_MS = 1000 * 60 * 30;
 const DVIR_REMINDER_COOLDOWN_MS = 1000 * 60 * 60 * 4;
 const AUTH_RATE_LIMIT_WINDOW_MS = 1000 * 60;
 const AUTH_RATE_LIMIT_MAX = 40;
+const ADMIN_RATE_LIMIT_WINDOW_MS = 1000 * 60;
+const ADMIN_RATE_LIMIT_MAX = 80;
 const automationState = {
     dispatch: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
     hrPayroll: { enabled: true, runs: 0, lastRunAt: null, lastResult: null, lastError: null },
@@ -130,6 +134,21 @@ let dispatchAutomationIndex = 0;
 const fieldDvirReminderTracker = new Map();
 const fieldStaleReminderTracker = new Map();
 const fieldAuthRequestBuckets = new Map();
+const adminRequestBuckets = new Map();
+const fieldAuthLoginLimiter = rateLimit({
+    windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+    limit: AUTH_RATE_LIMIT_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many auth requests. Try again shortly.' }
+});
+const adminOpsLimiter = rateLimit({
+    windowMs: ADMIN_RATE_LIMIT_WINDOW_MS,
+    limit: ADMIN_RATE_LIMIT_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Admin rate limit exceeded. Try again shortly.' }
+});
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
 const fieldRequestBuckets = new Map();
@@ -436,6 +455,57 @@ function requireFieldAuthRateLimit(req, res, next) {
     return next();
 }
 
+function cleanupAdminRateLimitBuckets() {
+    const now = Date.now();
+    Array.from(adminRequestBuckets.entries()).forEach(([key, value]) => {
+        if (!value || now - value.windowStart > ADMIN_RATE_LIMIT_WINDOW_MS) {
+            adminRequestBuckets.delete(key);
+        }
+    });
+}
+
+function requireAdminRateLimit(req, res, next) {
+    const key = req.ip || req.headers['x-forwarded-for'] || 'unknown-ip';
+    const now = Date.now();
+    const bucket = adminRequestBuckets.get(key);
+    if (!bucket || now - bucket.windowStart > ADMIN_RATE_LIMIT_WINDOW_MS) {
+        adminRequestBuckets.set(key, { count: 1, windowStart: now });
+        return next();
+    }
+    if (bucket.count >= ADMIN_RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: 'Admin rate limit exceeded. Try again shortly.' });
+    }
+    bucket.count += 1;
+    adminRequestBuckets.set(key, bucket);
+    return next();
+}
+
+function requireAdminAccess(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const providedKey = String(req.headers['x-admin-key'] || token || '').trim();
+
+    if (ADMIN_API_KEY) {
+        if (providedKey !== ADMIN_API_KEY) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        return next();
+    }
+
+    const ip = String(req.ip || '');
+    const forwarded = String(req.headers['x-forwarded-for'] || '');
+    const isLocal =
+        ip === '127.0.0.1' ||
+        ip === '::1' ||
+        ip === '::ffff:127.0.0.1' ||
+        forwarded.includes('127.0.0.1') ||
+        req.hostname === 'localhost';
+    if (!isLocal) {
+        return res.status(403).json({ error: 'Admin API key is not configured for remote access' });
+    }
+    return next();
+}
+
 function createHrPayrollEvent(template) {
     return {
         id: `HRP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -539,6 +609,7 @@ function runSystemOpsAutomation() {
     cleanupLoginAttemptWindow();
     cleanupRateLimitBuckets();
     cleanupAuthRateLimitBuckets();
+    cleanupAdminRateLimitBuckets();
     const healthSnapshot = createSystemHealthSnapshot();
     publishEvent(CHANNELS.SYSTEM_HEALTH, healthSnapshot);
 
@@ -1053,7 +1124,7 @@ app.get('/api/system/alerts/live', (req, res) => {
     );
 });
 
-app.get('/api/automation/status', (req, res) => {
+app.get('/api/automation/status', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     res.json({
         intervalsMs: AUTOMATION_INTERVAL_MS,
         domains: automationState,
@@ -1066,7 +1137,7 @@ app.get('/api/automation/status', (req, res) => {
     });
 });
 
-app.post('/api/automation/run', (req, res) => {
+app.post('/api/automation/run', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     const domain = String(req.body.domain || 'all').trim();
     const supported = ['dispatch', 'hrPayroll', 'systemOps', 'field'];
     if (domain === 'all') {
@@ -1082,7 +1153,7 @@ app.post('/api/automation/run', (req, res) => {
     return res.json({ result: runAutomationDomain(domain) });
 });
 
-app.patch('/api/automation/config', (req, res) => {
+app.patch('/api/automation/config', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     const requested = req.body || {};
     const mappings = {
         dispatch: 'dispatch',
@@ -1169,7 +1240,7 @@ app.get('/api/location/base', (req, res) => {
     });
 });
 
-app.post('/api/field/auth/login', requireFieldAuthRateLimit, (req, res) => {
+app.post('/api/field/auth/login', fieldAuthLoginLimiter, requireFieldAuthRateLimit, (req, res) => {
     const techId = String(req.body.techId || '').trim();
     const pin = String(req.body.pin || '').trim();
     if (isLoginBlocked(req, techId)) {
@@ -1564,11 +1635,11 @@ app.get('/api/mastersuite/kpis', (req, res) => {
     });
 });
 
-app.get('/api/integrations/teams/status', (req, res) => {
+app.get('/api/integrations/teams/status', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     res.json(sanitizeTeamsStatus());
 });
 
-app.post('/api/integrations/teams/test', (req, res) => {
+app.post('/api/integrations/teams/test', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     sendTeamsMessage({
         title: '🧪 Grace Teams Integration Test',
         text: 'Microsoft Teams integration test triggered from MasterSuite.',
@@ -1591,7 +1662,7 @@ app.post('/api/integrations/teams/test', (req, res) => {
         );
 });
 
-app.get('/api/security/posture', (req, res) => {
+app.get('/api/security/posture', requireAdminAccess, adminOpsLimiter, requireAdminRateLimit, (req, res) => {
     cleanupExpiredFieldSessions();
     res.json({
         headers: {
