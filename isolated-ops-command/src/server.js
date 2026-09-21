@@ -80,6 +80,12 @@ function loadConfig(overrides = {}) {
     inboundTeamsToken: overrides.inboundTeamsToken || process.env.TEAMS_INBOUND_TOKEN || '',
     maxBodyBytes: Number(overrides.maxBodyBytes ?? process.env.ISOLATED_OPS_MAX_BODY_BYTES ?? 16384),
     maxQueueItems: Number(overrides.maxQueueItems ?? process.env.ISOLATED_OPS_MAX_QUEUE_ITEMS ?? 250),
+    dispatchEtaPreferredMinutes: Number(
+      overrides.dispatchEtaPreferredMinutes ?? process.env.ISOLATED_OPS_DISPATCH_ETA_PREFERRED_MINUTES ?? 90,
+    ),
+    dispatchEtaMaxMinutes: Number(
+      overrides.dispatchEtaMaxMinutes ?? process.env.ISOLATED_OPS_DISPATCH_ETA_MAX_MINUTES ?? 120,
+    ),
     mediaAllowlist,
     opsToken: overrides.opsToken || process.env.ISOLATED_OPS_TOKEN || 'change-me-isolated-ops',
     outboundTimeoutMs: Number(overrides.outboundTimeoutMs ?? process.env.ISOLATED_OPS_TIMEOUT_MS ?? 3000),
@@ -325,6 +331,17 @@ function validateIncident(body = {}) {
   if (!description) {
     return { error: 'description is required' };
   }
+
+  const rawEta = body.technicianEtaMinutes ?? body.etaMinutes ?? body.eta;
+  let etaMinutes = null;
+  if (rawEta !== undefined && rawEta !== null && String(rawEta).trim() !== '') {
+    etaMinutes = Number(rawEta);
+    if (!Number.isFinite(etaMinutes) || etaMinutes <= 0) {
+      return { error: 'technicianEtaMinutes must be a positive number when provided' };
+    }
+    etaMinutes = Math.round(etaMinutes);
+  }
+
   return {
     incidentId: String(body.incidentId || randomUUID()),
     description,
@@ -332,7 +349,9 @@ function validateIncident(body = {}) {
     origin: String(body.origin || 'operations-center').slice(0, 120),
     requestedService,
     serviceType: sanitizeRecommendedService(serviceType),
-    customer: String(body.customer || 'Unknown customer').slice(0, 120)
+    customer: String(body.customer || 'Unknown customer').slice(0, 120),
+    locationState: String(body.locationState || body.state || '').trim().slice(0, 80),
+    technicianEtaMinutes: etaMinutes
   };
 }
 
@@ -484,12 +503,17 @@ function createServer(overrides = {}) {
         serviceType: incident.serviceType,
         source: incident.source,
         origin: incident.origin,
+        locationState: incident.locationState || null,
+        technicianEtaMinutes: Number.isFinite(incident.technicianEtaMinutes) ? incident.technicianEtaMinutes : null,
         createdAt: incident.createdAt
       })),
       dispatchQueue: state.dispatchQueue.slice(-10).map((item) => ({
         id: item.id,
         incidentId: item.incidentId,
         description: item.description,
+        locationState: item.locationState || null,
+        technicianEtaMinutes: Number.isFinite(item.technicianEtaMinutes) ? item.technicianEtaMinutes : null,
+        availabilityTier: item.availabilityTier || 'eta_unconfirmed_manual_review',
         recommendedServiceType: item.recommendedServiceType,
         priority: item.priority,
         createdAt: item.createdAt,
@@ -700,6 +724,32 @@ function createServer(overrides = {}) {
       return;
     }
 
+    const etaMinutes = validated.technicianEtaMinutes;
+    const hasEta = Number.isFinite(etaMinutes);
+    const withinPreferredEta = hasEta && etaMinutes <= config.dispatchEtaPreferredMinutes;
+    const withinExtendedEta = hasEta && etaMinutes > config.dispatchEtaPreferredMinutes && etaMinutes <= config.dispatchEtaMaxMinutes;
+    const exceedsEtaWindow = hasEta && etaMinutes > config.dispatchEtaMaxMinutes;
+
+    if (exceedsEtaWindow) {
+      const responseBody = {
+        error: 'No technician available within the internal ETA threshold. Route incident for manual escalation.',
+        code: 'ETA_THRESHOLD_EXCEEDED',
+        thresholdMinutes: config.dispatchEtaMaxMinutes
+      };
+      audit('dispatch.eta_threshold_exceeded', {
+        incidentId: validated.incidentId,
+        technicianEtaMinutes: etaMinutes,
+        thresholdMinutes: config.dispatchEtaMaxMinutes,
+        locationState: validated.locationState || null
+      });
+      toJson(res, 422, responseBody);
+      return;
+    }
+
+    const availabilityTier = withinPreferredEta
+      ? 'preferred_eta_window'
+      : (withinExtendedEta ? 'extended_eta_window' : 'eta_unconfirmed_manual_review');
+
     let decision;
     try {
       decision = applyPolicyToAiOutput(await graceAi.classifyIncident(validated));
@@ -743,6 +793,9 @@ function createServer(overrides = {}) {
       customer: validated.customer,
       origin: validated.origin,
       source: validated.source,
+      locationState: validated.locationState || null,
+      technicianEtaMinutes: hasEta ? etaMinutes : null,
+      availabilityTier,
       recommendedServiceType: decision.recommendedServiceType,
       priority: decision.priority,
       createdAt: now(),
@@ -1023,6 +1076,8 @@ function createServer(overrides = {}) {
         mediaAllowlist: config.mediaAllowlist,
         technicianKnowledgeSources: config.technicianKnowledgeSources,
         maxQueueItems: config.maxQueueItems,
+        dispatchEtaPreferredMinutes: config.dispatchEtaPreferredMinutes,
+        dispatchEtaMaxMinutes: config.dispatchEtaMaxMinutes,
         graceAvatarProfile: config.graceAvatarProfile,
         graceVoiceProfile: config.graceVoiceProfile
       });

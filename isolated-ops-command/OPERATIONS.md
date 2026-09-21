@@ -29,3 +29,8 @@
 - Emergency pause: `POST /api/automation/pause`
 - Work-order transitions: `POST /api/work-orders/:id/transition`
 - Authenticated backup export/restore APIs and CLI available.
+- Internal dispatch ETA policy (non-public messaging):
+  - Preferred window: technician ETA `<= 90` minutes.
+  - Extended allowable window: ETA `> 90` and `<= 120` minutes.
+  - ETA above `120` minutes is rejected for dispatch intake and escalated for manual handling.
+  - This policy is operational only and should not be surfaced as customer-facing marketing copy.
