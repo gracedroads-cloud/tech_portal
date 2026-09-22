@@ -264,6 +264,15 @@ function deepSanitize(value) {
   return output;
 }
 
+function sanitizeObjectArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .map((entry) => deepSanitize(entry));
+}
+
 function readStaticFile(filePath) {
   return fs.readFileSync(filePath);
 }
@@ -571,7 +580,7 @@ function createServer(overrides = {}) {
       return { statusCode: 409, body: { error: `transition from ${currentStatus} to ${requestedTransition} is not allowed` } };
     }
     const completionNotes = String(body.completionNotes || notes || '').trim();
-    const customerSafeSummary = String(body.customerSafeSummary || item.completionNotes || notes || '').trim();
+    const customerSafeSummary = String(body.customerSafeSummary || '').trim();
     if (requestedTransition === 'completed' && !completionNotes) {
       return { statusCode: 400, body: { error: 'completionNotes are required for completed transition' } };
     }
@@ -913,20 +922,29 @@ function createServer(overrides = {}) {
       simulationMode: Boolean(body.state.simulationMode),
       automationPaused: Boolean(body.state.automationPaused),
       automationPauseReason: String(body.state.automationPauseReason || ''),
-      incidents: body.state.incidents,
-      dispatchQueue: body.state.dispatchQueue,
-      activeUnits: Array.isArray(body.state.activeUnits) ? body.state.activeUnits : [],
-      policyRejections: body.state.policyRejections,
-      mediaSources: Array.isArray(body.state.mediaSources) ? body.state.mediaSources : [],
-      secureBrowserSessions: Array.isArray(body.state.secureBrowserSessions) ? body.state.secureBrowserSessions : [],
+      incidents: sanitizeObjectArray(body.state.incidents),
+      dispatchQueue: sanitizeObjectArray(body.state.dispatchQueue),
+      activeUnits: sanitizeObjectArray(body.state.activeUnits),
+      policyRejections: sanitizeObjectArray(body.state.policyRejections),
+      mediaSources: sanitizeObjectArray(body.state.mediaSources),
+      secureBrowserSessions: sanitizeObjectArray(body.state.secureBrowserSessions),
       idempotencyKeys: body.state.idempotencyKeys && typeof body.state.idempotencyKeys === 'object' ? body.state.idempotencyKeys : {},
       transitionIdempotencyKeys: body.state.transitionIdempotencyKeys && typeof body.state.transitionIdempotencyKeys === 'object' ? body.state.transitionIdempotencyKeys : {},
-      teamsEvents: Array.isArray(body.state.teamsEvents) ? body.state.teamsEvents : [],
+      teamsEvents: sanitizeObjectArray(body.state.teamsEvents),
       lastGraceAiDecision: body.state.lastGraceAiDecision && typeof body.state.lastGraceAiDecision === 'object' ? body.state.lastGraceAiDecision : null
     });
-    const safeAudit = deepSanitize(body.audit);
+    const safeAudit = sanitizeObjectArray(body.audit);
+    const previewStorage = {
+      loadState() {
+        return safeState;
+      },
+      readAudit() {
+        return safeAudit;
+      }
+    };
+    const restoredState = createInitialState(config, previewStorage);
     storage.restoreSnapshot({ state: safeState, audit: safeAudit });
-    state = createInitialState(config, storage);
+    state = restoredState;
     persist();
     emit('snapshot', { state: getPublicState() });
     toJson(res, 202, { restored: true, restoredAt: now() });

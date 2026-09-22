@@ -1,0 +1,370 @@
+{
+  "label": "EH Graced Roads Solutions LLC — Isolated Operations Command",
+  "simulationMode": true,
+  "automationPaused": false,
+  "automationPauseReason": "",
+  "lastUpdatedAt": "2026-09-22T16:43:21.525Z",
+  "incidents": [
+    {
+      "incidentId": "998fd207-828d-498e-b281-738103b4281d",
+      "description": "Battery diagnostics requested",
+      "source": "manual",
+      "origin": "operations-center",
+      "requestedService": "battery_electrical_help",
+      "serviceType": "battery_electrical_help",
+      "customer": "Unknown customer",
+      "status": "awaiting_human_approval",
+      "createdAt": "2026-09-22T16:43:21.501Z"
+    }
+  ],
+  "dispatchQueue": [
+    {
+      "id": "fba39700-a0eb-464f-b262-f27dce64d96c",
+      "incidentId": "998fd207-828d-498e-b281-738103b4281d",
+      "description": "Battery diagnostics requested",
+      "customer": "Unknown customer",
+      "origin": "operations-center",
+      "source": "manual",
+      "recommendedServiceType": "battery_electrical_help",
+      "priority": "medium",
+      "createdAt": "2026-09-22T16:43:21.501Z",
+      "requiresHumanApproval": false,
+      "status": "closed",
+      "aiSummary": "Simulation recommends battery electrical help.",
+      "statusHistory": [
+        {
+          "from": "intake",
+          "to": "awaiting_human_approval",
+          "at": "2026-09-22T16:43:21.501Z",
+          "operator": "system",
+          "notes": "Incident triaged by policy + Grace adapter"
+        },
+        {
+          "from": "awaiting_human_approval",
+          "to": "approved_dispatch",
+          "at": "2026-09-22T16:43:21.510Z",
+          "operator": "Dispatcher One",
+          "notes": ""
+        },
+        {
+          "from": "approved_dispatch",
+          "to": "technician_assigned",
+          "at": "2026-09-22T16:43:21.515Z",
+          "operator": "Dispatcher One",
+          "notes": ""
+        },
+        {
+          "from": "technician_assigned",
+          "to": "in_progress",
+          "at": "2026-09-22T16:43:21.518Z",
+          "operator": "Tech 9",
+          "notes": ""
+        },
+        {
+          "from": "in_progress",
+          "to": "completed",
+          "at": "2026-09-22T16:43:21.522Z",
+          "operator": "Tech 9",
+          "notes": ""
+        },
+        {
+          "from": "completed",
+          "to": "closed",
+          "at": "2026-09-22T16:43:21.525Z",
+          "operator": "Dispatcher One",
+          "notes": ""
+        }
+      ],
+      "approvedBy": "Dispatcher One",
+      "approvedAt": "2026-09-22T16:43:21.510Z",
+      "assignedTechnician": "Tech 9",
+      "inProgressAt": "2026-09-22T16:43:21.518Z",
+      "completionNotes": "Internal note: bypass failed, customer account overdue",
+      "completedAt": "2026-09-22T16:43:21.522Z",
+      "customerSafeSummary": "Internal note: bypass failed, customer account overdue",
+      "closedAt": "2026-09-22T16:43:21.525Z"
+    }
+  ],
+  "activeUnits": [
+    {
+      "id": "unit-201",
+      "name": "Mobile Service Van #201",
+      "capabilities": [
+        "mobile_diagnostics",
+        "roadside_mechanical_repair",
+        "tire_service",
+        "air_brake_triage",
+        "battery_electrical_help"
+      ],
+      "status": "simulated",
+      "lastUpdatedAt": "2026-09-22T16:43:21.461Z"
+    }
+  ],
+  "policyRejections": [],
+  "auditTail": [
+    {
+      "id": "ab034915-d08b-4f01-ac71-04d2a5dea019",
+      "type": "system.started",
+      "at": "2026-09-22T16:43:21.465Z",
+      "detail": {
+        "port": 41365,
+        "simulationMode": true
+      }
+    },
+    {
+      "id": "0e237eb3-5d95-4dba-9432-214351e7c037",
+      "type": "dispatch.recommendation_created",
+      "at": "2026-09-22T16:43:21.501Z",
+      "detail": {
+        "incidentId": "998fd207-828d-498e-b281-738103b4281d",
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c"
+      }
+    },
+    {
+      "id": "a7d69567-fa0f-4ffd-9c3d-346de27c9aa5",
+      "type": "work_order.transition",
+      "at": "2026-09-22T16:43:21.510Z",
+      "detail": {
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c",
+        "from": "awaiting_human_approval",
+        "to": "approved_dispatch",
+        "operator": "Dispatcher One",
+        "notes": ""
+      }
+    },
+    {
+      "id": "84173117-ac5f-42da-81e6-0ccd394f957f",
+      "type": "dispatch.approved",
+      "at": "2026-09-22T16:43:21.511Z",
+      "detail": {
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c",
+        "operator": "Dispatcher One"
+      }
+    },
+    {
+      "id": "c58bc8a2-4df2-4737-80a5-2b723ad90642",
+      "type": "work_order.transition",
+      "at": "2026-09-22T16:43:21.515Z",
+      "detail": {
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c",
+        "from": "approved_dispatch",
+        "to": "technician_assigned",
+        "operator": "Dispatcher One",
+        "notes": ""
+      }
+    },
+    {
+      "id": "e1cb7b45-e3f4-4c18-8ff2-2fa136c0222c",
+      "type": "work_order.transition",
+      "at": "2026-09-22T16:43:21.519Z",
+      "detail": {
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c",
+        "from": "technician_assigned",
+        "to": "in_progress",
+        "operator": "Tech 9",
+        "notes": ""
+      }
+    },
+    {
+      "id": "ed9e643f-eb2e-440c-bc70-3347957ca695",
+      "type": "work_order.transition",
+      "at": "2026-09-22T16:43:21.522Z",
+      "detail": {
+        "queueItemId": "fba39700-a0eb-464f-b262-f27dce64d96c",
+        "from": "in_progress",
+        "to": "completed",
+        "operator": "Tech 9",
+        "notes": ""
+      }
+    }
+  ],
+  "mediaSources": [],
+  "secureBrowserSessions": [],
+  "idempotencyKeys": {
+    "998fd207-828d-498e-b281-738103b4281d": {
+      "statusCode": 202,
+      "body": {
+        "incident": {
+          "incidentId": "998fd207-828d-498e-b281-738103b4281d",
+          "description": "Battery diagnostics requested",
+          "source": "manual",
+          "origin": "operations-center",
+          "requestedService": "battery_electrical_help",
+          "serviceType": "battery_electrical_help",
+          "customer": "Unknown customer"
+        },
+        "queueItem": {
+          "id": "fba39700-a0eb-464f-b262-f27dce64d96c",
+          "incidentId": "998fd207-828d-498e-b281-738103b4281d",
+          "description": "Battery diagnostics requested",
+          "customer": "Unknown customer",
+          "origin": "operations-center",
+          "source": "manual",
+          "recommendedServiceType": "battery_electrical_help",
+          "priority": "medium",
+          "createdAt": "2026-09-22T16:43:21.501Z",
+          "requiresHumanApproval": false,
+          "status": "closed",
+          "aiSummary": "Simulation recommends battery electrical help.",
+          "statusHistory": [
+            {
+              "from": "intake",
+              "to": "awaiting_human_approval",
+              "at": "2026-09-22T16:43:21.501Z",
+              "operator": "system",
+              "notes": "Incident triaged by policy + Grace adapter"
+            },
+            {
+              "from": "awaiting_human_approval",
+              "to": "approved_dispatch",
+              "at": "2026-09-22T16:43:21.510Z",
+              "operator": "Dispatcher One",
+              "notes": ""
+            },
+            {
+              "from": "approved_dispatch",
+              "to": "technician_assigned",
+              "at": "2026-09-22T16:43:21.515Z",
+              "operator": "Dispatcher One",
+              "notes": ""
+            },
+            {
+              "from": "technician_assigned",
+              "to": "in_progress",
+              "at": "2026-09-22T16:43:21.518Z",
+              "operator": "Tech 9",
+              "notes": ""
+            },
+            {
+              "from": "in_progress",
+              "to": "completed",
+              "at": "2026-09-22T16:43:21.522Z",
+              "operator": "Tech 9",
+              "notes": ""
+            },
+            {
+              "from": "completed",
+              "to": "closed",
+              "at": "2026-09-22T16:43:21.525Z",
+              "operator": "Dispatcher One",
+              "notes": ""
+            }
+          ],
+          "approvedBy": "Dispatcher One",
+          "approvedAt": "2026-09-22T16:43:21.510Z",
+          "assignedTechnician": "Tech 9",
+          "inProgressAt": "2026-09-22T16:43:21.518Z",
+          "completionNotes": "Internal note: bypass failed, customer account overdue",
+          "completedAt": "2026-09-22T16:43:21.522Z",
+          "customerSafeSummary": "Internal note: bypass failed, customer account overdue",
+          "closedAt": "2026-09-22T16:43:21.525Z"
+        },
+        "decision": {
+          "provider": "simulation",
+          "summary": "Simulation recommends battery electrical help.",
+          "recommendedServiceType": "battery_electrical_help",
+          "priority": "medium",
+          "requiresHumanApproval": true,
+          "allowedActions": [
+            "draft_dispatch",
+            "notify_teams"
+          ],
+          "flags": [
+            "simulated_classification"
+          ]
+        },
+        "automationPaused": false
+      }
+    }
+  },
+  "transitionIdempotencyKeys": {},
+  "teamsEvents": [],
+  "lastGraceAiDecision": {
+    "provider": "simulation",
+    "summary": "Simulation recommends battery electrical help.",
+    "recommendedServiceType": "battery_electrical_help",
+    "priority": "medium",
+    "requiresHumanApproval": true,
+    "allowedActions": [
+      "draft_dispatch",
+      "notify_teams"
+    ],
+    "flags": [
+      "simulated_classification"
+    ]
+  },
+  "monitors": {
+    "systemHealth": {
+      "status": "online",
+      "label": "System Health",
+      "detail": "Ready",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "automationPause": {
+      "status": "online",
+      "label": "Automation Pause",
+      "detail": "Automation enabled",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "incidentFeed": {
+      "status": "online",
+      "label": "Incident Feed",
+      "detail": "1 tracked",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "dispatchQueue": {
+      "status": "online",
+      "label": "Dispatch Queue",
+      "detail": "1 items awaiting action",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "activeUnits": {
+      "status": "simulated",
+      "label": "Active Units",
+      "detail": "1 units visible",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "graceAiActivity": {
+      "status": "simulated",
+      "label": "Grace AI Activity",
+      "detail": "Simulation recommends battery electrical help.",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "communicationsTeams": {
+      "status": "simulated",
+      "label": "Communications / Teams",
+      "detail": "simulation",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "videoSources": {
+      "status": "stale",
+      "label": "Video Sources",
+      "detail": "0 registered",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "liveTvSources": {
+      "status": "stale",
+      "label": "Live TV / News",
+      "detail": "0 registered",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "secureBrowserSessions": {
+      "status": "stale",
+      "label": "Secure Browser Sessions",
+      "detail": "0 active",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "policyRejections": {
+      "status": "stale",
+      "label": "Policy Rejections",
+      "detail": "0 recorded",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    },
+    "auditEvents": {
+      "status": "online",
+      "label": "Audit Events",
+      "detail": "7 recent events",
+      "lastUpdatedAt": "2026-09-22T16:43:21.525Z"
+    }
+  }
+}
