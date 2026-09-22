@@ -3,6 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+
+process.env.GRACE_OPERATOR_TOKEN ??= 'test-operator-token';
+
 const appModule = require('../app');
 const app = appModule.app || appModule;
 
