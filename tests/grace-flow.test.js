@@ -1,15 +1,21 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const http = require('http');
 
-process.env.GRACE_OPERATOR_TOKEN ??= 'test-operator-token';
+const originalDataDir = process.env.DATA_DIR;
+const originalOperatorToken = process.env.GRACE_OPERATOR_TOKEN;
+const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tech-portal-grace-flow-'));
+
+process.env.DATA_DIR = testDataDir;
+process.env.GRACE_OPERATOR_TOKEN = process.env.GRACE_OPERATOR_TOKEN || 'test-operator-token';
 
 const appModule = require('../app');
 const app = appModule.app || appModule;
 
-const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data'));
+const dataDir = path.resolve(process.env.DATA_DIR);
 const graceDataDir = path.join(dataDir, 'grace_calls');
 const auditLogPath = path.join(dataDir, 'grace_audit.log');
 
@@ -72,6 +78,20 @@ test.before(async () => {
 
 test.after(async () => {
   await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  delete require.cache[require.resolve('../app')];
+  fs.rmSync(testDataDir, { recursive: true, force: true });
+
+  if (originalDataDir === undefined) {
+    delete process.env.DATA_DIR;
+  } else {
+    process.env.DATA_DIR = originalDataDir;
+  }
+
+  if (originalOperatorToken === undefined) {
+    delete process.env.GRACE_OPERATOR_TOKEN;
+  } else {
+    process.env.GRACE_OPERATOR_TOKEN = originalOperatorToken;
+  }
 });
 
 test('rejects out-of-scope requests (towing/winching/passenger vehicle)', async () => {
