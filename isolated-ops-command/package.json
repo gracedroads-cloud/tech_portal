@@ -6,6 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "backup:export": "node src/backup-cli.js export",
+    "backup:restore": "node src/backup-cli.js restore"
   }
 }

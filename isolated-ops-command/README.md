@@ -96,11 +96,14 @@ node --test
 - `GET /api/events` — SSE monitor stream
 - `POST /api/incidents` — authenticated intake
 - `POST /api/dispatch/:id/approve` — authenticated human approval gate
+- `POST /api/work-orders/:id/transition` — authenticated state transition (`technician_assigned`, `in_progress`, `completed`, `closed`) with idempotency support
 - `POST /api/automation/pause` — authenticated emergency automation pause
+- `POST /api/technician/copilot` — authenticated structured technician-assistance response from authorized knowledge sources only
 - `POST /api/teams/notify` — authenticated outbound Teams message
 - `POST /api/teams/events` — inbound Teams event normalization when configured
 - `POST /api/media/sources` — authenticated media registry update
 - `POST /api/secure-browser/launch` / `POST /api/secure-browser/clear`
+- `GET /api/admin/backup/export` / `POST /api/admin/backup/restore` — authenticated snapshot export and restore
 - `POST /api/simulate/tick` — authenticated demo event generator when simulation mode is enabled
 
 ## Microsoft Teams setup (high level)
@@ -159,6 +162,14 @@ Suggested backup workflow:
 2. Stop the isolated server.
 3. Copy the isolated data directory.
 4. Restore both files together to preserve queue + audit continuity.
+
+CLI helpers are also available:
+
+```bash
+cd /home/runner/work/tech_portal/tech_portal/isolated-ops-command
+npm run backup:export -- --out /absolute/path/ops-backup.json
+npm run backup:restore -- --from /absolute/path/ops-backup.json
+```
 
 For production scale, replace local files with a managed database or append-only event store while keeping the same policy and approval controls.
 

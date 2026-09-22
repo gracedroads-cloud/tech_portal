@@ -1,0 +1,849 @@
+Here we go, Elijah — **all file contents, fully generated and ready to paste**.
+
+You can drop each block into its matching file inside `/docs`.
+
+---
+
+### `CopilotMasterContext.md`
+
+```markdown
+# EH Graced Roads Solutions LLC — Copilot Master Context
+
+## 1. Company Overview
+
+EH Graced Roads Solutions LLC is a 24/7 mobile truck and trailer repair enterprise focused on:
+- Heavy‑duty repair
+- Roadside diagnostics
+- Emergency breakdown response
+- After‑hours repair coordination
+
+We are strictly **repair‑only** and operate under a **NO‑TOW policy**:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+All systems, workflows, and AI outputs must respect this policy.
+
+---
+
+## 2. System Architecture Summary
+
+The enterprise system consists of:
+
+- **Node.js / Express backend** (port 3000)
+- **React command center frontend** (port 3001)
+- **Grace Automation Engine** (orchestrator)
+- **GPS tracking pipeline** (tractors, trailers, technicians, drivers)
+- **Dual‑monitor command center UI**
+- **Backup/OPS subsystem** (hardened backend UI)
+- **Microsoft 365 + GitHub Copilot integration**
+
+See `Architecture.md` for detailed module breakdown.
+
+---
+
+## 3. Core Policies
+
+### NO‑TOW Policy
+- No towing
+- No winching
+- No tow yard routing
+- No tow vendor integration
+
+All logic must be repair‑only.
+
+### Emergency Protocol
+Follow the steps in `EmergencyProtocol.md`:
+1. Hazard scan  
+2. Mechanical diagnosis  
+3. Repair‑only response  
+4. Technician dispatch  
+5. Driver routing  
+6. Vendor selection (repair vendors only)  
+7. After‑hours availability  
+8. Avoid tow yards  
+9. Socket broadcast  
+10. Dashboard update  
+11. Grace engine logging  
+
+---
+
+## 4. After‑Hours Repair Model
+
+After‑hours support is provided via:
+- National service networks
+- OEM dealer networks
+- Truck stop repair centers
+- Mobile diesel repair providers
+
+Messaging:
+> After‑hours heavy‑duty repair support through national service networks, OEM dealers, truck stop repair centers, and mobile diesel repair providers.
+
+---
+
+## 5. GPS Pipeline Overview
+
+Sources:
+- Tractor ECM telematics
+- Trailer beacon devices
+- Technician mobile GPS
+- Driver mobile GPS
+
+API example:
+
+```json
+POST /api/gps/update
+{
+  "unitId": "T680-554",
+  "type": "tractor | trailer | tech | driver",
+  "lat": 40.68922,
+  "lon": -75.22011,
+  "speed": 58,
+  "heading": 270,
+  "timestamp": 1695349200
+}
+```
+
+Backend:
+- Validate input
+- Store location
+- Trigger AI routing
+- Emit `gps_update` via Socket.IO
+
+Frontend:
+- Subscribe to `gps_update`
+- Update map views
+- Color‑code units
+- Show trails and ETA
+
+---
+
+## 6. Dual‑Monitor Command Center
+
+**Monitor 1 — Breakdowns & Dispatch**
+- Live breakdown feed
+- Fault codes and derates
+- Emergency protocol status
+- Technician assignment
+- Repair progress
+
+**Monitor 2 — GPS & AI Routing**
+Tabs:
+- Tractors
+- Trailers
+- Technicians
+- Drivers
+
+Each tab:
+- Live map
+- Trails
+- Weather/traffic overlays (future)
+- AI‑suggested routes
+- ETAs
+
+---
+
+## 7. Branding & Voice
+
+Brand identity:
+- Name: EH Graced Roads Solutions LLC
+- Tagline: 24/7 Mobile Truck & Trailer Repair — Repair Only
+- Tone: Professional, fast, reliable, safety‑focused
+
+Core message:
+> We keep trucks moving through expert heavy‑duty repair — without towing.
+
+See `Branding.md` and `Marketing.md` for details.
+
+---
+
+## 8. Grace Automation Engine
+
+Grace orchestrates:
+- Dispatch workflows
+- Fleet status
+- HR and technician assignment
+- Billing triggers
+- GPS routing decisions
+- Emergency protocol execution
+- System health monitoring
+
+All backend modules must integrate with Grace via well‑defined services.
+
+---
+
+## 9. Copilot Usage Rules
+
+When Copilot generates:
+- **Code** → follow `Architecture.md` and `SystemRules.md`
+- **UI** → follow `Mockups.md` and `Branding.md`
+- **Docs** → follow `Marketing.md` and `Branding.md`
+- **Workflows** → follow `EmergencyProtocol.md` and `SystemRules.md`
+
+Always:
+- Enforce NO‑TOW policy
+- Use repair‑only language
+- Respect emergency protocol
+- Maintain brand voice
+
+---
+
+## 10. Summary
+
+This file is the **master context** for all AI agents (Claude, Copilot, others).  
+It defines:
+- What the system is
+- How it behaves
+- What rules it must follow
+- How it should communicate
+
+All changes to architecture, policy, or brand must be reflected here and in the corresponding `/docs` files.
+```
+
+---
+
+### `Architecture.md`
+
+```markdown
+# Architecture — EH Graced Roads Solutions LLC
+
+## 1. High‑Level Overview
+
+The system is composed of:
+
+- **Frontend (React, port 3001)**
+- **Backend API (Node.js/Express, port 3000)**
+- **Grace Automation Engine**
+- **GPS pipeline**
+- **Backup/OPS subsystem**
+- **External integrations (future)**
+
+---
+
+## 2. Frontend (React Command Center)
+
+### Responsibilities
+- Display breakdowns and dispatch feed
+- Show GPS maps and unit tabs
+- Provide dual‑monitor layout
+- Surface system health and alerts
+- Allow operators to trigger workflows
+
+### Key Areas
+- `/src/frontend/components/DispatchFeed`
+- `/src/frontend/components/GpsTabs`
+- `/src/frontend/components/SystemHealth`
+- `/src/frontend/layout/DualMonitorLayout`
+
+---
+
+## 3. Backend (Node.js / Express)
+
+### Responsibilities
+- REST API for breakdowns, technicians, units, GPS
+- Socket.IO for real‑time updates
+- Integration with Grace Automation Engine
+- Logging and audit trails
+- Enforcement of NO‑TOW policy in workflows
+
+### Example Routes
+- `POST /api/breakdowns`
+- `GET /api/breakdowns/:id`
+- `POST /api/gps/update`
+- `POST /api/emergency/execute`
+- `GET /api/system/health`
+
+---
+
+## 4. Grace Automation Engine
+
+### Responsibilities
+- Orchestrate emergency protocol
+- Assign technicians
+- Suggest repair vendors (no tow)
+- Coordinate after‑hours repair
+- Update system health and logs
+
+### Integration Points
+- Backend calls Grace services
+- Grace writes events to logs
+- Grace triggers Socket.IO broadcasts
+- Grace updates status fields in DB
+
+---
+
+## 5. GPS Pipeline
+
+### Data Sources
+- Tractor ECM telematics
+- Trailer beacon devices
+- Technician mobile GPS
+- Driver mobile GPS
+
+### Flow
+1. Device sends location → backend `/api/gps/update`
+2. Backend validates and stores
+3. Grace uses data for routing
+4. Socket.IO emits `gps_update`
+5. Frontend updates maps and tabs
+
+---
+
+## 6. Backup/OPS Subsystem
+
+### Purpose
+- Provide hardened backend UI for operations
+- Allow manual execution of automation pipelines
+- Display logs and JSON outputs
+- Serve as fallback if main portal is degraded
+
+### Example
+- `/ops` route on backend
+- Simple HTML/React admin interface
+- Buttons to run Grace workflows and view logs
+
+---
+
+## 7. Data Storage (Conceptual)
+
+- **Breakdowns**: status, location, unit, technician, timestamps
+- **Units**: tractors, trailers, drivers, technicians
+- **GPS**: historical and current positions
+- **Logs**: Grace events, emergency protocol steps
+- **Config**: policies, thresholds, vendor lists (repair only)
+
+---
+
+## 8. Security & Access (Conceptual)
+
+- Role‑based access (dispatcher, technician, admin)
+- Authentication (future: SSO / OAuth)
+- Logging of critical actions (emergency execution, vendor selection)
+- Protection of NO‑TOW policy (no tow vendor endpoints)
+
+---
+
+## 9. Future Extensions
+
+- Weather and traffic overlays
+- Fleet analytics dashboards
+- Automated ETA predictions
+- Integration with external repair networks
+- Multi‑tenant fleet support
+
+---
+
+## 10. Architectural Principles
+
+- Repair‑only workflows
+- Clear separation of frontend/backend
+- Grace as central orchestrator
+- Real‑time visibility via Socket.IO
+- Documentation‑driven development via `/docs`
+```
+
+---
+
+### `Branding.md`
+
+```markdown
+# Branding — EH Graced Roads Solutions LLC
+
+## 1. Brand Identity
+
+- **Name:** EH Graced Roads Solutions LLC
+- **Tagline:** 24/7 Mobile Truck & Trailer Repair — Repair Only
+- **Core Promise:** Keep trucks moving through expert heavy‑duty repair.
+
+---
+
+## 2. Brand Voice
+
+Tone:
+- Professional
+- Confident
+- Fast and responsive
+- Safety‑focused
+- Repair‑only, no towing
+
+Avoid:
+- Casual slang
+- Overly technical jargon without explanation
+- Any mention of towing or winching
+
+---
+
+## 3. Key Messaging Pillars
+
+1. **Reliability**
+   - “We respond quickly and repair correctly.”
+2. **Expertise**
+   - “Certified technicians, heavy‑duty specialists.”
+3. **Safety**
+   - “We prioritize driver and equipment safety.”
+4. **Repair‑Only Focus**
+   - “We fix the problem — we don’t tow.”
+
+---
+
+## 4. Visual Identity (Conceptual)
+
+- Colors: Blue (trust), Orange (energy)
+- Logo: Truck + wrench motif
+- Style: Clean, modern, minimal clutter
+
+---
+
+## 5. Example Brand Statements
+
+- “We keep your fleet moving through expert roadside repair.”
+- “24/7 mobile truck and trailer repair — no towing, just solutions.”
+- “When your truck is down, we bring the repair shop to the road.”
+
+---
+
+## 6. UI Text Guidelines
+
+- Clear labels: “Breakdown Status”, “Technician Assigned”, “ETA”
+- Avoid vague terms like “Stuff”, “Things”, “Misc”
+- Use consistent terminology: “Breakdown”, “Unit”, “Technician”, “Repair Vendor”
+
+---
+
+## 7. Policy Reminder
+
+All branding and messaging must align with:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+```
+
+---
+
+### `Marketing.md`
+
+```markdown
+# Marketing — EH Graced Roads Solutions LLC
+
+## 1. Core Value Proposition
+
+> We keep trucks moving through expert heavy‑duty repair — without towing.
+
+We specialize in:
+- Roadside diagnostics
+- Mobile repair
+- Heavy‑duty systems
+- After‑hours repair coordination
+
+---
+
+## 2. Services Overview
+
+- Emergency roadside repair
+- Electrical diagnostics and repair
+- Brake and suspension work
+- Welding and fabrication
+- Hydraulic system repair
+- Trailer systems repair
+- After‑hours repair coordination via national networks
+
+---
+
+## 3. Target Customers
+
+- Fleet managers
+- Owner‑operators
+- Logistics companies
+- Regional and long‑haul carriers
+
+---
+
+## 4. After‑Hours Messaging
+
+> After‑hours heavy‑duty repair support through national service networks, OEM dealers, truck stop repair centers, and mobile diesel repair providers.
+
+---
+
+## 5. Differentiators
+
+- Repair‑only focus (no towing)
+- 24/7 availability
+- Heavy‑duty expertise
+- Real‑time GPS visibility
+- AI‑assisted dispatch and routing
+
+---
+
+## 6. Sample Brochure Copy
+
+“EH Graced Roads Solutions LLC delivers 24/7 mobile truck and trailer repair wherever your fleet runs.  
+Our certified technicians handle diagnostics, electrical, brakes, suspension, hydraulics, and more — on the road, at the yard, or at the dock.  
+We don’t tow. We repair. That means less downtime, fewer transfers, and faster returns to service.”
+
+---
+
+## 7. Website Section Examples
+
+**Hero:**
+“24/7 Mobile Truck & Trailer Repair — Repair Only.”
+
+**Why Choose Us:**
+- Fast response times
+- Heavy‑duty specialists
+- Real‑time GPS tracking
+- AI‑driven dispatch
+
+**Coverage:**
+“Serving fleets across regional corridors with mobile repair units and after‑hours repair partners.”
+
+---
+
+## 8. Policy Reminder
+
+All marketing materials must reinforce:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+```
+
+---
+
+### `Mockups.md`
+
+```markdown
+# Mockups — EH Graced Roads Solutions LLC
+
+## 1. Enterprise Rollout Slide
+
+- Background: Deep blue gradient
+- Logo: Truck + wrench in top‑left
+- Title: “Microsoft 365 Copilot Enterprise Rollout Strategy”
+- Subtitle: “EH Graced Roads Solutions LLC — AI‑Driven Command Center”
+- Layout: Three columns
+  - Column 1: System components
+  - Column 2: Copilot integration
+  - Column 3: Business outcomes
+
+---
+
+## 2. Tri‑Fold Brochure
+
+**Front Panel:**
+- Large image of a white semi‑truck at night
+- Tagline: “24/7 Mobile Truck & Trailer Repair — Repair Only”
+- Logo and contact info
+
+**Inside Panels:**
+- Panel 1: Services list (diagnostics, electrical, brakes, suspension, hydraulics, welding)
+- Panel 2: Why choose us (repair‑only, fast response, heavy‑duty expertise)
+- Panel 3: Coverage and after‑hours support
+
+**Back Panel:**
+- Call to action: “Call now for immediate repair support.”
+- QR code to website
+
+---
+
+## 3. Command Center UI — Dual‑Monitor Layout
+
+**Monitor 1 (Left): Breakdown & Dispatch**
+
+- Top: Filter bar (status, priority, region)
+- Middle: Breakdown list with:
+  - Unit ID
+  - Location
+  - Status (New, In Progress, Completed)
+  - Technician assigned
+  - ETA
+- Bottom: Event log (emergency protocol steps)
+
+**Monitor 2 (Right): GPS & AI Routing**
+
+- Tabs: Tractors | Trailers | Technicians | Drivers
+- Each tab:
+  - Map view with live markers
+  - Sidebar with unit list
+  - Detail panel with last update, speed, heading, ETA
+
+---
+
+## 4. System Health Panel
+
+- Status indicators:
+  - Backend API: Up/Down
+  - Socket.IO: Connected/Disconnected
+  - GPS pipeline: Healthy/Degraded
+  - Grace engine: Active/Idle
+- Graphs:
+  - Breakdown volume over time
+  - Average response time
+  - Technician utilization
+
+---
+
+## 5. Policy Reminder in UI
+
+- Banner in emergency views:
+  > “Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.”
+```
+
+---
+
+### `PromptPack.md`
+
+```markdown
+# Prompt Pack — EH Graced Roads Solutions LLC
+
+## 1. Coding Prompts (Backend)
+
+- “Generate an Express route for `/api/emergency/execute` that runs the emergency protocol steps defined in EmergencyProtocol.md.”
+- “Create a Socket.IO event emitter for `gps_update` that broadcasts unit location changes to connected clients.”
+- “Implement a middleware that enforces the NO‑TOW policy by blocking any route that references towing or winching.”
+
+---
+
+## 2. Coding Prompts (Frontend)
+
+- “Build a React component `DispatchFeed` that displays breakdowns with status, technician, and ETA, matching the mockup in Mockups.md.”
+- “Create a `GpsTabs` component with tabs for tractors, trailers, technicians, and drivers, each showing a map and unit list.”
+- “Implement a dual‑monitor layout using CSS grid or flexbox, with Monitor 1 for breakdowns and Monitor 2 for GPS.”
+
+---
+
+## 3. Documentation Prompts
+
+- “Write a detailed explanation of the Grace Automation Engine’s role in emergency workflows, referencing Architecture.md.”
+- “Generate a system health overview document that explains each status indicator and its meaning.”
+- “Create onboarding documentation for new dispatchers explaining how to use the command center UI.”
+
+---
+
+## 4. Marketing Prompts
+
+- “Write a one‑page brochure describing EH Graced Roads Solutions LLC’s repair‑only services for fleet managers.”
+- “Generate website copy for the hero section emphasizing 24/7 mobile repair and NO‑TOW policy.”
+- “Create an email campaign announcing the new AI‑driven command center for existing customers.”
+
+---
+
+## 5. Branding Prompts
+
+- “Write UI button labels and tooltips in the EH Graced Roads brand voice, emphasizing clarity and professionalism.”
+- “Generate a short tagline for a social media post about after‑hours repair support.”
+- “Write a safety‑focused message for drivers explaining what happens when they report a breakdown.”
+
+---
+
+## 6. Workflow Prompts
+
+- “Design a step‑by‑step technician dispatch workflow that integrates GPS data and emergency protocol.”
+- “Generate a checklist for after‑hours breakdown handling using the Grace Automation Engine.”
+- “Create a standard operating procedure for updating breakdown status from New → In Progress → Completed.”
+
+---
+
+## 7. Policy Prompts
+
+- “Write a policy document explaining the NO‑TOW rule and why EH Graced Roads Solutions LLC focuses on repair‑only.”
+- “Generate a training script for staff to explain the NO‑TOW policy to customers.”
+- “Create a FAQ section answering common questions about repair‑only service.”
+```
+
+---
+
+### `Diagram.txt`
+
+```text
+EH GRACED ROADS SOLUTIONS LLC — SYSTEM DIAGRAM (ASCII)
+
+          +-----------------------------+
+          |   React Command Center      |
+          |        (Frontend)          |
+          |        Port 3001           |
+          +--------------+-------------+
+                         |
+                         | REST / WebSocket
+                         v
+          +-----------------------------+
+          |   Node.js / Express API     |
+          |          Backend           |
+          |          Port 3000         |
+          +--------------+-------------+
+                         |
+                         | Service Calls
+                         v
+          +-----------------------------+
+          |   Grace Automation Engine   |
+          |  (Orchestration & Workflows)|
+          +--------------+-------------+
+                         |
+         +---------------+------------------------+
+         |                |                        |
+         v                v                        v
++----------------+  +----------------+    +----------------+
+|  GPS Pipeline  |  | Emergency      |    | System Health |
+| (Tractors,     |  | Protocol       |    | Monitoring    |
+| Trailers, Tech,|  | Execution      |    |               |
+| Drivers)       |  |                |    |               |
++----------------+  +----------------+    +----------------+
+
+Backup/OPS Subsystem:
+- Simple backend UI attached to Node.js API
+- Allows manual execution of Grace workflows
+- Displays logs and JSON outputs
+
+All components enforce:
+WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+```
+
+---
+
+### `SystemRules.md`
+
+```markdown
+# System Rules — EH Graced Roads Solutions LLC
+
+## 1. NO‑TOW Policy
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+- No tow vendors
+- No tow yard routing
+- No winch operations
+- No tow‑related UI or code
+
+---
+
+## 2. Emergency Protocol Enforcement
+
+- All emergency workflows must follow `EmergencyProtocol.md`.
+- No bypassing hazard scan or mechanical diagnosis.
+- Technician dispatch must be repair‑focused.
+- Vendor selection must be repair vendors only.
+
+---
+
+## 3. After‑Hours Rules
+
+- After‑hours breakdowns must be routed to repair networks.
+- Messaging must emphasize repair‑only support.
+- No suggestion of towing as an option.
+
+---
+
+## 4. GPS Rules
+
+- All units (tractors, trailers, technicians, drivers) must be trackable.
+- GPS updates must be validated before storage.
+- GPS data must be available to Grace for routing decisions.
+
+---
+
+## 5. UI Rules
+
+- Dual‑monitor layout must be preserved.
+- Monitor 1: breakdowns and dispatch.
+- Monitor 2: GPS and routing.
+- System health indicators must be visible.
+
+---
+
+## 6. Logging Rules
+
+- Grace must log all emergency protocol steps.
+- Critical actions (execute emergency, assign technician, change status) must be logged.
+- Logs must be accessible via Backup/OPS subsystem.
+
+---
+
+## 7. AI Rules
+
+- AI agents must use `/docs` as the single source of truth.
+- AI must not generate towing workflows.
+- AI must respect brand voice and policies.
+```
+
+---
+
+### `EmergencyProtocol.md`
+
+```markdown
+# Emergency Breakdown Protocol — EH Graced Roads Solutions LLC
+
+## Purpose
+
+Provide a clear, repeatable, repair‑only workflow for handling breakdowns.
+
+---
+
+## Steps
+
+1. **Hazard Scan**
+   - Confirm driver safety.
+   - Check for immediate hazards (fire, leaks, traffic).
+   - Advise driver to secure the area if safe.
+
+2. **Mechanical Diagnosis**
+   - Gather symptoms (no start, derate, warning lights, noises).
+   - Use fault codes if available.
+   - Classify severity (critical, high, medium, low).
+
+3. **Repair‑Only Response**
+   - Determine if mobile repair is feasible.
+   - Select appropriate repair path (electrical, mechanical, hydraulic, etc.).
+   - Never suggest towing.
+
+4. **Technician Dispatch**
+   - Assign nearest qualified technician.
+   - Provide breakdown location and unit details.
+   - Share initial diagnosis and required tools.
+
+5. **Driver Routing**
+   - If safe, guide driver to a safer location (shoulder, nearby exit, truck stop).
+   - Use GPS data to suggest routes.
+   - Maintain communication with driver.
+
+6. **Vendor Selection (Repair Only)**
+   - If internal technicians are unavailable, select external repair vendors.
+   - Use after‑hours networks, OEM dealers, truck stop repair centers, mobile diesel repair providers.
+   - No tow yards, no tow vendors.
+
+7. **After‑Hours Availability**
+   - If breakdown occurs after hours, trigger after‑hours repair workflow.
+   - Use pre‑approved repair networks.
+   - Maintain repair‑only stance.
+
+8. **Avoid Tow Yards**
+   - Do not route units to tow yards.
+   - Do not call tow trucks.
+   - Do not suggest winching.
+
+9. **Socket Broadcast**
+   - Emit real‑time updates via Socket.IO.
+   - Update dispatch and command center views.
+
+10. **Dashboard Update**
+    - Update breakdown status (New → In Progress → Completed).
+    - Show technician assignment and ETA.
+    - Reflect repair progress.
+
+11. **Grace Engine Logging**
+    - Log each step of the protocol.
+    - Store timestamps, decisions, and outcomes.
+    - Use logs for audit and improvement.
+
+---
+
+## Policy Reminder
+
+This protocol is strictly **repair‑only** and must never involve towing or winching.
+```
+
+---
+
+### `NoTowPolicy.md`
+
+```markdown
+WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+```
+
+---
+
+If you want, next step we can generate **backend route stubs** and **React component skeletons** that match this documentation so Claude and Copilot can start coding against a real structure.
