@@ -1298,7 +1298,7 @@ app.post('/api/grace/payment_link', writeRateLimit, (req, res) => {
     const stateEvent = transitionState(call, 'payment_link', { providerType: 'pci-compliant' });
     const paymentLink = generateSecurePaymentLink(call.callId);
     call.paymentLink = paymentLink;
-    audit(call, 'payment_link', { ...stateEvent, paymentLink, request: sanitizeForStorage(req.body) });
+    audit(call, 'payment_link', { ...stateEvent, paymentLink });
     persistCall(call);
     return respondWithCall(res, call, {
       message: 'Secure payment link generated. Card data is never stored locally.',
