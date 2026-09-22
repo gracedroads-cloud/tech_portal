@@ -122,7 +122,7 @@
       const json = await response.json();
       output.textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
       if (json.callId) callIdInput.value = json.callId;
-      updateActionAvailability(json.state);
+      if (json.state) updateActionAvailability(json.state);
       return json;
     }
 
