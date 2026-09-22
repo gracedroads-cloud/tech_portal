@@ -1221,10 +1221,10 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const decision = validateScope({
-      serviceCategory: req.body.serviceCategory || call.intake.serviceCategory,
-      vehicleType: req.body.vehicleType || call.intake.vehicleType,
-      requestedWork: req.body.requestedWork || call.intake.requestedWork,
-      issueDescription: req.body.issueDescription || call.intake.issueDescription
+      serviceCategory: call.intake.serviceCategory,
+      vehicleType: call.intake.vehicleType,
+      requestedWork: call.intake.requestedWork,
+      issueDescription: call.intake.issueDescription
     });
 
     call.scopeDecision = decision;
