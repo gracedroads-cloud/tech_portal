@@ -1,0 +1,9 @@
+{
+  "name": "Grace Field Technician",
+  "short_name": "Grace Field",
+  "start_url": "/field_technician_app.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": []
+}

@@ -1,0 +1,127 @@
+### 🟦 GROUP 19 — Mobile app test suite (Jest + React Native Testing Library)
+
+#### 19.1 Setup
+
+```bash
+cd mobile
+npm install --save-dev jest @testing-library/react-native @testing-library/jest-native
+```
+
+```javascript
+// /mobile/jest.config.js
+module.exports = {
+  preset: "react-native",
+  setupFilesAfterEnv: ["@testing-library/jest-native/extend-expect"],
+};
+```
+
+#### 19.2 Example tests
+
+**LoginScreen**
+
+```javascript
+// /mobile/src/__tests__/LoginScreen.test.js
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import LoginScreen from '../screens/LoginScreen';
+
+test("renders login and navigates", () => {
+  const navigate = jest.fn();
+  const { getByText, getByPlaceholderText } = render(
+    <LoginScreen navigation={{ navigate }} />
+  );
+
+  fireEvent.changeText(getByPlaceholderText("Username"), "tech1");
+  fireEvent.press(getByText("Login"));
+
+  expect(navigate).toHaveBeenCalledWith("Dashboard");
+});
+```
+
+**NoTowBanner**
+
+```javascript
+// /mobile/src/__tests__/NoTowBanner.test.js
+import React from 'react';
+import { render } from '@testing-library/react-native';
+import NoTowBanner from '../components/NoTowBanner';
+
+test("shows repair-only message", () => {
+  const { getByText } = render(<NoTowBanner />);
+  expect(
+    getByText("Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.")
+  ).toBeTruthy();
+});
+```
+
+Run:
+
+```bash
+npm test
+```
+
+---
+
+### 🟦 GROUP 20 — Mobile app performance optimization
+
+#### 20.1 List virtualization
+
+- Use `FlatList` everywhere for lists (breakdowns, messages, steps).
+- Add `keyExtractor` and `initialNumToRender` to avoid heavy initial loads.
+
+#### 20.2 Memoization
+
+- Wrap heavy components with `React.memo` (e.g., `BreakdownCard`, `StatusTag`).
+- Use `useCallback` for handlers in screens to avoid re‑renders.
+
+#### 20.3 Network + Socket
+
+- Debounce or throttle GPS updates if they’re very frequent.
+- Unsubscribe from Socket.IO events in `useEffect` cleanup to avoid leaks.
+
+```javascript
+useEffect(() => {
+  const handler = (data) => { /* ... */ };
+  socket.on('gps_update', handler);
+  return () => socket.off('gps_update', handler);
+}, []);
+```
+
+#### 20.4 Bundle + images
+
+- Keep images small and static.
+- Avoid unnecessary libraries; keep Expo project lean.
+
+---
+
+### 🟦 GROUP 21 — Mobile app security hardening
+
+#### 21.1 Environment + URLs
+
+- Use `EXPO_PUBLIC_BACKEND_URL` only for non‑secret config.
+- Never hard‑code secrets in the app.
+- All sensitive logic stays on backend (Grace, dispatch rules, NO‑TOW enforcement).
+
+#### 21.2 Transport security
+
+- Backend must be HTTPS only.
+- Socket.IO should connect over `wss`/HTTPS.
+
+#### 21.3 Input validation
+
+- Validate user input client‑side (basic checks).
+- Backend still does **authoritative** validation and NO‑TOW checks.
+
+#### 21.4 Grace Assistant guardrails
+
+- UI clearly states repair‑only scope.
+- Backend for `/api/grace/assistant`:
+  - Filters/blocks tow/winch requests.
+  - Logs misuse attempts.
+  - Always responds with repair‑only guidance.
+
+---
+
+If you want, I can now bundle **Groups 19–21** into a single Claude script like before, so you can say:
+
+> “Claude, implement Groups 19–21 in `/mobile` now.”

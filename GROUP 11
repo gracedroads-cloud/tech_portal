@@ -1,0 +1,239 @@
+### Group 11 — Mobile App Blueprint (React Native + GPS + Dispatch)
+
+Here’s a clean, implementation‑ready blueprint Claude can turn into a full mobile app.
+
+---
+
+### 1. Tech stack
+
+- **Framework:** React Native (Expo or bare RN)
+- **State:** React Query or Redux Toolkit
+- **Networking:** `axios` or `fetch`
+- **Maps:** `react-native-maps`
+- **Auth (future):** JWT or Azure AD B2C
+- **Platform:** iOS + Android
+
+---
+
+### 2. Folder structure
+
+```text
+/mobile
+  App.js
+  /src
+    /screens
+      LoginScreen.js
+      DashboardScreen.js
+      BreakdownIntakeScreen.js
+      TechnicianStatusScreen.js
+      GpsMapScreen.js
+      EmergencyProtocolScreen.js
+    /components
+      BreakdownCard.js
+      TechnicianCard.js
+      ProtocolStepList.js
+      NoTowBanner.js
+    /api
+      client.js
+      breakdowns.js
+      emergency.js
+      gps.js
+      vendors.js
+      system.js
+    /hooks
+      useBreakdowns.js
+      useTechnicianStatus.js
+      useGpsUnit.js
+      useEmergencyProtocol.js
+    /config
+      env.js
+    /socket
+      socket.js
+```
+
+---
+
+### 3. Core screens
+
+#### **LoginScreen**
+- Simple login (future: real auth)
+- On success → `DashboardScreen`
+
+#### **DashboardScreen**
+- High‑level view:
+  - Active breakdowns
+  - Technician status
+  - System health indicator
+- Buttons:
+  - “New Breakdown”
+  - “View Map”
+  - “Emergency Protocol”
+
+#### **BreakdownIntakeScreen**
+- Fields:
+  - Unit ID
+  - Driver name/ID
+  - Fault codes
+  - Location (auto from GPS)
+- Action:
+  - `POST /api/breakdowns`
+- After submit:
+  - Option to **Run Emergency Protocol**
+
+#### **TechnicianStatusScreen**
+- Technician sees:
+  - Assigned breakdowns
+  - ETA
+  - Repair path
+- Actions:
+  - “On the way”
+  - “On site”
+  - “Repair completed”
+- Calls:
+  - `PATCH /api/breakdowns/:id/status`
+
+#### **GpsMapScreen**
+- Uses `react-native-maps`
+- Shows:
+  - Tractor markers
+  - Trailer markers
+  - Technician markers
+  - Driver markers
+- Data:
+  - `GET /api/gps/unit/:id` or live via Socket.IO
+
+#### **EmergencyProtocolScreen**
+- Shows 11 steps as a list
+- Technician can:
+  - Mark steps as completed
+  - View routing suggestion
+  - View vendor info
+- Calls:
+  - `POST /api/emergency/execute`
+  - `POST /api/emergency/step`
+
+---
+
+### 4. Key components (skeletons)
+
+#### `NoTowBanner.js`
+
+```javascript
+import React from 'react';
+import { View, Text } from 'react-native';
+
+export default function NoTowBanner() {
+  return (
+    <View style={{ padding: 8, backgroundColor: '#FF6600' }}>
+      <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>
+        Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+      </Text>
+    </View>
+  );
+}
+```
+
+#### `BreakdownCard.js`
+
+```javascript
+import React from 'react';
+import { View, Text } from 'react-native';
+
+export default function BreakdownCard({ breakdown }) {
+  return (
+    <View style={{ padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#ccc' }}>
+      <Text>Unit: {breakdown.unitId}</Text>
+      <Text>Status: {breakdown.status}</Text>
+      <Text>Severity: {breakdown.severity}</Text>
+    </View>
+  );
+}
+```
+
+---
+
+### 5. API client
+
+#### `api/client.js`
+
+```javascript
+import axios from 'axios';
+
+const client = axios.create({
+  baseURL: 'http://localhost:3000', // replace with deployed backend
+});
+
+export default client;
+```
+
+#### `api/breakdowns.js`
+
+```javascript
+import client from './client';
+
+export const createBreakdown = (payload) =>
+  client.post('/api/breakdowns', payload);
+
+export const getBreakdowns = () =>
+  client.get('/api/breakdowns'); // future list endpoint
+```
+
+---
+
+### 6. Socket.IO mobile client
+
+#### `socket/socket.js`
+
+```javascript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000'); // replace with backend URL
+
+export default socket;
+```
+
+Use in `GpsMapScreen` and `EmergencyProtocolScreen` to subscribe to:
+
+- `gps_update`
+- `breakdown_update`
+- `protocol_step`
+
+---
+
+### 7. App entry
+
+#### `App.js`
+
+```javascript
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import LoginScreen from './src/screens/LoginScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import BreakdownIntakeScreen from './src/screens/BreakdownIntakeScreen';
+import TechnicianStatusScreen from './src/screens/TechnicianStatusScreen';
+import GpsMapScreen from './src/screens/GpsMapScreen';
+import EmergencyProtocolScreen from './src/screens/EmergencyProtocolScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Login">
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="BreakdownIntake" component={BreakdownIntakeScreen} />
+        <Stack.Screen name="TechnicianStatus" component={TechnicianStatusScreen} />
+        <Stack.Screen name="GpsMap" component={GpsMapScreen} />
+        <Stack.Screen name="EmergencyProtocol" component={EmergencyProtocolScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+```
+
+---
+
+If you want, next step we can tighten this into **exact tasks for Claude in VS Code** (step‑by‑step “do this, then this”) so you can literally say: *“Claude, execute Group 11 now.”*

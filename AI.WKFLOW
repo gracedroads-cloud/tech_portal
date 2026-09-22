@@ -1,0 +1,500 @@
+Elijah — **Group 4 is ready**, and this is the final piece of your enterprise documentation system.  
+This group contains:
+
+### 🟦 GROUP 4 — AI & Workflow Tools  
+- **PromptPack.md (expanded + ultra‑detailed)**  
+- **Claude_Workflows.md (NEW — Claude‑specific workflow file)**  
+- **AI_Agent_Standards.md (NEW — universal AI rules for Claude + Copilot)**  
+
+These files are designed to give Claude **full operational capability** inside VS Code and GitHub, and to give Copilot **full architectural guidance** for code generation.
+
+This group completes your `/docs` folder.
+
+Let’s deliver.
+
+---
+
+# 📄 **PromptPack.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# Prompt Pack — EH Graced Roads Solutions LLC (Enterprise Edition)
+
+This prompt pack provides structured, high‑quality prompts for:
+- Backend development
+- Frontend development
+- Documentation
+- Marketing
+- Branding
+- Workflow automation
+- Emergency protocol execution
+- GPS pipeline logic
+- System health monitoring
+
+All prompts enforce the NO‑TOW policy and repair‑only identity.
+
+---
+
+# 1. Backend Prompts (Ultra‑Detailed)
+
+### Create Emergency Protocol Route
+“Generate an Express route for `/api/emergency/execute` that:
+- Executes all 11 steps of the emergency protocol
+- Logs each step using Grace LoggingService
+- Emits `protocol_step` via Socket.IO
+- Updates breakdown status
+- Enforces NO‑TOW policy
+- Returns full protocol execution summary”
+
+### Create GPS Update Route
+“Generate an Express route for `/api/gps/update` that:
+- Validates GPS payload
+- Stores location in database
+- Updates historical GPS trail
+- Emits `gps_update` via Socket.IO
+- Calls Grace RoutingService
+- Returns updated unit status”
+
+### Create Technician Assignment Logic
+“Generate a Grace DispatchService function that:
+- Finds nearest technician using GPS
+- Calculates ETA
+- Checks skillset compatibility
+- Assigns technician
+- Logs assignment
+- Emits technician update event”
+
+### Create Repair Vendor Selection Logic
+“Generate a VendorService function that:
+- Filters repair vendors by region
+- Excludes tow vendors
+- Excludes tow yards
+- Selects best repair vendor
+- Logs selection
+- Returns vendor details”
+
+---
+
+# 2. Frontend Prompts (Ultra‑Detailed)
+
+### Build DispatchFeed Component
+“Generate a React component `DispatchFeed` that:
+- Displays breakdown list
+- Shows unit, driver, technician, ETA, fault codes
+- Uses Socket.IO for real‑time updates
+- Matches mockup in Mockups.md
+- Enforces repair‑only messaging”
+
+### Build GpsTabs Component
+“Generate a React component `GpsTabs` with tabs:
+- Tractors
+- Trailers
+- Technicians
+- Drivers
+
+Each tab must:
+- Display live map
+- Show unit list
+- Show detail panel
+- Update via `gps_update` events
+- Match mockup in Mockups.md”
+
+### Build EmergencyProtocolView
+“Generate a React component `EmergencyProtocolView` that:
+- Visualizes all 11 protocol steps
+- Shows technician assignment
+- Shows repair vendor selection
+- Updates in real time
+- Displays NO‑TOW banner”
+
+---
+
+# 3. Documentation Prompts (Ultra‑Detailed)
+
+### Grace Engine Documentation
+“Write a detailed explanation of Grace Automation Engine including:
+- Workflow orchestration
+- DiagnosisService
+- DispatchService
+- RoutingService
+- VendorService
+- LoggingService
+- Integration with backend and frontend”
+
+### System Health Documentation
+“Generate a system health overview explaining:
+- Backend API status
+- Socket.IO status
+- GPS pipeline health
+- Grace engine activity
+- Error logs
+- Graphs and indicators”
+
+### Dispatcher Onboarding Guide
+“Write onboarding documentation for dispatchers explaining:
+- Breakdown intake
+- Technician assignment
+- Emergency protocol
+- GPS visibility
+- Repair‑only policy”
+
+---
+
+# 4. Marketing Prompts (Ultra‑Detailed)
+
+### Fleet Manager Brochure
+“Write a brochure describing:
+- Repair‑only services
+- Heavy‑duty expertise
+- AI‑driven dispatch
+- GPS visibility
+- After‑hours support”
+
+### Website Hero Copy
+“Write hero section copy emphasizing:
+- 24/7 mobile repair
+- Heavy‑duty expertise
+- Repair‑only identity
+- AI‑driven operations”
+
+### Email Campaign
+“Write an email campaign announcing:
+- New AI‑driven command center
+- Faster dispatch
+- Repair‑only workflows
+- Real‑time GPS visibility”
+
+---
+
+# 5. Branding Prompts (Ultra‑Detailed)
+
+### UI Labels
+“Write UI labels and tooltips in brand voice:
+- Clear
+- Professional
+- Repair‑only
+- Safety‑focused”
+
+### Taglines
+“Generate taglines emphasizing:
+- Repair‑only identity
+- Heavy‑duty expertise
+- 24/7 availability”
+
+### Safety Messaging
+“Write safety‑focused messages for drivers:
+- Hazard scan
+- Routing
+- Technician ETA
+- Repair‑only policy”
+
+---
+
+# 6. Workflow Prompts (Ultra‑Detailed)
+
+### Technician Dispatch Workflow
+“Design a workflow that:
+- Uses GPS
+- Uses diagnosis severity
+- Assigns technician
+- Logs assignment
+- Updates frontend”
+
+### After‑Hours Workflow
+“Generate after‑hours workflow using:
+- OEM dealer networks
+- Mobile diesel repair providers
+- Truck stop repair centers
+- National repair networks”
+
+### Breakdown Status SOP
+“Create SOP for:
+- New → In Progress → Completed
+- Technician updates
+- Vendor updates
+- Grace logging”
+
+---
+
+# 7. Policy Prompts (Ultra‑Detailed)
+
+### NO‑TOW Policy Document
+“Write a policy document explaining:
+- Repair‑only identity
+- Why towing is prohibited
+- How policy is enforced
+- Examples of violations
+- Examples of correct behavior”
+
+### Staff Training Script
+“Write a training script explaining:
+- NO‑TOW policy
+- Emergency protocol
+- Repair‑only workflows
+- Customer communication”
+
+### FAQ
+“Write FAQ answering:
+- Why no towing?
+- What services are offered?
+- How emergency protocol works?
+- How GPS tracking works?”
+```
+
+---
+
+# 📄 **Claude_Workflows.md (NEW — Ultra‑Detailed)**
+
+```markdown
+# Claude Workflows — EH Graced Roads Solutions LLC
+
+This file defines how Claude operates inside VS Code and GitHub.
+
+Claude must use `/docs` as the single source of truth.
+
+---
+
+# 1. File Management Workflow
+
+### When Elijah requests file creation:
+- Create file in `/docs` or `/src` as instructed  
+- Use enterprise formatting  
+- Enforce NO‑TOW policy  
+- Add comments where needed  
+- Prepare for Git commit  
+
+### When Elijah requests file updates:
+- Read existing file  
+- Apply changes  
+- Maintain formatting  
+- Maintain policy compliance  
+- Maintain architectural alignment  
+
+---
+
+# 2. Backend Development Workflow
+
+### When generating backend code:
+- Use Node.js + Express  
+- Use modular architecture  
+- Use services (DiagnosisService, DispatchService, etc.)  
+- Enforce NO‑TOW policy  
+- Add logging  
+- Add Socket.IO events  
+- Add validation  
+- Add comments  
+
+### When updating backend code:
+- Maintain structure  
+- Maintain naming conventions  
+- Maintain Grace integration  
+- Maintain repair‑only workflows  
+
+---
+
+# 3. Frontend Development Workflow
+
+### When generating React components:
+- Use functional components  
+- Use hooks  
+- Use Socket.IO client  
+- Follow mockups  
+- Follow branding  
+- Follow dual‑monitor layout  
+
+### When updating components:
+- Maintain UI consistency  
+- Maintain brand voice  
+- Maintain repair‑only messaging  
+
+---
+
+# 4. Git Workflow
+
+Claude must run:
+
+```bash
+git add .
+git commit -m "<enterprise message>"
+git push
+```
+
+Commit messages must follow enterprise format.
+
+---
+
+# 5. Emergency Protocol Workflow
+
+Claude must:
+- Reference EmergencyProtocol.md  
+- Maintain 11‑step workflow  
+- Enforce repair‑only logic  
+- Update backend + frontend accordingly  
+
+---
+
+# 6. GPS Workflow
+
+Claude must:
+- Reference Architecture.md  
+- Maintain GPS ingestion  
+- Maintain GPS routing  
+- Maintain GPS UI updates  
+
+---
+
+# 7. System Health Workflow
+
+Claude must:
+- Maintain health indicators  
+- Maintain logs  
+- Maintain OPS subsystem  
+
+---
+
+# 8. Policy Workflow
+
+Claude must enforce:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+Across:
+- Code  
+- UI  
+- Documentation  
+- Workflows  
+- Marketing  
+```
+
+---
+
+# 📄 **AI_Agent_Standards.md (NEW — Ultra‑Detailed)**
+
+```markdown
+# AI Agent Standards — EH Graced Roads Solutions LLC
+
+This file defines universal rules for all AI agents:
+- Claude  
+- GitHub Copilot  
+- Microsoft 365 Copilot  
+- Future agents  
+
+---
+
+# 1. Core Identity Rules
+
+AI must:
+- Maintain repair‑only identity  
+- Enforce NO‑TOW policy  
+- Follow emergency protocol  
+- Follow architecture  
+- Follow branding  
+- Follow marketing  
+- Follow mockups  
+- Follow system rules  
+
+---
+
+# 2. Code Generation Standards
+
+AI must:
+- Use modular architecture  
+- Use services  
+- Use logging  
+- Use Socket.IO  
+- Use repair‑only workflows  
+- Use enterprise naming conventions  
+
+---
+
+# 3. Documentation Standards
+
+AI must:
+- Use `/docs` as single source of truth  
+- Maintain formatting  
+- Maintain clarity  
+- Maintain brand voice  
+- Maintain policy compliance  
+
+---
+
+# 4. Workflow Standards
+
+AI must:
+- Follow emergency protocol  
+- Follow GPS pipeline  
+- Follow technician dispatch logic  
+- Follow vendor selection logic  
+- Follow after‑hours workflow  
+
+---
+
+# 5. UI Standards
+
+AI must:
+- Follow dual‑monitor layout  
+- Follow mockups  
+- Follow branding  
+- Follow repair‑only messaging  
+
+---
+
+# 6. Policy Standards
+
+AI must enforce:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+Across:
+- Code  
+- UI  
+- Documentation  
+- Workflows  
+- Marketing  
+- Operations  
+
+---
+
+# 7. Integration Standards
+
+AI must:
+- Integrate backend + frontend  
+- Integrate Grace engine  
+- Integrate GPS pipeline  
+- Integrate OPS subsystem  
+
+---
+
+# 8. Summary
+
+This file defines how all AI agents must behave to maintain:
+- System integrity  
+- Brand identity  
+- Policy compliance  
+- Architectural consistency  
+- Operational reliability  
+```
+
+---
+
+# ⭐ Elijah — **GROUP 4 is complete.**  
+Your `/docs` folder is now:
+
+- Enterprise‑grade  
+- Claude‑ready  
+- Copilot‑ready  
+- Production‑ready  
+- Fully aligned with your system  
+- Fully aligned with your brand  
+- Fully aligned with your NO‑TOW policy  
+
+If you want, I can now generate:
+
+### 🔥 GROUP 5 — CODE SKELETONS  
+- Backend folder structure  
+- Express route stubs  
+- Grace engine scaffolding  
+- React component skeletons  
+- Socket.IO setup  
+- GPS pipeline starter code  
+
+Just say **GENERATE GROUP 5**.

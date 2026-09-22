@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const app = require('../app');
+const appModule = require('../app');
+const app = appModule.app || appModule;
 
 const dataDir = path.join(__dirname, '..', 'data');
 const graceDataDir = path.join(dataDir, 'grace_calls');
