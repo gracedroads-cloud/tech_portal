@@ -1,0 +1,395 @@
+Elijah — **Groups 12, 13, and 14 are now generated**, and these three together give you:
+
+- **Full Mobile UI Mockups (Group 12)**  
+- **Full Mobile API Integration Code (Group 13)**  
+- **Full Mobile Deployment Pipeline (Group 14)**  
+
+This is the complete mobile app package — design → code → deployment — ready for Claude to execute inside VS Code.
+
+I’m delivering all three groups cleanly, deeply, and enterprise‑ready.
+
+---
+
+# 🟦 **GROUP 12 — FULL MOBILE UI MOCKUPS (Enterprise Edition)**  
+These mockups match your brand, your emergency protocol, your NO‑TOW policy, and your dispatch workflows.
+
+---
+
+## ⭐ 12.1 Login Screen Mockup
+
+**Purpose:** Simple entry point for technicians and drivers.
+
+**Layout:**
+- Logo centered  
+- “EH Graced Roads Solutions LLC”  
+- Username field  
+- Password field  
+- Login button  
+- Footer: “Repair‑Only. No Towing.”  
+
+**Colors:**
+- Background: Deep blue (#003366)  
+- Button: Safety orange (#FF6600)  
+- Text: White  
+
+---
+
+## ⭐ 12.2 Dashboard Screen Mockup
+
+**Purpose:** Technician’s operational home screen.
+
+**Sections:**
+- **Active Breakdown Cards**
+  - Unit ID  
+  - Severity  
+  - Status  
+  - ETA  
+- **Buttons**
+  - “New Breakdown Intake”  
+  - “View GPS Map”  
+  - “Emergency Protocol”  
+- **System Health Indicator**
+  - Green = OK  
+  - Yellow = Warning  
+  - Red = Critical  
+
+**Banner:**  
+> Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+---
+
+## ⭐ 12.3 Breakdown Intake Screen Mockup
+
+**Fields:**
+- Unit ID  
+- Driver ID  
+- Fault Codes  
+- Auto‑GPS location  
+- Severity dropdown  
+
+**Buttons:**
+- “Submit Breakdown”  
+- “Run Emergency Protocol”  
+
+---
+
+## ⭐ 12.4 Technician Status Screen Mockup
+
+**Shows:**
+- Assigned breakdowns  
+- Technician ETA  
+- Repair path  
+- Status buttons:
+  - “On the way”  
+  - “On site”  
+  - “Repair completed”  
+
+**Banner:**  
+> Repair‑Only. No towing. No winching.
+
+---
+
+## ⭐ 12.5 GPS Map Screen Mockup
+
+**Map:**
+- Tractor markers (blue)  
+- Trailer markers (gray)  
+- Technician markers (orange)  
+- Driver markers (green)  
+
+**Live updates:** via Socket.IO
+
+---
+
+## ⭐ 12.6 Emergency Protocol Screen Mockup
+
+**11‑step list:**
+- Hazard Scan  
+- Diagnosis  
+- Repair Path  
+- Technician Dispatch  
+- Driver Routing  
+- Vendor Selection  
+- After‑Hours Workflow  
+- Avoid Tow Yards  
+- Socket Broadcast  
+- Dashboard Update  
+- Grace Logging  
+
+**Buttons:**
+- “Mark Step Complete”  
+- “View Routing Suggestion”  
+- “View Repair Vendor”  
+
+**Banner:**  
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+---
+
+# 🟦 **GROUP 13 — FULL MOBILE API INTEGRATION CODE (Enterprise Edition)**  
+This is the full code Claude will implement inside `/mobile/src/api`.
+
+---
+
+## ⭐ 13.1 API Client — `client.js`
+
+```javascript
+import axios from 'axios';
+
+const client = axios.create({
+  baseURL: process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000",
+});
+
+export default client;
+```
+
+---
+
+## ⭐ 13.2 Breakdowns API — `breakdowns.js`
+
+```javascript
+import client from './client';
+
+export const createBreakdown = (payload) =>
+  client.post('/api/breakdowns', payload);
+
+export const getBreakdown = (id) =>
+  client.get(`/api/breakdowns/${id}`);
+
+export const updateBreakdownStatus = (id, status) =>
+  client.patch(`/api/breakdowns/${id}/status`, { status });
+```
+
+---
+
+## ⭐ 13.3 Emergency Protocol API — `emergency.js`
+
+```javascript
+import client from './client';
+
+export const executeProtocol = (payload) =>
+  client.post('/api/emergency/execute', payload);
+
+export const logProtocolStep = (breakdownId, step) =>
+  client.post('/api/emergency/step', { breakdownId, step });
+```
+
+---
+
+## ⭐ 13.4 GPS API — `gps.js`
+
+```javascript
+import client from './client';
+
+export const getUnitGPS = (unitId) =>
+  client.get(`/api/gps/unit/${unitId}`);
+```
+
+---
+
+## ⭐ 13.5 Vendors API — `vendors.js`
+
+```javascript
+import client from './client';
+
+export const listRepairVendors = () =>
+  client.get('/api/vendors/repair');
+
+export const selectRepairVendor = (breakdownId, vendorName) =>
+  client.post('/api/vendors/select', { breakdownId, vendorName });
+```
+
+---
+
+## ⭐ 13.6 System Health API — `system.js`
+
+```javascript
+import client from './client';
+
+export const getSystemHealth = () =>
+  client.get('/api/system/health');
+```
+
+---
+
+## ⭐ 13.7 Socket.IO Client — `socket.js`
+
+```javascript
+import { io } from 'socket.io-client';
+
+const socket = io(process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000");
+
+export default socket;
+```
+
+---
+
+## ⭐ 13.8 Hooks (Examples)
+
+### `useBreakdowns.js`
+
+```javascript
+import { useState, useEffect } from 'react';
+import socket from '../socket/socket';
+
+export default function useBreakdowns() {
+  const [breakdowns, setBreakdowns] = useState([]);
+
+  useEffect(() => {
+    socket.on('breakdown_update', (data) => {
+      setBreakdowns(prev => [...prev, data]);
+    });
+  }, []);
+
+  return breakdowns;
+}
+```
+
+---
+
+### `useGpsUnit.js`
+
+```javascript
+import { useState, useEffect } from 'react';
+import socket from '../socket/socket';
+
+export default function useGpsUnit(unitId) {
+  const [gps, setGps] = useState(null);
+
+  useEffect(() => {
+    socket.on('gps_update', (data) => {
+      if (data.unitId === unitId) setGps(data);
+    });
+  }, [unitId]);
+
+  return gps;
+}
+```
+
+---
+
+# 🟦 **GROUP 14 — FULL MOBILE DEPLOYMENT PIPELINE (Expo EAS + Azure)**  
+This is your full mobile deployment strategy.
+
+---
+
+# ⭐ 14.1 Expo EAS Setup
+
+Claude will run:
+
+```bash
+npm install -g eas-cli
+eas login
+eas init
+```
+
+---
+
+# ⭐ 14.2 Add `eas.json`
+
+```json
+{
+  "cli": {
+    "version": ">= 3.0.0"
+  },
+  "build": {
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    }
+  }
+}
+```
+
+---
+
+# ⭐ 14.3 Environment Variables
+
+Claude will create:
+
+```
+/mobile/.env
+```
+
+With:
+
+```
+EXPO_PUBLIC_BACKEND_URL=https://your-backend-domain.com
+```
+
+---
+
+# ⭐ 14.4 Build Commands
+
+### Android APK:
+```bash
+eas build -p android --profile production
+```
+
+### iOS Simulator:
+```bash
+eas build -p ios --profile production
+```
+
+---
+
+# ⭐ 14.5 Azure Mobile Backend Integration
+
+Your mobile app already points to:
+
+```
+https://your-azure-backend.com
+```
+
+Claude will:
+
+- Ensure CORS is enabled  
+- Ensure Socket.IO CORS is configured  
+- Ensure HTTPS is enforced  
+
+---
+
+# ⭐ 14.6 OTA Updates (Over‑the‑Air)
+
+Claude will enable:
+
+```bash
+eas update --branch production --message "Mobile update"
+```
+
+This lets you push updates **without rebuilding the app**.
+
+---
+
+# ⭐ 14.7 App Store / Play Store (Future)
+
+Claude will prepare:
+
+- App icons  
+- Splash screens  
+- Store metadata  
+- Repair‑only branding  
+- NO‑TOW policy compliance  
+
+---
+
+# ⭐ Elijah — Groups 12, 13, and 14 are complete.  
+You now have:
+
+- Full mobile UI mockups  
+- Full mobile API integration code  
+- Full mobile deployment pipeline  
+
+Claude can now **build the entire mobile app** inside VS Code.
+
+If you want:
+
+### 🔥 GROUP 15 — FULL MOBILE APP CODE (EVERY SCREEN, EVERY COMPONENT, FULL IMPLEMENTATION)
+
+Just say:
+
+**GENERATE GROUP 15**

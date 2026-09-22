@@ -1,0 +1,116 @@
+Perfect, Elijah — here is the **exact Claude Execution Script** you asked for.  
+This is the block you paste directly into Claude inside VS Code, and Claude will immediately implement **Group 17 (Design System)** and **Group 18 (Grace Mobile AI Assistant)** inside `/mobile`.
+
+This script is precise, ordered, and executable.  
+Claude will know exactly what to do.
+
+---
+
+# ⭐ **THE CLAUDE EXECUTION SCRIPT — IMPLEMENT GROUPS 17 & 18 IN `/mobile`**
+
+```
+Claude — implement Groups 17 and 18 in /mobile now.
+
+Follow this exact sequence and execute each step in order:
+
+────────────────────────────────────────
+GROUP 17 — DESIGN SYSTEM IMPLEMENTATION
+────────────────────────────────────────
+
+1. Create the following files under /mobile/src/design:
+   - tokens.js
+   - theme.js
+   - Button.js
+   - Screen.js
+   - StatusTag.js
+
+2. Populate each file with the Group 17 code:
+   - tokens.js → design tokens (colors, spacing, radius, typography)
+   - theme.js → ThemeProvider + useTheme hook
+   - Button.js → custom branded button component
+   - Screen.js → branded screen container
+   - StatusTag.js → status badge component
+
+3. Update /mobile/App.js:
+   - Wrap the entire NavigationContainer with <ThemeProvider>.
+
+4. Refactor all screens to use the design system:
+   - Replace raw <View> with <Screen>.
+   - Replace raw <Button> with the custom Button component.
+   - Add StatusTag inside BreakdownCard for breakdown status.
+
+5. Ensure all colors, spacing, and typography match the design tokens.
+
+
+────────────────────────────────────────
+GROUP 18 — GRACE MOBILE AI ASSISTANT
+────────────────────────────────────────
+
+6. Create a new screen:
+   /mobile/src/screens/GraceAssistantScreen.js
+
+7. Implement the full Grace Assistant UI:
+   - Use <Screen>, <Button>, and <NoTowBanner>.
+   - Add a FlatList for conversation history.
+   - Add a TextInput for user queries.
+   - Add a “Send to Grace” button.
+   - Append user messages and AI responses to the chat.
+
+8. Create a new API module:
+   /mobile/src/api/grace.js
+
+9. Implement sendGraceQuery(query):
+   - POST to /api/grace/assistant
+   - Return { text, metadata } from backend
+
+10. Add GraceAssistantScreen to navigation:
+    - Update App.js stack navigator.
+
+11. Add a new button on DashboardScreen:
+    - “Grace Assistant” → navigation.navigate("GraceAssistant")
+
+12. Add repair‑only guardrails:
+    - Keep NoTowBanner visible at top of GraceAssistantScreen.
+    - Add small text under input:
+      “Grace provides repair‑only guidance. No towing or winching will be suggested.”
+
+13. Ensure all assistant responses are displayed in the chat UI.
+
+
+────────────────────────────────────────
+FINALIZE
+────────────────────────────────────────
+
+14. Verify all imports resolve correctly.
+
+15. Run the app:
+    npm run start
+
+16. Confirm:
+    - Design system is active across all screens.
+    - Grace Assistant screen loads and sends queries.
+    - Repair‑only identity is enforced everywhere.
+    - NoTowBanner appears on all required screens.
+
+Execute all steps in order. Do not skip any. Maintain repair‑only identity throughout.
+```
+
+---
+
+# ⭐ Elijah — this script is ready for Claude to execute **right now**  
+Paste it directly into Claude in VS Code and he will:
+
+- Build your full design system  
+- Apply it across the entire mobile app  
+- Build the Grace Mobile AI assistant  
+- Wire it to your backend  
+- Enforce NO‑TOW policy  
+- Deliver a fully branded, fully functional mobile experience  
+
+If you want:
+
+### 🔥 GROUP 19 — FULL MOBILE APP TEST SUITE  
+### 🔥 GROUP 20 — FULL MOBILE APP PERFORMANCE OPTIMIZATION  
+### 🔥 GROUP 21 — FULL MOBILE APP SECURITY HARDENING  
+
+Just say **GENERATE GROUP 19**, **20**, or **21**.
