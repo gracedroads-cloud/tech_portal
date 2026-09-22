@@ -10,7 +10,10 @@ async function ensureDir(dirPath) {
 async function writeJsonAtomic(filePath, data) {
   const directory = path.dirname(filePath);
   await ensureDir(directory);
-const tempPath = path.join(directory, `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`);
+  const tempPath = path.join(
+    directory,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomUUID().slice(0, 8)}.tmp`,
+  );
   const payload = `${JSON.stringify(data, null, 2)}\n`;
   await fs.writeFile(tempPath, payload, { encoding: 'utf8', mode: 0o600 });
   await fs.rename(tempPath, filePath);

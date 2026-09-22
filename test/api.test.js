@@ -62,6 +62,20 @@ test('mutating routes require token when operator token is configured', async ()
   assert.equal(ok.body.override.action, 'pickup');
 });
 
+test('demo write mode is disabled in production without an operator token', async () => {
+  const { app } = await makeTestApp({ env: 'production', allowDemoWriteMode: true });
+
+  const ready = await request(app).get('/readyz').expect(200);
+  assert.equal(ready.body.writeMode, 'disabled');
+
+  const response = await request(app)
+    .post('/api/stream/override')
+    .send({ action: 'pickup' })
+    .expect(503);
+
+  assert.equal(response.body.error.code, 'writes_disabled');
+});
+
 test('DVIR validation failures and successful persistence', async () => {
   const { app, dataDir } = await makeTestApp({ operatorToken: 'token', allowDemoWriteMode: false });
 
@@ -121,6 +135,40 @@ test('waiver endpoint rejects impossible calendar dates', async () => {
   assert.equal(response.body.error.code, 'validation_failed');
 });
 
+test('onboarding taxReference accepts masked values and rejects raw tax IDs', async () => {
+  const { app } = await makeTestApp();
+
+  await request(app)
+    .post('/api/onboarding')
+    .send({
+      carrierName: 'Carrier One',
+      billingEmail: 'ops@example.com',
+      paymentTerms: 'Net 30',
+      taxReference: 'XX1234',
+    })
+    .expect(201);
+
+  await request(app)
+    .post('/api/onboarding')
+    .send({
+      carrierName: 'Carrier One',
+      billingEmail: 'ops@example.com',
+      paymentTerms: 'Net 30',
+      taxReference: '123456789',
+    })
+    .expect(400);
+
+  await request(app)
+    .post('/api/onboarding')
+    .send({
+      carrierName: 'Carrier One',
+      billingEmail: 'ops@example.com',
+      paymentTerms: 'Net 30',
+      taxReference: '123-45-6789',
+    })
+    .expect(400);
+});
+
 test('malformed JSON request gets 400 and oversized payload gets 413', async () => {
   const { app } = await makeTestApp({ requestSizeLimit: '1kb' });
 
@@ -142,6 +190,13 @@ test('malformed JSON request gets 400 and oversized payload gets 413', async () 
       notes: hugeNotes,
     })
     .expect(413);
+});
+
+test('unknown API routes return JSON 404 envelopes', async () => {
+  const { app } = await makeTestApp();
+  const response = await request(app).get('/api/does-not-exist').expect(404);
+  assert.equal(response.body.ok, false);
+  assert.equal(response.body.error.code, 'not_found');
 });
 
 test('frontend API calls have backend route parity', async () => {

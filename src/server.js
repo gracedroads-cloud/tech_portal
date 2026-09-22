@@ -153,7 +153,7 @@ function createApp(overrides = {}) {
 
   const writeMode = config.operatorToken
     ? 'token_required'
-: (config.allowDemoWriteMode && String(config.env).toLowerCase() !== 'production' ? 'demo_no_auth' : 'disabled');
+    : (config.allowDemoWriteMode && String(config.env).toLowerCase() !== 'production' ? 'demo_no_auth' : 'disabled');
 
   const frontendRouteInventory = [];
   function registerApiRoute(method, routePath, ...handlers) {
@@ -416,6 +416,10 @@ function createApp(overrides = {}) {
     } catch (err) {
       next(err);
     }
+  });
+
+  app.use('/api', (req, res) => {
+    return rejectWithError(res, 404, 'not_found', `API route ${req.method} ${req.path} was not found.`, req.requestId);
   });
 
   app.use((err, req, res, next) => {
