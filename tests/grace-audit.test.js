@@ -28,6 +28,9 @@ test('sanitizeForStorage redacts whole nested payment payloads', () => {
       number: '5555555555554444',
       cvv: '321'
     },
+    paymentData: {
+      pan: '4111111111111111'
+    },
     paymentLink: {
       provider: 'pci-compliant-provider'
     }
@@ -35,6 +38,7 @@ test('sanitizeForStorage redacts whole nested payment payloads', () => {
 
   assert.deepEqual(sanitized, {
     paymentMethod: '[REDACTED]',
+    paymentData: '[REDACTED]',
     paymentLink: {
       provider: 'pci-compliant-provider'
     }
