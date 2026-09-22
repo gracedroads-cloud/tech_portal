@@ -1,0 +1,376 @@
+### Group 7 — Full API Spec Documentation (Enterprise Edition)
+
+Below is a clean, production‑style API spec for your backend. Claude can turn this directly into OpenAPI/Swagger, Postman collections, or inline docs.
+
+---
+
+## 1. Overview
+
+**Base URL (local dev):**  
+`http://localhost:3000`
+
+**Main API groups:**
+
+- **Breakdowns:** `/api/breakdowns`
+- **Emergency Protocol:** `/api/emergency`
+- **GPS Pipeline:** `/api/gps`
+- **Vendors (Repair‑Only):** `/api/vendors`
+- **System Health:** `/api/system`
+- **OPS Subsystem:** `/ops`
+
+All endpoints implicitly enforce:
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+---
+
+## 2. Breakdowns API — `/api/breakdowns`
+
+### 2.1 Create Breakdown  
+**POST** `/api/breakdowns`
+
+**Body:**
+```json
+{
+  "unitId": "T680-554",
+  "driverId": "DRV-882",
+  "faultCodes": ["P0420", "P0700"],
+  "location": { "lat": 40.68922, "lon": -75.22011 },
+  "severity": "High"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "BRK-001",
+  "status": "New",
+  "unitId": "T680-554",
+  "driverId": "DRV-882",
+  "faultCodes": ["P0420", "P0700"],
+  "location": { "lat": 40.68922, "lon": -75.22011 },
+  "severity": "High",
+  "repairPath": "Unknown"
+}
+```
+
+---
+
+### 2.2 Get Breakdown by ID  
+**GET** `/api/breakdowns/:id`
+
+**Response:**
+```json
+{
+  "id": "BRK-001",
+  "unitId": "T680-554",
+  "driverId": "DRV-882",
+  "technicianId": "TECH-442",
+  "status": "In Progress",
+  "faultCodes": ["P0420", "P0700"],
+  "severity": "High",
+  "repairPath": "Electrical",
+  "location": { "lat": 40.68922, "lon": -75.22011 },
+  "timestamps": {
+    "createdAt": "2026-09-22T08:57:00Z",
+    "updatedAt": "2026-09-22T09:10:00Z"
+  }
+}
+```
+
+---
+
+### 2.3 Update Breakdown Status  
+**PATCH** `/api/breakdowns/:id/status`
+
+**Body:**
+```json
+{
+  "status": "In Progress"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "BRK-001",
+  "status": "In Progress"
+}
+```
+
+---
+
+### 2.4 Assign Technician  
+**PATCH** `/api/breakdowns/:id/technician`
+
+**Body:**
+```json
+{
+  "technicianId": "TECH-442"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "BRK-001",
+  "technicianId": "TECH-442"
+}
+```
+
+---
+
+## 3. Emergency Protocol API — `/api/emergency`
+
+### 3.1 Execute Full Protocol  
+**POST** `/api/emergency/execute`
+
+**Body:**
+```json
+{
+  "id": "BRK-001",
+  "unitId": "T680-554",
+  "driverId": "DRV-882",
+  "faultCodes": ["P0420", "P0700"],
+  "location": { "lat": 40.68922, "lon": -75.22011 }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Emergency protocol executed successfully.",
+  "diagnosis": {
+    "severity": "High",
+    "repairPath": "Electrical",
+    "faultCodes": ["P0420", "P0700"]
+  },
+  "technician": {
+    "id": "TECH-442",
+    "eta": 42,
+    "name": "John Diesel"
+  },
+  "routing": {
+    "location": "Exit 12 Truck Stop",
+    "distance": 1.2
+  },
+  "vendor": {
+    "name": "Mobile Diesel Repair LLC",
+    "phone": "555-882-4411"
+  }
+}
+```
+
+---
+
+### 3.2 Log Single Protocol Step  
+**POST** `/api/emergency/step`
+
+**Body:**
+```json
+{
+  "breakdownId": "BRK-001",
+  "step": "Hazard Scan Completed"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Step logged."
+}
+```
+
+---
+
+## 4. GPS API — `/api/gps`
+
+### 4.1 Update GPS  
+**POST** `/api/gps/update`
+
+**Body:**
+```json
+{
+  "unitId": "T680-554",
+  "type": "tractor",
+  "lat": 40.68922,
+  "lon": -75.22011,
+  "speed": 58,
+  "heading": 270,
+  "timestamp": 1695349200
+}
+```
+
+**Response:**
+```json
+{
+  "message": "GPS updated.",
+  "gpsData": {
+    "unitId": "T680-554",
+    "type": "tractor",
+    "lat": 40.68922,
+    "lon": -75.22011,
+    "speed": 58,
+    "heading": 270,
+    "timestamp": 1695349200
+  }
+}
+```
+
+---
+
+### 4.2 Get Latest GPS for Unit  
+**GET** `/api/gps/unit/:id`
+
+**Response:**
+```json
+{
+  "unitId": "T680-554",
+  "type": "tractor",
+  "lat": 40.68922,
+  "lon": -75.22011,
+  "speed": 58,
+  "heading": 270,
+  "timestamp": 1695349200
+}
+```
+
+---
+
+## 5. Vendors API (Repair‑Only) — `/api/vendors`
+
+### 5.1 List Repair Vendors  
+**GET** `/api/vendors/repair`
+
+**Query (optional):**
+- `region=PA-LEHIGH`
+
+**Response:**
+```json
+[
+  {
+    "name": "Mobile Diesel Repair LLC",
+    "phone": "555-882-4411",
+    "region": "PA-LEHIGH",
+    "type": "repair",
+    "services": ["diesel", "electrical", "brakes"],
+    "availability": {
+      "afterHours": true,
+      "weekends": true
+    }
+  }
+]
+```
+
+---
+
+### 5.2 Select Repair Vendor  
+**POST** `/api/vendors/select`
+
+**Body:**
+```json
+{
+  "breakdownId": "BRK-001",
+  "vendorName": "Mobile Diesel Repair LLC"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Repair vendor selected.",
+  "breakdownId": "BRK-001",
+  "vendorName": "Mobile Diesel Repair LLC"
+}
+```
+
+---
+
+## 6. System Health API — `/api/system`
+
+### 6.1 Get System Health  
+**GET** `/api/system/health`
+
+**Response:**
+```json
+{
+  "backendStatus": "UP",
+  "socketStatus": "CONNECTED",
+  "gpsStatus": "HEALTHY",
+  "graceStatus": "ACTIVE",
+  "lastUpdated": "2026-09-22T08:57:00Z"
+}
+```
+
+---
+
+## 7. OPS Subsystem — `/ops`
+
+### 7.1 OPS Dashboard (HTML/React)  
+**GET** `/ops`
+
+- Simple admin UI:
+  - Buttons to run emergency protocol on a breakdown
+  - View logs
+  - View JSON outputs
+  - View system health
+
+(Claude can implement this as a minimal React or server‑rendered page.)
+
+---
+
+## 8. Real‑Time Events (Socket.IO)
+
+These are not HTTP endpoints but event channels your frontend subscribes to.
+
+### 8.1 `gps_update`
+Payload:
+```json
+{
+  "unitId": "T680-554",
+  "type": "tractor",
+  "lat": 40.68922,
+  "lon": -75.22011,
+  "speed": 58,
+  "heading": 270,
+  "timestamp": 1695349200
+}
+```
+
+### 8.2 `breakdown_update`
+Payload:
+```json
+{
+  "id": "BRK-001",
+  "unitId": "T680-554",
+  "status": "In Progress"
+}
+```
+
+### 8.3 `protocol_step`
+Payload:
+```json
+{
+  "breakdownId": "BRK-001",
+  "step": "Hazard Scan Completed",
+  "timestamp": "2026-09-22T08:58:00Z"
+}
+```
+
+---
+
+## 9. Global Rules for All Endpoints
+
+- **NO‑TOW policy enforced** via `noTowPolicy` middleware.
+- All write operations must:
+  - Validate payloads
+  - Log critical actions
+  - Respect repair‑only workflows
+- All emergency‑related endpoints must:
+  - Integrate with Grace services
+  - Update ProtocolHistory
+  - Emit Socket.IO events
+
+---
+
+If you want, next step I can generate **Group 8: Deployment Blueprint (Docker + cloud options)** in the same clean style.

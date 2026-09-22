@@ -1,0 +1,622 @@
+Elijah — **Group 2 is now ready**, and I’m delivering it at the **expanded + ultra‑detailed enterprise level** exactly as you requested.
+
+This group contains:
+
+### 🟦 GROUP 2 — Architecture & Engineering  
+- **Architecture.md**  
+- **Diagram.txt**  
+- **EmergencyProtocol.md**
+
+These files define the *technical backbone* of your entire enterprise system.  
+They are written for:
+
+- Claude (reasoning + multi‑file editing)  
+- GitHub Copilot (code generation)  
+- VS Code (project structure)  
+- Engineers (future team members)  
+- Auditors (workflow + compliance)  
+- You (owner/operator)  
+
+Everything is aligned with your **NO‑TOW**, **repair‑only**, **AI‑driven**, **enterprise‑grade** system.
+
+Let’s begin.
+
+---
+
+# 📄 **Architecture.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# Architecture — EH Graced Roads Solutions LLC (Enterprise Edition)
+
+## 1. System Overview
+
+The EH Graced Roads Solutions LLC enterprise system is a multi‑module, AI‑driven, real‑time operational platform designed to manage:
+
+- Roadside breakdowns  
+- Technician dispatch  
+- GPS tracking  
+- Emergency repair workflows  
+- After‑hours repair coordination  
+- Fleet visibility  
+- System health monitoring  
+
+The system is composed of:
+
+1. **React Command Center (Frontend, Port 3001)**  
+2. **Node.js/Express Backend API (Port 3000)**  
+3. **Grace Automation Engine (Orchestration Layer)**  
+4. **GPS Tracking Pipeline (Real‑Time Telemetry)**  
+5. **Backup/OPS Subsystem (Hardened Admin UI)**  
+6. **Socket.IO Real‑Time Event Bus**  
+7. **Documentation Brain (/docs folder)**  
+
+All components enforce the **NO‑TOW policy** and operate under a **repair‑only** model.
+
+---
+
+## 2. Frontend Architecture (React — Port 3001)
+
+### 2.1 Purpose
+The frontend is the **command center** used by dispatchers, fleet managers, and operations staff. It provides:
+
+- Real‑time breakdown visibility  
+- Technician assignment  
+- GPS tracking  
+- Emergency protocol execution  
+- System health monitoring  
+- Dual‑monitor operational layout  
+
+### 2.2 Core Components
+
+#### **DispatchFeed**
+- Displays breakdowns in chronological and priority order  
+- Shows unit ID, driver, technician, ETA, fault codes  
+- Integrates with Grace for workflow status  
+
+#### **GpsTabs**
+Tabs:
+- Tractors  
+- Trailers  
+- Technicians  
+- Drivers  
+
+Each tab includes:
+- Live map  
+- Unit list  
+- Detail panel  
+- AI routing suggestions  
+
+#### **SystemHealth**
+- Backend API status  
+- Socket.IO status  
+- GPS pipeline health  
+- Grace engine activity  
+- Error logs  
+
+#### **EmergencyProtocolView**
+- Step‑by‑step visualization  
+- Technician assignment  
+- Repair vendor selection  
+- Real‑time updates  
+
+### 2.3 Dual‑Monitor Layout
+
+**Monitor 1:**  
+- Breakdown feed  
+- Emergency protocol  
+- Technician assignment  
+
+**Monitor 2:**  
+- GPS maps  
+- Routing  
+- Unit tabs  
+
+This layout is mandatory for enterprise operations.
+
+---
+
+## 3. Backend Architecture (Node.js/Express — Port 3000)
+
+### 3.1 Purpose
+The backend is the **central API** and **real‑time event hub**.
+
+It handles:
+- REST API requests  
+- GPS ingestion  
+- Emergency protocol execution  
+- Grace engine orchestration  
+- Socket.IO broadcasts  
+- Logging and audit trails  
+
+### 3.2 Core Modules
+
+#### **Breakdown Module**
+Routes:
+- `POST /api/breakdowns`  
+- `GET /api/breakdowns/:id`  
+- `PATCH /api/breakdowns/:id/status`  
+
+Responsibilities:
+- Create breakdowns  
+- Update status  
+- Assign technicians  
+- Trigger Grace workflows  
+
+#### **GPS Module**
+Routes:
+- `POST /api/gps/update`  
+- `GET /api/gps/unit/:id`  
+
+Responsibilities:
+- Validate GPS data  
+- Store location  
+- Emit `gps_update`  
+- Provide historical data  
+
+#### **Emergency Module**
+Routes:
+- `POST /api/emergency/execute`  
+- `POST /api/emergency/step`  
+
+Responsibilities:
+- Execute 11‑step emergency protocol  
+- Log each step  
+- Update breakdown status  
+- Coordinate technician dispatch  
+
+#### **Vendor Module**
+Routes:
+- `GET /api/vendors/repair`  
+- `POST /api/vendors/select`  
+
+Responsibilities:
+- Provide repair‑only vendor list  
+- Enforce NO‑TOW policy  
+
+#### **System Health Module**
+Routes:
+- `GET /api/system/health`  
+
+Responsibilities:
+- Report backend, Grace, GPS, Socket.IO status  
+
+---
+
+## 4. Grace Automation Engine (Orchestration Layer)
+
+### 4.1 Purpose
+Grace is the **brain** of the enterprise system.
+
+It orchestrates:
+- Emergency protocol  
+- Technician assignment  
+- Repair vendor selection  
+- After‑hours workflows  
+- GPS‑based routing  
+- System health monitoring  
+- Logging and audit trails  
+
+### 4.2 Grace Workflow Engine
+
+Grace executes workflows using:
+- Step definitions  
+- Pre‑conditions  
+- Post‑conditions  
+- Logging hooks  
+- Socket.IO events  
+- Repair‑only constraints  
+
+### 4.3 Grace Services
+
+#### **DiagnosisService**
+- Interprets fault codes  
+- Classifies severity  
+- Suggests repair paths  
+
+#### **DispatchService**
+- Finds nearest technician  
+- Calculates ETA  
+- Assigns technician  
+
+#### **RoutingService**
+- Uses GPS data  
+- Suggests safe locations  
+- Avoids tow yards  
+
+#### **VendorService**
+- Selects repair vendors  
+- Enforces NO‑TOW policy  
+
+#### **LoggingService**
+- Writes protocol logs  
+- Writes system health logs  
+
+---
+
+## 5. GPS Pipeline Architecture
+
+### 5.1 Data Sources
+- Tractor ECM  
+- Trailer beacon  
+- Technician mobile GPS  
+- Driver mobile GPS  
+
+### 5.2 Data Flow
+
+1. Device sends GPS → backend `/api/gps/update`  
+2. Backend validates and stores  
+3. Grace uses data for routing  
+4. Socket.IO emits `gps_update`  
+5. Frontend updates maps  
+
+### 5.3 GPS Data Model
+
+Fields:
+- unitId  
+- type (tractor, trailer, tech, driver)  
+- lat  
+- lon  
+- speed  
+- heading  
+- timestamp  
+
+---
+
+## 6. Backup/OPS Subsystem
+
+### 6.1 Purpose
+A hardened backend UI for:
+- Manual workflow execution  
+- Log viewing  
+- JSON output viewing  
+- Emergency fallback operations  
+
+### 6.2 Features
+- `/ops` route  
+- Minimal UI  
+- Grace workflow triggers  
+- System health indicators  
+
+---
+
+## 7. Data Storage Architecture
+
+### 7.1 Collections / Tables
+
+#### **Breakdowns**
+- id  
+- unitId  
+- driverId  
+- technicianId  
+- status  
+- faultCodes  
+- timestamps  
+
+#### **Units**
+- tractors  
+- trailers  
+- technicians  
+- drivers  
+
+#### **GPS**
+- historical positions  
+- current positions  
+
+#### **Logs**
+- emergency protocol  
+- system health  
+- dispatch events  
+
+#### **Config**
+- repair vendors  
+- thresholds  
+- policies  
+
+---
+
+## 8. Security Architecture
+
+- Role‑based access  
+- Logging of critical actions  
+- No tow vendor integrations  
+- No tow yard routing  
+- No unauthorized workflow execution  
+
+---
+
+## 9. Architectural Principles
+
+- Repair‑only workflows  
+- AI‑assisted decision making  
+- Real‑time visibility  
+- Documentation‑driven development  
+- Grace as central orchestrator  
+- Dual‑monitor operational layout  
+```
+
+---
+
+# 📄 **Diagram.txt (Expanded + Ultra‑Detailed)**
+
+```text
+EH GRACED ROADS SOLUTIONS LLC — FULL SYSTEM ARCHITECTURE (ASCII DIAGRAM)
+
+                          +--------------------------------------+
+                          |        React Command Center           |
+                          |             (Frontend)                |
+                          |             Port 3001                 |
+                          +------------------+--------------------+
+                                             |
+                                             | REST / WebSocket
+                                             v
+                          +--------------------------------------+
+                          |        Node.js / Express API          |
+                          |               Backend                 |
+                          |               Port 3000               |
+                          +------------------+--------------------+
+                                             |
+                                             | Grace Service Calls
+                                             v
+                          +--------------------------------------+
+                          |        Grace Automation Engine        |
+                          |   (Orchestration & Workflow Brain)    |
+                          +------------------+--------------------+
+                                             |
+         +-------------------------+---------+-------------------------+
+         |                         |                                   |
+         v                         v                                   v
++-------------------+   +-------------------+               +-------------------+
+|   GPS Pipeline    |   | Emergency Protocol|               |  System Health    |
+| (Tractors,        |   |   (11 Steps)      |               |  Monitoring       |
+| Trailers, Techs,  |   | Repair-Only Logic |               |  API + Grace Logs |
+| Drivers)          |   +-------------------+               +-------------------+
++-------------------+
+
+Backup/OPS Subsystem:
+- Attached to Backend API
+- Manual Grace workflow execution
+- Log viewer
+- JSON output viewer
+- Fallback operations mode
+
+Real-Time Event Bus:
+- Socket.IO
+- Broadcasts: gps_update, breakdown_update, protocol_step
+
+Documentation Brain:
+- /docs folder
+- Master Context
+- Architecture
+- Branding
+- Marketing
+- Mockups
+- Protocol
+- System Rules
+
+All components enforce:
+WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+```
+
+---
+
+# 📄 **EmergencyProtocol.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# Emergency Breakdown Protocol — EH Graced Roads Solutions LLC (Enterprise Edition)
+
+## Purpose
+
+This protocol defines the **11‑step repair‑only workflow** executed by Grace Automation Engine during roadside breakdowns.
+
+It ensures:
+- Driver safety  
+- Accurate diagnosis  
+- Efficient repair response  
+- Technician coordination  
+- Real‑time visibility  
+- Compliance with NO‑TOW policy  
+
+---
+
+## Step 1 — Hazard Scan
+
+### Objectives
+- Ensure driver safety  
+- Identify immediate hazards  
+- Stabilize the environment  
+
+### Actions
+- Ask driver about fire, smoke, leaks, traffic exposure  
+- Advise hazard lights, cones, reflective triangles  
+- Determine if relocation is necessary  
+
+### Grace Logging
+- `hazard_scan.completed = true`  
+- `hazard_scan.details = {...}`  
+
+---
+
+## Step 2 — Mechanical Diagnosis
+
+### Objectives
+- Identify the root cause  
+- Classify severity  
+- Determine repair path  
+
+### Inputs
+- Driver symptoms  
+- Fault codes  
+- ECM data  
+- Visual inspection  
+
+### Severity Levels
+- Critical  
+- High  
+- Medium  
+- Low  
+
+### Grace Logging
+- `diagnosis.severity = "High"`  
+- `diagnosis.faultCodes = [...]`  
+
+---
+
+## Step 3 — Repair‑Only Response
+
+### Objectives
+- Select correct repair path  
+- Avoid towing  
+- Prepare technician  
+
+### Repair Paths
+- Electrical  
+- Mechanical  
+- Hydraulic  
+- Brake/suspension  
+- Trailer systems  
+
+### Grace Logging
+- `repair_path = "Electrical"`  
+
+---
+
+## Step 4 — Technician Dispatch
+
+### Objectives
+- Assign nearest qualified technician  
+- Provide ETA  
+- Provide repair instructions  
+
+### Actions
+- Calculate distance using GPS  
+- Check technician skillset  
+- Assign technician  
+
+### Grace Logging
+- `technician.assigned = techId`  
+- `technician.eta = 42`  
+
+---
+
+## Step 5 — Driver Routing
+
+### Objectives
+- Move driver to safe location if needed  
+- Avoid tow yards  
+- Use GPS data  
+
+### Actions
+- Suggest shoulder, exit, truck stop  
+- Provide turn‑by‑turn guidance  
+
+### Grace Logging
+- `driver.routing = "Exit 12 Truck Stop"`  
+
+---
+
+## Step 6 — Repair Vendor Selection (Repair‑Only)
+
+### Objectives
+- Select external repair vendor if needed  
+- Enforce NO‑TOW policy  
+
+### Allowed Vendors
+- Mobile diesel repair  
+- OEM dealer repair  
+- Truck stop repair  
+- Heavy‑duty repair networks  
+
+### Grace Logging
+- `vendor.selected = "Mobile Diesel Repair LLC"`  
+
+---
+
+## Step 7 — After‑Hours Workflow
+
+### Objectives
+- Provide repair support after hours  
+- Use national repair networks  
+
+### Actions
+- Trigger after‑hours repair logic  
+- Contact repair partners  
+
+### Grace Logging
+- `after_hours.triggered = true`  
+
+---
+
+## Step 8 — Avoid Tow Yards
+
+### Objectives
+- Prevent towing  
+- Maintain repair‑only identity  
+
+### Actions
+- Block tow yard routing  
+- Block tow vendor selection  
+
+### Grace Logging
+- `tow_prevention = true`  
+
+---
+
+## Step 9 — Socket Broadcast
+
+### Objectives
+- Update command center in real time  
+
+### Events
+- `protocol_step`  
+- `technician_update`  
+- `gps_update`  
+
+---
+
+## Step 10 — Dashboard Update
+
+### Objectives
+- Update breakdown status  
+- Update technician assignment  
+- Update ETA  
+
+### Status Flow
+- New → In Progress → Completed  
+
+---
+
+## Step 11 — Grace Engine Logging
+
+### Objectives
+- Record every step  
+- Provide audit trail  
+- Support analytics  
+
+### Log Fields
+- step  
+- timestamp  
+- technician  
+- vendor  
+- routing  
+- severity  
+- repair path  
+
+---
+
+## Summary
+
+This protocol is the backbone of EH Graced Roads Solutions LLC’s emergency operations.  
+It is strictly **repair‑only** and must never involve towing or winching.
+```
+
+---
+
+# ⭐ Elijah — **GROUP 2 is complete.**  
+Next, I will generate:
+
+# 🟦 **GROUP 3 — Branding & Marketing**
+- Branding.md  
+- Marketing.md  
+- Mockups.md  
+
+Say **READY** and I’ll deliver Group 3.

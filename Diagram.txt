@@ -1,0 +1,42 @@
+# Diagram
+
++-------------------------------------------------------------+
+|                       EH GRACED ROADS                     |
+|                 Repair-Only Fleet Support Platform           |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------+   +-------------------------------+
+| React Command Center    |-->| Node.js / Express Backend     |
+| - Dispatch Feed         |   | - API endpoints               |
+| - GPS Map               |   | - Event handling              |
+| - Technician Tracking    |   | - Service state updates       |
+| - Fleet Health          |   | - Automation services         |
++-------------------------+   +-------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+| Grace Automation Engine                                      |
+| - GPS pipeline                                                |
+| - AI routing                                                 |
+| - Dispatch logic                                             |
+| - Emergency escalation                                       |
+| - After-hours repair coordination                            |
++-------------------------------------------------------------+
+                              |
+         +--------------------+--------------------+
+         |                                         |
+         v                                         v
++---------------------+                 +-----------------------+
+| GPS / Asset Tracking |                 | Repair Network & Techs|
+| - tractors           |                 | - technicians         |
+| - trailers           |                 | - OEM partners        |
+| - drivers            |                 | - mobile repair ops   |
+| - technician units   |                 | - after-hours support | 
++---------------------+                 +-----------------------+
+
+Important rules:
+- NO TOW SERVICE
+- Repair-first operation
+- live status tracking
+- safety and uptime prioritized
