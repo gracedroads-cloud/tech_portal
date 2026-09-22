@@ -1267,7 +1267,7 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
     call.gates.scopeApproved = decision.approved;
 
     if (!decision.approved) {
-      const rejectedStateEvent = recordStateEvent(call, 'scope_check_rejected', FLOW_STATES.SCOPE_REJECTED, { decision });
+      const rejectedStateEvent = transitionState(call, 'scope_check_rejected', { decision });
       audit(call, 'scope_check_rejected', rejectedStateEvent);
       persistCall(call);
       return res.status(422).json({

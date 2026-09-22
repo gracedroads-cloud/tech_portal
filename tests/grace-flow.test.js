@@ -101,6 +101,24 @@ test('accepts in-scope heavy-duty diesel request', async () => {
   assert.equal(scoped.body.scopeApproved, true);
 });
 
+test('repeated scope check cannot rewrite an already rejected call', async () => {
+  const callId = await createCallThroughIntake({
+    vehicleType: 'passenger vehicle',
+    issueDescription: 'need towing and winching support'
+  });
+
+  const initialScopeCheck = await request('POST', '/api/grace/scope_check', { callId });
+  assert.equal(initialScopeCheck.status, 422);
+
+  const repeatedScopeCheck = await request('POST', '/api/grace/scope_check', { callId });
+  assert.equal(repeatedScopeCheck.status, 400);
+  assert.match(repeatedScopeCheck.body.error, /Invalid transition from scope_rejected to scope_rejected\./);
+
+  const persisted = JSON.parse(fs.readFileSync(path.join(graceDataDir, `${callId}.json`), 'utf8'));
+  assert.equal(persisted.state, 'scope_rejected');
+  assert.equal(persisted.stateHistory.filter((event) => event.action === 'scope_check_rejected').length, 1);
+});
+
 test('generates estimate from service + labor tier + mileage + fee schedule', async () => {
   const callId = await createCallThroughIntake();
   await request('POST', '/api/grace/scope_check', { callId });
