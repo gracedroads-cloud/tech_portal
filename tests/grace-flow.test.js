@@ -128,9 +128,14 @@ test('requires technician acceptance before final dispatch confirmation', async 
     laborTier: 'standard',
     laborHours: 1,
     mileage: 5,
-    feeSchedule: 'standard',
-    estimateApprovedOrAccepted: true
+    feeSchedule: 'standard'
   });
+  await request(
+    'POST',
+    '/api/grace/estimate_approval',
+    { callId },
+    { 'x-operator-token': process.env.GRACE_OPERATOR_TOKEN }
+  );
   await request('POST', '/api/grace/payment_link', { callId });
   await request('POST', '/api/grace/technician_offer', { callId, technicianId: 'tech-1' });
 
@@ -187,9 +192,14 @@ test('payment-link flow does not persist raw card data', async () => {
     laborTier: 'standard',
     laborHours: 1,
     mileage: 0,
-    feeSchedule: 'standard',
-    estimateApprovedOrAccepted: true
+    feeSchedule: 'standard'
   });
+  await request(
+    'POST',
+    '/api/grace/estimate_approval',
+    { callId },
+    { 'x-operator-token': process.env.GRACE_OPERATOR_TOKEN }
+  );
 
   const paymentResp = await request('POST', '/api/grace/payment_link', {
     callId,
@@ -209,17 +219,18 @@ test('payment-link flow does not persist raw card data', async () => {
   assert.equal(auditLog.includes('"cvv":"123"'), false);
 });
 
-test('payment-link generation requires estimate approval or acceptance', async () => {
+test('payment-link generation requires separate estimate approval after quote', async () => {
   const callId = await createCallThroughIntake();
   await request('POST', '/api/grace/scope_check', { callId });
-  await request('POST', '/api/grace/quote', {
+  const quoted = await request('POST', '/api/grace/quote', {
     callId,
     laborTier: 'standard',
     laborHours: 1,
     mileage: 0,
     feeSchedule: 'standard',
-    estimateApprovedOrAccepted: false
+    estimateApprovedOrAccepted: true
   });
+  assert.equal(quoted.body.gates.pricingEstimateApprovedOrAccepted, false);
 
   const denied = await request('POST', '/api/grace/payment_link', { callId });
   assert.equal(denied.status, 409);

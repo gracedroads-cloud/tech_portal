@@ -1307,7 +1307,6 @@ app.post('/api/grace/quote', writeRateLimit, (req, res) => {
 
     call.estimate = estimate;
     call.dispatch.estimateProvided = true;
-    call.gates.pricingEstimateApprovedOrAccepted = Boolean(req.body.estimateApprovedOrAccepted);
     audit(call, 'quote', { ...stateEvent, estimate });
     persistCall(call);
 
