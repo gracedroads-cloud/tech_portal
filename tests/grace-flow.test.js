@@ -136,13 +136,47 @@ test('requires technician acceptance before final dispatch confirmation', async 
 
   const blocked = await request('POST', '/api/grace/work_order_create', {
     callId,
-    estimateApprovedOrAccepted: true,
     safetyCheckPassed: true
+  }, {
+    'x-operator-token': process.env.GRACE_OPERATOR_TOKEN
   });
 
   assert.equal(blocked.status, 409);
   assert.equal(blocked.body.finalDispatchConfirmed, false);
   assert.ok(blocked.body.missingGates.includes('technicianAccepted'));
+});
+
+test('privileged Grace dispatch transitions require operator authentication', async () => {
+  const callId = await createCallThroughIntake();
+  await request('POST', '/api/grace/scope_check', { callId });
+  await request('POST', '/api/grace/quote', {
+    callId,
+    laborTier: 'standard',
+    laborHours: 1,
+    mileage: 5,
+    feeSchedule: 'standard'
+  });
+  await request(
+    'POST',
+    '/api/grace/estimate_approval',
+    { callId },
+    { 'x-operator-token': process.env.GRACE_OPERATOR_TOKEN }
+  );
+  await request('POST', '/api/grace/payment_link', { callId });
+  await request('POST', '/api/grace/technician_offer', { callId, technicianId: 'tech-1' });
+
+  const deniedAcceptance = await request('POST', '/api/grace/technician_acceptance', {
+    callId,
+    accepted: true
+  });
+  assert.equal(deniedAcceptance.status, 401);
+
+  const deniedWorkOrder = await request('POST', '/api/grace/work_order_create', {
+    callId,
+    estimateApprovedOrAccepted: true,
+    safetyCheckPassed: true
+  });
+  assert.equal(deniedWorkOrder.status, 401);
 });
 
 test('payment-link flow does not persist raw card data', async () => {

@@ -156,8 +156,8 @@
     }
     function paymentLink() { return post('/api/grace/payment_link', baseBody()); }
     function offerTech() { return post('/api/grace/technician_offer', { ...baseBody(), technicianId: 'tech-22', technicianName: 'J. Miller', etaMinutes: 35 }); }
-    function acceptTech() { return post('/api/grace/technician_acceptance', { ...baseBody(), accepted: true }); }
-    function createWorkOrder() { return post('/api/grace/work_order_create', { ...baseBody(), safetyCheckPassed: true }); }
+    function acceptTech() { return post('/api/grace/technician_acceptance', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
+    function createWorkOrder() { return post('/api/grace/work_order_create', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
     function closeout() { return post('/api/grace/closeout', { ...baseBody(), resolutionNotes: 'Completed roadside repair.' }); }
 
     document.getElementById('btn-answer').addEventListener('click', answer);

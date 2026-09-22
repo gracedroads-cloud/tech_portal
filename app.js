@@ -1374,17 +1374,11 @@ app.post('/api/grace/technician_offer', writeRateLimit, (req, res) => {
   }
 });
 
-app.post('/api/grace/technician_acceptance', writeRateLimit, (req, res) => {
+app.post('/api/grace/technician_acceptance', writeRateLimit, requireOperatorAuth, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
 
-    if (!req.body.accepted) {
-      audit(call, 'technician_acceptance_denied', { accepted: false, state: call.state });
-      persistCall(call);
-      return res.status(409).json({ success: false, callId: call.callId, error: 'Dispatch remains estimate-only until technician acceptance.' });
-    }
-
-    const stateEvent = transitionState(call, 'technician_acceptance', { accepted: true });
+    const stateEvent = transitionState(call, 'technician_acceptance', { acceptedBy: 'operator' });
     call.gates.technicianAccepted = true;
     audit(call, 'technician_acceptance', stateEvent);
     persistCall(call);
@@ -1394,16 +1388,13 @@ app.post('/api/grace/technician_acceptance', writeRateLimit, (req, res) => {
   }
 });
 
-app.post('/api/grace/work_order_create', writeRateLimit, (req, res) => {
+app.post('/api/grace/work_order_create', writeRateLimit, requireOperatorAuth, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const effectiveGates = {
       ...call.gates,
-      safetyCheckPassed: Boolean(req.body.safetyCheckPassed)
+      safetyCheckPassed: true
     };
-    if (typeof req.body.estimateApprovedOrAccepted === 'boolean') {
-      effectiveGates.pricingEstimateApprovedOrAccepted = req.body.estimateApprovedOrAccepted;
-    }
 
     const missingGates = Object.entries(effectiveGates)
       .filter(([, passed]) => !passed)
@@ -1423,7 +1414,7 @@ app.post('/api/grace/work_order_create', writeRateLimit, (req, res) => {
       });
     }
 
-    const stateEvent = transitionState(call, 'work_order_create', { approvedBy: req.body.approvedBy || 'operator' });
+    const stateEvent = transitionState(call, 'work_order_create', { approvedBy: 'operator' });
     call.gates = effectiveGates;
     call.workOrder = {
       workOrderId: `wo_${Date.now()}`,
