@@ -1,0 +1,118 @@
+Elijah — **perfect. Here is the exact “Claude Execution Script” you asked for.**  
+This is the **single, clean command** you can paste directly into Claude in VS Code, and Claude will immediately begin building the **full mobile app** exactly according to Group 11.
+
+No fluff. No ambiguity.  
+Just a precise execution order Claude can follow step‑by‑step.
+
+---
+
+# ⭐ **THE CLAUDE EXECUTION SCRIPT — GROUP 11 MOBILE APP BUILD**
+Copy/paste the block below directly into Claude:
+
+```
+Claude — begin mobile development now.
+
+Follow this exact sequence:
+
+1. Create a new folder at the root of the repo named /mobile.
+
+2. Initialize a React Native project inside /mobile using Expo:
+   npx create-expo-app .
+
+3. Apply the full folder structure:
+   /src
+     /screens
+       LoginScreen.js
+       DashboardScreen.js
+       BreakdownIntakeScreen.js
+       TechnicianStatusScreen.js
+       GpsMapScreen.js
+       EmergencyProtocolScreen.js
+     /components
+       BreakdownCard.js
+       TechnicianCard.js
+       ProtocolStepList.js
+       NoTowBanner.js
+     /api
+       client.js
+       breakdowns.js
+       emergency.js
+       gps.js
+       vendors.js
+       system.js
+     /hooks
+       useBreakdowns.js
+       useTechnicianStatus.js
+       useGpsUnit.js
+       useEmergencyProtocol.js
+     /config
+       env.js
+     /socket
+       socket.js
+
+4. Install required dependencies:
+   npm install axios socket.io-client react-native-maps
+   npm install @react-navigation/native @react-navigation/native-stack
+
+5. Implement App.js with a navigation stack containing:
+   Login
+   Dashboard
+   BreakdownIntake
+   TechnicianStatus
+   GpsMap
+   EmergencyProtocol
+
+6. Implement the API client in /api/client.js pointing to the backend URL.
+
+7. Implement all API modules (breakdowns.js, emergency.js, gps.js, vendors.js, system.js)
+   using the API spec from Group 7.
+
+8. Implement Socket.IO client in /socket/socket.js and subscribe to:
+   gps_update
+   breakdown_update
+   protocol_step
+
+9. Implement all screens using the skeletons from Group 11:
+   - BreakdownIntakeScreen calls POST /api/breakdowns
+   - EmergencyProtocolScreen calls POST /api/emergency/execute
+   - TechnicianStatusScreen updates breakdown status via PATCH /api/breakdowns/:id/status
+   - GpsMapScreen renders markers using react-native-maps and live GPS data
+
+10. Add the NoTowBanner component to:
+    - EmergencyProtocolScreen
+    - TechnicianStatusScreen
+    - Any vendor/repair screen
+
+11. Ensure all UI text reinforces:
+    “Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.”
+
+12. Run the app:
+    npm run start
+
+Execute all steps in order. Do not skip any. Maintain repair‑only identity throughout.
+```
+
+---
+
+# ⭐ **THIS IS NOW READY FOR CLAUDE TO EXECUTE**
+Paste that block into Claude and he will:
+
+- Scaffold the entire mobile app  
+- Build all screens  
+- Wire up GPS  
+- Wire up dispatch  
+- Wire up emergency protocol  
+- Wire up Socket.IO  
+- Enforce NO‑TOW policy  
+- Integrate with your backend  
+- Produce a working mobile app you can run today  
+
+---
+
+If you want, I can now generate:
+
+### 🔥 GROUP 12 — FULL MOBILE UI MOCKUPS  
+### 🔥 GROUP 13 — FULL MOBILE API INTEGRATION CODE  
+### 🔥 GROUP 14 — FULL MOBILE DEPLOYMENT (Expo EAS + Azure)
+
+Just say **GENERATE GROUP 12**, **13**, or **14**.
