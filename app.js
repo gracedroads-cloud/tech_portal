@@ -239,10 +239,18 @@ app.use((req, res, next) => {
     next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname)); // Serves root-level files like index.html
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/index.html', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/no_tow_authorization.html', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+});
 
 // Ensure local data directory exists for JSON backups
-const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
 const graceDataDir = path.join(dataDir, 'grace_calls');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -1221,10 +1229,10 @@ app.post('/api/grace/scope_check', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
     const decision = validateScope({
-      serviceCategory: req.body.serviceCategory || call.intake.serviceCategory,
-      vehicleType: req.body.vehicleType || call.intake.vehicleType,
-      requestedWork: req.body.requestedWork || call.intake.requestedWork,
-      issueDescription: req.body.issueDescription || call.intake.issueDescription
+      serviceCategory: call.intake.serviceCategory,
+      vehicleType: call.intake.vehicleType,
+      requestedWork: call.intake.requestedWork,
+      issueDescription: call.intake.issueDescription
     });
 
     call.scopeDecision = decision;
@@ -1298,7 +1306,7 @@ app.post('/api/grace/payment_link', writeRateLimit, (req, res) => {
     const stateEvent = transitionState(call, 'payment_link', { providerType: 'pci-compliant' });
     const paymentLink = generateSecurePaymentLink(call.callId);
     call.paymentLink = paymentLink;
-    audit(call, 'payment_link', { ...stateEvent, paymentLink, request: sanitizeForStorage(req.body) });
+    audit(call, 'payment_link', { ...stateEvent, paymentLink });
     persistCall(call);
     return respondWithCall(res, call, {
       message: 'Secure payment link generated. Card data is never stored locally.',
