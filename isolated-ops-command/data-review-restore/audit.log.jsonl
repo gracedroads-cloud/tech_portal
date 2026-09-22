@@ -1,0 +1,2 @@
+{"id":"f6ef1bde-d833-420f-88e5-c12e4ed092da","type":"request.error","at":"2026-09-22T16:43:33.268Z","detail":{"path":"/api/admin/backup/restore","message":"Cannot read properties of null (reading 'kind')"}}
+{"id":"9718e896-043f-4040-8f95-805e9e0baec7","type":"system.stopping","at":"2026-09-22T16:43:33.274Z","detail":{}}

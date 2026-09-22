@@ -1,0 +1,18 @@
+{
+  "label": "x",
+  "simulationMode": true,
+  "automationPaused": false,
+  "automationPauseReason": "",
+  "incidents": [],
+  "dispatchQueue": [],
+  "activeUnits": [],
+  "policyRejections": [],
+  "mediaSources": [
+    null
+  ],
+  "secureBrowserSessions": [],
+  "idempotencyKeys": {},
+  "transitionIdempotencyKeys": {},
+  "teamsEvents": [],
+  "lastGraceAiDecision": null
+}

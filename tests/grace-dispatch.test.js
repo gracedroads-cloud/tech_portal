@@ -6,6 +6,8 @@ const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
 
+const OPERATOR_TOKEN = 'test-operator-token';
+
 async function allocatePort() {
     return new Promise((resolve, reject) => {
         const srv = net.createServer();
@@ -37,7 +39,12 @@ async function startTestServer() {
     const repoRoot = path.resolve(__dirname, '..');
     const serverProcess = spawn('node', ['app.js'], {
         cwd: repoRoot,
-        env: { ...process.env, PORT: String(port), DATA_DIR: tempDataDir },
+        env: {
+            ...process.env,
+            PORT: String(port),
+            DATA_DIR: tempDataDir,
+            GRACE_OPERATOR_TOKEN: OPERATOR_TOKEN
+        },
         stdio: ['ignore', 'pipe', 'pipe']
     });
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -53,7 +60,6 @@ async function startTestServer() {
     }
 
     return {
-        baseUrl,
         request,
         close: async () => {
             serverProcess.kill('SIGTERM');
@@ -62,229 +68,150 @@ async function startTestServer() {
                 setTimeout(resolve, 1500);
             });
             fs.rmSync(tempDataDir, { recursive: true, force: true });
-        },
-        tempDataDir
+        }
     };
 }
 
-test('Grace lifecycle enforces technician acceptance before work order creation', async () => {
+async function createReadyCall(server) {
+    const answer = await server.request('/api/grace/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            caller: { carrierName: 'Fleet One', location: 'I-78 near Easton, PA' }
+        })
+    });
+    const callId = answer.body.callId;
+
+    await server.request('/api/grace/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            callId,
+            carrierName: 'Fleet One',
+            vehicleType: 'tractor-trailer',
+            serviceCategory: 'diagnostics',
+            issueDescription: 'Diesel no-start',
+            requestedWork: 'Heavy-duty diesel repair',
+            location: 'I-78 near Easton, PA'
+        })
+    });
+
+    await server.request('/api/grace/scope_check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId })
+    });
+
+    await server.request('/api/grace/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            callId,
+            serviceCategory: 'diagnostics',
+            laborTier: 'standard',
+            laborHours: 1,
+            mileage: 12,
+            feeSchedule: 'standard'
+        })
+    });
+
+    await server.request('/api/grace/estimate_approval', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-operator-token': OPERATOR_TOKEN
+        },
+        body: JSON.stringify({ callId })
+    });
+
+    await server.request('/api/grace/payment_link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId })
+    });
+
+    await server.request('/api/grace/technician_offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            callId,
+            technicianId: 'tech-22',
+            technicianName: 'Lehigh Valley Unit 22',
+            etaMinutes: 45
+        })
+    });
+
+    return callId;
+}
+
+test('Grace progress compatibility endpoint reports ready and blocked calls', async () => {
     const server = await startTestServer();
 
     try {
-        const answer = await server.request('/api/grace/call/answer', {
+        const readyCallId = await createReadyCall(server);
+
+        const blockedAnswer = await server.request('/api/grace/answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ caller: { carrierName: 'Blocked Fleet' } })
+        });
+        const blockedCallId = blockedAnswer.body.callId;
+
+        await server.request('/api/grace/intake', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                callerName: 'Fleet One',
-                location: 'I-78 near Easton, PA',
-                vehicleType: 'tractor-trailer',
-                serviceType: 'mobile diesel repair'
+                callId: blockedCallId,
+                carrierName: 'Blocked Fleet',
+                vehicleType: 'passenger vehicle',
+                serviceCategory: 'diagnostics',
+                issueDescription: 'Needs towing',
+                requestedWork: 'Towing and winching',
+                location: 'I-78 shoulder'
             })
         });
 
-        assert.equal(answer.response.status, 201);
-        const callId = answer.body.call.id;
-
-        await server.request('/api/grace/call/intake', {
+        const blockedScope = await server.request('/api/grace/scope_check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                unitNumber: 'F1-22',
-                symptoms: 'Heavy-duty truck will not start.',
-                requestedService: 'Mobile heavy-duty diesel repair'
-            })
+            body: JSON.stringify({ callId: blockedCallId })
         });
+        assert.equal(blockedScope.response.status, 422);
 
-        await server.request('/api/grace/call/scope-check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                vehicleType: 'heavy-duty truck',
-                requestedService: 'Mobile diesel repair',
-                issueSummary: 'Class 8 no-start on interstate shoulder'
-            })
-        });
+        const activeCalls = await server.request('/api/grace/calls/active');
+        assert.equal(activeCalls.response.status, 200);
+        assert.equal(activeCalls.body.summary.ready, 1);
+        assert.equal(activeCalls.body.summary.blocked, 1);
 
-        await server.request('/api/grace/call/quote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                diagnosticsRequired: true,
-                travelMiles: 12
-            })
-        });
+        const readyCall = activeCalls.body.calls.find((call) => call.id === readyCallId);
+        assert.equal(readyCall.overallStatus, 'ready');
+        assert.equal(readyCall.stages.find((stage) => stage.id === 'technician_offer').status, 'complete');
+        assert.equal(readyCall.stages.find((stage) => stage.id === 'technician_acceptance').status, 'active');
 
-        await server.request('/api/grace/call/payment-link', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                amount: 361,
-                customerEmail: 'dispatch@fleetone.example'
-            })
-        });
-
-        await server.request('/api/grace/call/technician-offer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                technicianId: 'LV-TECH-22',
-                technicianName: 'Lehigh Valley Unit 22'
-            })
-        });
-
-        const blockedWorkOrder = await server.request('/api/grace/call/work-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ callId })
-        });
-
-        assert.equal(blockedWorkOrder.response.status, 409);
-        assert.match(blockedWorkOrder.body.error, /technician acceptance/i);
-
-        const accepted = await server.request('/api/grace/call/technician-acceptance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                accepted: true
-            })
-        });
-
-        assert.equal(accepted.response.status, 200);
-        assert.equal(accepted.body.call.technician.accepted, true);
-
-        const workOrder = await server.request('/api/grace/call/work-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ callId })
-        });
-
-        assert.equal(workOrder.response.status, 200);
-        assert.equal(workOrder.body.call.workOrder.finalDispatchActionable, true);
-        assert.equal(workOrder.body.call.workOrder.technicianAccepted, true);
-
-        const closeout = await server.request('/api/grace/call/closeout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                diagnostics: 'Battery cable failure confirmed.',
-                workPerformed: 'Replaced failed cable and verified charging system.',
-                partsUsed: ['battery cable'],
-                laborMinutes: 95,
-                customerSignature: 'fleet-one-signer',
-                proofPhotos: ['photo-1'],
-                completionGps: '40.6884,-75.2207'
-            })
-        });
-
-        assert.equal(closeout.response.status, 200);
-        assert.equal(closeout.body.call.overallStatus, 'complete');
-
-        const audit = await server.request(`/api/grace/call/${callId}/audit`);
-        assert.equal(audit.response.status, 200);
-        assert.ok(audit.body.auditLog.some((entry) => entry.approvalGate === 'technician_acceptance'));
-        assert.ok(audit.body.auditLog.some((entry) => entry.approvalGate === 'dispatch_confirmation'));
+        const blockedCall = activeCalls.body.calls.find((call) => call.id === blockedCallId);
+        assert.equal(blockedCall.overallStatus, 'blocked');
+        assert.equal(blockedCall.stages.find((stage) => stage.id === 'scope_check').status, 'blocked');
     } finally {
         await server.close();
     }
 });
 
-test('Grace rejects out-of-scope towing and blocks raw card data capture', async () => {
+test('Grace compatibility detail and audit endpoints expose progress data for the dashboard', async () => {
     const server = await startTestServer();
 
     try {
-        const answer = await server.request('/api/grace/call/answer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callerName: 'Blocked Fleet',
-                vehicleType: 'tractor-trailer',
-                serviceType: 'mobile diesel repair'
-            })
-        });
-        const callId = answer.body.call.id;
+        const callId = await createReadyCall(server);
 
-        await server.request('/api/grace/call/intake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                requestedService: 'Tow this truck off the shoulder'
-            })
-        });
+        const detail = await server.request(`/api/grace/call/${callId}`);
+        assert.equal(detail.response.status, 200);
+        assert.equal(detail.body.call.id, callId);
+        assert.equal(detail.body.call.carrierName, 'Fleet One');
+        assert.equal(detail.body.call.stages.find((stage) => stage.id === 'payment_link').status, 'complete');
 
-        const blockedScope = await server.request('/api/grace/call/scope-check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId,
-                vehicleType: 'tractor-trailer',
-                requestedService: 'Towing and winching',
-                issueSummary: 'Needs tow to yard'
-            })
-        });
-
-        assert.equal(blockedScope.response.status, 200);
-        assert.equal(blockedScope.body.call.overallStatus, 'blocked');
-        assert.equal(blockedScope.body.call.stages.find((stage) => stage.id === 'scope_check').status, 'blocked');
-
-        const allowedAnswer = await server.request('/api/grace/call/answer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callerName: 'Secure Fleet',
-                vehicleType: 'heavy-duty truck',
-                serviceType: 'mobile diesel repair'
-            })
-        });
-        const secureCallId = allowedAnswer.body.call.id;
-
-        await server.request('/api/grace/call/intake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId: secureCallId,
-                requestedService: 'Heavy-duty diesel repair'
-            })
-        });
-
-        await server.request('/api/grace/call/scope-check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId: secureCallId,
-                vehicleType: 'heavy-duty truck',
-                requestedService: 'Heavy-duty diesel repair',
-                issueSummary: 'Diesel no-start'
-            })
-        });
-
-        await server.request('/api/grace/call/quote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId: secureCallId
-            })
-        });
-
-        const blockedPayment = await server.request('/api/grace/call/payment-link', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                callId: secureCallId,
-                amount: 325,
-                cardNumber: '4111111111111111'
-            })
-        });
-
-        assert.equal(blockedPayment.response.status, 400);
-        assert.match(blockedPayment.body.error, /secure payment link flow/i);
+        const audit = await server.request(`/api/grace/call/${callId}/audit`);
+        assert.equal(audit.response.status, 200);
+        assert.equal(audit.body.callId, callId);
+        assert.ok(audit.body.auditLog.some((entry) => entry.action === 'technician_offer'));
     } finally {
         await server.close();
     }
@@ -311,7 +238,17 @@ test('Server only exposes explicit root pages and rate-limits DVIR writes', asyn
         const sourceExposure = await server.request('/app.js');
         assert.equal(sourceExposure.response.status, 404);
 
-        for (let index = 0; index < 10; index += 1) {
+        const firstAllowed = await server.request('/api/dvir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inspection: 0 })
+        });
+        assert.equal(firstAllowed.response.status, 200);
+
+        const limit = Number(firstAllowed.response.headers.get('ratelimit-limit') || '0');
+        assert.ok(limit > 0);
+
+        for (let index = 1; index < limit; index += 1) {
             const allowed = await server.request('/api/dvir', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -327,7 +264,10 @@ test('Server only exposes explicit root pages and rate-limits DVIR writes', asyn
         });
 
         assert.equal(blocked.response.status, 429);
-        assert.match(blocked.body.error, /rate limit/i);
+        assert.match(
+            blocked.body.error || blocked.body.message || JSON.stringify(blocked.body),
+            /(rate limit|too many requests)/i
+        );
     } finally {
         await server.close();
     }

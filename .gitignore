@@ -1,3 +1,9 @@
 node_modules/
 data/*.log
 data/dvir_*.json
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+data/startup-report.json
+data/company_safe.json
+exports/

@@ -1,233 +1,176 @@
-<!-- SYSTEM VERIFICATION CODE: 774291 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EH Graced Roads - Complete Dispatch & Pricing Console</title>
-    <style>
-        :root {
-            --bg-dark: #020617;
-            --card-bg: #0f172a;
-            --border-color: #334155;
-            --text-main: #f1f5f9;
-            --accent-orange: #ff9f1c;
-            --accent-blue: #38bdf8;
-            --accent-green: #10b981;
-        }
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            padding: 20px;
-            margin: 0;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1.3fr;
-            gap: 24px;
-        }
-        .panel {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            box-sizing: border-box;
-        }
-        h2 {
-            margin-top: 0;
-            font-size: 16px;
-            text-transform: uppercase;
-            color: var(--accent-orange);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-        .bank-strip {
-            background-color: #020617;
-            border-left: 4px solid var(--accent-green);
-            padding: 12px;
-            font-size: 11px;
-            font-family: monospace;
-            color: var(--accent-green);
-            margin-bottom: 16px;
-            border-radius: 0 8px 8px 0;
-            line-height: 1.5;
-        }
-        .policy-tag {
-            background-color: rgba(255, 159, 28, 0.04);
-            border: 1px dashed var(--accent-orange);
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 11px;
-            color: #cbd5e1;
-            line-height: 1.5;
-            margin-bottom: 20px;
-            text-align: justify;
-        }
-        label {
-            font-size: 11px;
-            color: var(--accent-orange);
-            font-weight: bold;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 6px;
-            margin-top: 16px;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 12px;
-            background-color: #1e293b;
-            border: 1px solid var(--border-color);
-            color: white;
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            box-sizing: border-box;
-        }
-        .action-btn {
-            background-color: var(--accent-orange);
-            color: #020617;
-            font-weight: 900;
-            text-transform: uppercase;
-            padding: 14px;
-            width: 100%;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            margin-top: 24px;
-            letter-spacing: 0.5px;
-        }
-        .status-banner {
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-            text-align: center;
-            font-weight: bold;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            display: none;
-            text-transform: uppercase;
-            margin-top: 16px;
-        }
-        .rate-sheet-view {
-            max-height: 88vh;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-        .category-header {
-            font-size: 12px;
-            color: var(--accent-blue);
-            font-weight: 800;
-            text-transform: uppercase;
-            background: rgba(56, 189, 248, 0.06);
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--accent-blue);
-            letter-spacing: 0.5px;
-        }
-        .rate-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        .rate-row {
-            border-bottom: 1px solid #1e293b;
-        }
-        .rate-cell-name {
-            padding: 8px 12px;
-            font-size: 12px;
-            color: #cbd5e1;
-            text-align: left;
-        }
-        .rate-cell-price {
-            padding: 8px 12px;
-            font-size: 12px;
-            font-family: monospace;
-            color: var(--accent-green);
-            font-weight: bold;
-            text-align: right;
-            white-space: nowrap;
-        }
-        .includes-box {
-            background-color: #020617;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 8px;
-            margin-bottom: 16px;
-        }
-        .includes-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--accent-orange);
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-        .includes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 6px;
-        }
-        .includes-item {
-            font-size: 11px;
-            color: #94a3b8;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grace Dispatch Console</title>
+  <style>
+    body { margin: 0; padding: 20px; background: #020617; color: #f1f5f9; font-family: sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+    h1, h2 { margin-top: 0; color: #38bdf8; }
+    label { display: block; margin-top: 10px; font-size: 12px; color: #94a3b8; }
+    input, select, textarea, button { width: 100%; margin-top: 6px; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #020617; color: #f1f5f9; }
+    button { background: #10b981; color: #02130c; font-weight: 700; cursor: pointer; }
+    .warning { color: #f59e0b; font-size: 12px; }
+    pre { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; max-height: 360px; overflow: auto; }
+    .states { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; font-size: 12px; }
+    .state { background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 6px; text-align: center; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="panel">
-            <h2>🕹️ Grace Automated Dispatch Desk</h2>
-            <div class="bank-strip">
-                🏢 CAPITAL REMITTANCE: LILI BUSINESS STANDALONE OPERATING HUB<br>
-                📌 ACCOUNT LOCK: RTN 091017138 | ACCT 692101449662
-            </div>
-            <div class="policy-tag">
-                <strong>🛡️ GEOGRAPHIC & OPERATIONAL DISCLOSURES:</strong> Roadside pricing estimations are processed within 3 minutes via System Grace. Physical responses deploy via high-utility Service Vans and Pick-Up Truck mechanic units patrolling Pennsylvania freight corridors. Heavy tractor hauling recovery and off-road winching operations are 100% excluded from all software logic [4f2c0eb].
-            </div>
-            <form onsubmit="event.preventDefault(); document.getElementById('ds-status-banner').style.display='block';">
-                <label>Commercial Carrier Enterprise Name</label>
-                <input type="text" placeholder="e.g., Werner Enterprises, Knight-Swift..." required>
-                <label>1. Select Primary Roadside Repair Triage Classification</label>
-                <select required>
-                    <option value="">-- Choose Aligned Operational Service --</option>
-                    <option value="callout_std">Mobile Service Call / Dispatch (Standard) — $175.00</option>
-                    <option value="callout_prem">Mobile Service Call / Dispatch (Premium) — $250.00</option>
-                    <option value="labor_std">Mobile Labor (Standard Fleet Tier) — $150.00/hr</option>
-                    <option value="labor_emerg">Mobile Labor (Emergency Roadside Tier) — $200.00/hr</option>
-                    <option value="diag_base">Diagnostic Scan (Standard Electronic Clearance) — $150.00</option>
-                    <option value="diag_full">Diagnostic Scan (Full System Code Calibration) — $300.00</option>
-                    <option value="travel_std">Travel Fee (Standard Transportation Corridor) — $3.00/mile</option>
-                    <option value="travel_ext">Travel Fee (Extended Geographic Corridor) — $5.00/mile</option>
-                    <option value="tire_spare">Tire Change (Utilizing On-Chassis Customer Spare) — $250.00</option>
-                    <option value="tire_comm">Commercial Tractor / Trailer Tire Replacement — $550.00</option>
-                    <option value="tire_ss_change">Super Single Tire Change Utility Layout — $325.00</option>
-                    <option value="tire_ss_replace">Super Single Tire Replacement Installation — $950.00</option>
-                    <option value="brake_leak_min">Air Leak Triage Repair (Minor Splicing) — $250.00</option>
-                    <option value="brake_leak_max">Air Leak Triage Repair (Complex Pneumatic Fix) — $800.00</option>
-                    <option value="brake_tank_trailer">Trailer Air Tank Replacement Component — $595.00</option>
-                    <option value="brake_tank_truck">Truck Air Tank Replacement Component — $695.00</option>
-                    <option value="brake_chamber_3030">Type 30/30 Brake Chamber Replacement (Each Unit) — $425.00</option>
-                    <option value="brake_shoes_t1">Trailer Brake Shoes (1 Complete Axle) — $895.00</option>
-                    <option value="brake_shoes_t2">Trailer Brake Shoes (2 Complete Axles) — $1,695.00</option>
-                    <option value="brake_shoes_k1">Truck Brake Shoes (1 Complete Axle Drive) — $995.00</option>
-                    <option value="brake_shoes_k2">Truck Brake Shoes (2 Complete Axles Drive) — $1,895.00</option>
-                    <option value="clamp_intake">Air Intake Clamp Replacement Core — $250.00</option>
-                    <option value="hose_intake_min">Air Intake Hose Replacement (Standard) — $350.00</option>
-                    <option value="hose_intake_max">Air Intake Hose Replacement (Heavy Manifold) — $900.00</option>
-                    <option value="line_air_single">Air Line Structural Cable Replacement (Single) — $250.00</option>
+  <div class="wrap">
+    <div class="card">
+      <h1>Grace Call-to-Dispatch Flow</h1>
+      <p class="warning">Scope limited to heavy-duty diesel repair for tractor-trailers/heavy-duty trucks. Towing/winching is out-of-scope.</p>
+      <label for="callId">Call ID</label>
+      <input id="callId" placeholder="Created after Answer">
 
+      <label for="operatorToken">Operator Token (estimate approval only)</label>
+      <input id="operatorToken" placeholder="Required for authenticated estimate approval">
+
+      <label for="carrierName">Carrier Name</label>
+      <input id="carrierName" value="Keystone Freight">
+
+      <label for="vehicleType">Vehicle Type</label>
+      <select id="vehicleType">
+        <option value="tractor-trailer">Tractor-Trailer</option>
+        <option value="heavy-duty truck">Heavy-Duty Truck</option>
+        <option value="passenger vehicle">Passenger Vehicle (out-of-scope)</option>
+      </select>
+
+      <label for="serviceCategory">Service Category</label>
+      <select id="serviceCategory">
+        <option value="air_brake_repair">Air Brake Repair</option>
+        <option value="diagnostics">Diagnostics</option>
+        <option value="tire_service">Commercial Tire Service</option>
+      </select>
+
+      <label for="issueDescription">Issue Description</label>
+      <textarea id="issueDescription">Trailer air leak near belly line.</textarea>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+        <button type="button" id="btn-answer">1. answer</button>
+        <button type="button" id="btn-intake">2. intake</button>
+        <button type="button" id="btn-scope-check">3. scope_check</button>
+        <button type="button" id="btn-quote">4. quote</button>
+        <button type="button" id="btn-estimate-approval">5. estimate_approval</button>
+        <button type="button" id="btn-payment-link">6. payment_link</button>
+        <button type="button" id="btn-tech-offer">7. technician_offer</button>
+        <button type="button" id="btn-tech-acceptance">8. technician_acceptance</button>
+        <button type="button" id="btn-work-order">9. work_order_create</button>
+        <button type="button" id="btn-closeout">10. closeout</button>
+      </div>
+      <p class="warning">Payment is link-only. Do not enter raw card numbers in this app.</p>
+    </div>
+
+    <div class="card">
+      <h2>State + Response Monitor</h2>
+      <div class="states">
+        <div class="state">answer</div><div class="state">intake</div><div class="state">scope_check</div>
+        <div class="state">quote</div><div class="state">payment_link</div><div class="state">technician_offer</div>
+        <div class="state">technician_acceptance</div><div class="state">work_order_create</div><div class="state">closeout</div>
+      </div>
+      <p id="next-action-status" role="status" aria-live="polite" class="warning">Next suggested action: answer</p>
+      <pre id="output" role="status" aria-live="polite">Ready.</pre>
+    </div>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+    const callIdInput = document.getElementById('callId');
+    const operatorTokenInput = document.getElementById('operatorToken');
+    const nextActionStatus = document.getElementById('next-action-status');
+    const actionButtons = {
+      answer: document.getElementById('btn-answer'),
+      intake: document.getElementById('btn-intake'),
+      scope_check: document.getElementById('btn-scope-check'),
+      quote: document.getElementById('btn-quote'),
+      estimate_approval: document.getElementById('btn-estimate-approval'),
+      payment_link: document.getElementById('btn-payment-link'),
+      technician_offer: document.getElementById('btn-tech-offer'),
+      technician_acceptance: document.getElementById('btn-tech-acceptance'),
+      work_order_create: document.getElementById('btn-work-order'),
+      closeout: document.getElementById('btn-closeout')
+    };
+
+    function updateActionAvailability(state, gates = {}) {
+      const nextActionByState = {
+        undefined: 'answer',
+        new: 'answer',
+        answered: 'intake',
+        intake: 'scope_check',
+        scope_check: 'quote',
+        quote: gates.pricingEstimateApprovedOrAccepted ? 'payment_link' : 'estimate_approval',
+        payment_link: 'technician_offer',
+        technician_offer: 'technician_acceptance',
+        technician_acceptance: 'work_order_create',
+        work_order_create: 'closeout',
+        closeout: null,
+        scope_rejected: null
+      };
+
+      const nextAction = nextActionByState[state];
+      Object.entries(actionButtons).forEach(([action, button]) => {
+        button.disabled = nextAction ? action !== nextAction : true;
+      });
+      nextActionStatus.textContent = nextAction
+        ? `Next suggested action: ${nextAction}`
+        : `No next action available from state: ${state || 'unknown'}`;
+    }
+
+    async function post(path, body, headers = {}) {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body)
+      });
+      const json = await response.json();
+      output.textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
+      if (json.callId) callIdInput.value = json.callId;
+      if (json.state) updateActionAvailability(json.state, json.gates);
+      return json;
+    }
+
+    function baseBody() {
+      return {
+        callId: callIdInput.value,
+        carrierName: document.getElementById('carrierName').value,
+        vehicleType: document.getElementById('vehicleType').value,
+        serviceCategory: document.getElementById('serviceCategory').value,
+        issueDescription: document.getElementById('issueDescription').value,
+        requestedWork: document.getElementById('issueDescription').value
+      };
+    }
+
+    function answer() { return post('/api/grace/answer', { caller: { phone: '+1-610-555-0147' }, channel: 'voice' }); }
+    function intake() { return post('/api/grace/intake', baseBody()); }
+    function scopeCheck() { return post('/api/grace/scope_check', baseBody()); }
+    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard' }); }
+    function approveEstimate() {
+      return post(
+        '/api/grace/estimate_approval',
+        { callId: callIdInput.value, approvedBy: 'operator' },
+        { 'x-operator-token': operatorTokenInput.value.trim() }
+      );
+    }
+    function paymentLink() { return post('/api/grace/payment_link', baseBody()); }
+    function offerTech() { return post('/api/grace/technician_offer', { ...baseBody(), technicianId: 'tech-22', technicianName: 'J. Miller', etaMinutes: 35 }); }
+    function acceptTech() { return post('/api/grace/technician_acceptance', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
+    function createWorkOrder() { return post('/api/grace/work_order_create', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
+    function closeout() { return post('/api/grace/closeout', { ...baseBody(), resolutionNotes: 'Completed roadside repair.' }); }
+
+    document.getElementById('btn-answer').addEventListener('click', answer);
+    document.getElementById('btn-intake').addEventListener('click', intake);
+    document.getElementById('btn-scope-check').addEventListener('click', scopeCheck);
+    document.getElementById('btn-quote').addEventListener('click', quote);
+    document.getElementById('btn-estimate-approval').addEventListener('click', approveEstimate);
+    document.getElementById('btn-payment-link').addEventListener('click', paymentLink);
+    document.getElementById('btn-tech-offer').addEventListener('click', offerTech);
+    document.getElementById('btn-tech-acceptance').addEventListener('click', acceptTech);
+    document.getElementById('btn-work-order').addEventListener('click', createWorkOrder);
+    document.getElementById('btn-closeout').addEventListener('click', closeout);
+    updateActionAvailability();
+  </script>
+</body>
+</html>
