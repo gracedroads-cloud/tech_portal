@@ -1,53 +1,44 @@
-# EH Graced Roads Solutions LLC
+# Grace Dispatch Console
 
-## Overview
-EH Graced Roads Solutions LLC is an enterprise roadside assistance and fleet support platform focused on heavy-duty repair operations, AI-assisted dispatch, GPS-based routing, and after-hours vehicle recovery support without towing.
+## Windows automatic startup
 
-## Mission
-Keep commercial trucks and trailers moving through rapid inspection, diagnostics, dispatch, repair coordination, and safety-first workflow automation.
+Run PowerShell once from the installed console folder:
 
-## Policies
-- No tow service
-- No winching service
-- Repair-first response model
-- Safety and technician coordination always prioritized
+```powershell
+.\Install_Grace_Dispatch_Autostart.ps1 -Port 3109 -RunNow
+```
 
-## Repository Contents
-- `CopilotMasterContext.md` — primary source of truth for the company and system context
-- `Architecture.md` — architecture and operational model
-- `Branding.md` — tone, identity, and messaging guidelines
-- `Marketing.md` — customer-facing value proposition and market messaging
-- `Mockups.md` — UI and brochure concept descriptions
-- `PromptPack.md` — reusable prompt library for Copilot workflows
-- `Diagram.txt` — ASCII architecture diagram
-- `SystemRules.md` — operating rules and constraints
-- `EmergencyProtocol.md` — escalation and response workflow
-- `NoTowPolicy.md` — official policy statement
+This registers a **Grace Dispatch Console - Logon** scheduled task. At each Windows
+Hello sign-in, it waits 30 seconds for Windows and the network to settle, then runs
+`auto_launch_cockpit.ps1`. The launcher checks whether the configured local port
+(default `3109`) is already listening and validates `GET /healthz`. If the console is
+already healthy, it leaves it untouched; otherwise it starts `node app.js` in the
+background. If another service occupies that port, the launcher warns and leaves the
+service untouched rather than attempting a destructive restart.
 
-## Operating Model
-This platform supports:
-- dispatch coordination
-- GPS tracking for tractors, trailers, drivers, and technicians
-- AI-assisted route optimization
-- system health monitoring
-- emergency escalation handling
-- repair network dispatching
+After each startup, it writes `data/startup-report.json` with the computer name,
+console/Operations Wall health, loopback address, detected LAN addresses, and key
+endpoint URLs. It opens the authorized Operations Wall automatically when
+`OPERATIONS_ACCESS_KEY` is configured for the Windows user. To open the Operations
+Wall manually without restarting a running server, run
+`Launch_Graced_Roads_Cockpit.bat`.
 
-## Stack Overview
-- Frontend: React command center UI
-- Backend: Node.js / Express services
-- Real-time communication: Socket.IO
-- GPS: tracking and routing pipeline
-- Automation: Grace Automation Engine
-- Document system: Markdown-based operational context
+If Windows blocks Scheduled Task registration for the current account, the installer
+automatically places the same launcher in that user's Windows Startup folder instead.
+It uses the same 30-second readiness wait and generates the same health report.
 
-## Command Center Design
-The command center is organized into dual-monitor operational views:
-1. Breakdown and dispatch monitoring
-2. GPS, routing, fleet, and technician coordination
+The console can run continuously only while the laptop is powered on and awake.
+For unattended 24/7 operation, use an always-on host or configure a separate
+administrator-managed startup/service task; a logon task cannot run while the
+laptop is powered off.
 
-## Company Positioning
-The brand is defined by speed, technical excellence, repair-first support, and safety-conscious operations in the commercial trucking sector.
+For operator startup, Operations Wall, maintenance, access-control, and recovery
+instructions, read [the Operations startup guide](docs/operations-startup-guide.md).
 
-## Official Policy Statement
-We do not provide tow service or winching service.
+For VS Code system-information commands and a ready-to-copy Microsoft Copilot Chat
+handoff, read [the Copilot Chat handoff](docs/microsoft-copilot-chat-handoff.md).
+
+For the owner-only local encrypted vault, read [the Company Safe guide](docs/company-safe.md).
+
+The company-wide no-towing/no-winching rule is documented and enforced in
+[the Service Policy](docs/service-policy.md).

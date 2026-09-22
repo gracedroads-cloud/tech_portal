@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Grace Dispatch Console | Operations Wall</title>
+    <style>
+        :root {
+            --bg: #07101c;
+            --panel: #0d1b2d;
+            --panel-strong: #10243b;
+            --line: #24405d;
+            --text: #e8f1fa;
+            --muted: #96aabd;
+            --green: #48d597;
+            --amber: #f7bd4a;
+            --red: #fa6b75;
+            --blue: #52adff;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; min-width: 320px; background: radial-gradient(circle at 25% 0%, #102842, var(--bg) 48%); color: var(--text); }
+        .wall { max-width: 1920px; margin: auto; padding: clamp(16px, 2vw, 34px); }
+        .topbar, .status-row, .section-heading, .incident-meta, .traffic-state { display: flex; align-items: center; }
+        .topbar {
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 18px 20px;
+            border-bottom: 1px solid var(--line);
+            background-image: linear-gradient(90deg, rgba(7, 16, 28, .94), rgba(7, 16, 28, .78)), url("/assets/eh-graced-roads-logo.jpeg");
+            background-size: cover;
+            background-position: top center;
+        }
+        .brand-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .company-email { display: inline-block; margin-top: 4px; color: var(--muted); font-size: .78rem; text-decoration: none; }
+        .company-email:hover, .company-email:focus-visible { color: var(--blue); text-decoration: underline; }
+        h1, h2, h3, p { margin: 0; }
+        h1 { font-size: clamp(1.35rem, 2.2vw, 2.1rem); letter-spacing: .02em; }
+        h2 { font-size: 1rem; letter-spacing: .09em; text-transform: uppercase; }
+        h3 { font-size: 1rem; }
+        .eyebrow, .caption, .label, .incident-time, .last-updated { color: var(--muted); font-size: .78rem; }
+        .eyebrow { margin-bottom: 5px; text-transform: uppercase; letter-spacing: .15em; }
+        .status-row { flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+        .status { border: 1px solid var(--line); background: #0a1726; border-radius: 999px; padding: 7px 10px; color: var(--muted); font-size: .78rem; white-space: nowrap; }
+        .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--muted); }
+        .status.ok::before { background: var(--green); box-shadow: 0 0 9px var(--green); }
+        .status.warn::before { background: var(--amber); box-shadow: 0 0 9px var(--amber); }
+        .status.error::before { background: var(--red); box-shadow: 0 0 9px var(--red); }
+        .intro { margin: 20px 0; color: var(--muted); max-width: 88ch; line-height: 1.55; }
+        .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+        .metric, .panel { border: 1px solid var(--line); background: linear-gradient(145deg, rgba(18, 43, 70, .9), rgba(10, 24, 40, .92)); border-radius: 13px; }
+        .metric { padding: 18px; min-height: 110px; }
+        .metric-value { display: block; margin-top: 12px; color: var(--blue); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 750; line-height: 1; }
+        .main-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 18px; }
+        .panel { overflow: hidden; }
+        .panel-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 17px 18px; border-bottom: 1px solid var(--line); }
+        .panel-body { padding: 16px 18px 18px; }
+        .incident-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .stream-title { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+        .stream-title::before { content: ""; display: block; height: 8px; width: 8px; border-radius: 50%; background: var(--blue); }
+        .incident-list, .alert-list { display: grid; gap: 10px; }
+        .incident { padding: 13px; background: rgba(4, 13, 24, .48); border: 1px solid #203d5b; border-left: 3px solid var(--blue); border-radius: 8px; }
+        .incident.high { border-left-color: var(--red); }
+        .incident.medium { border-left-color: var(--amber); }
+        .incident-header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+        .priority { color: var(--amber); text-transform: uppercase; letter-spacing: .08em; font-size: .69rem; font-weight: 700; }
+        .incident-location { margin: 7px 0; font-size: .88rem; color: #c9d9e9; }
+        .incident-meta { gap: 8px; justify-content: space-between; font-size: .75rem; }
+        .total { color: var(--green); font-weight: 700; }
+        .empty { color: var(--muted); padding: 20px 0; font-size: .9rem; }
+        .side-stack { display: grid; gap: 18px; }
+        .alert { border-bottom: 1px solid var(--line); padding: 0 0 12px; }
+        .alert:last-child { border-bottom: 0; padding-bottom: 0; }
+        .alert-location { font-weight: 650; margin-bottom: 4px; }
+        .alert-detail { color: var(--muted); font-size: .82rem; line-height: 1.45; }
+        .traffic-state { gap: 10px; padding: 13px; border-radius: 8px; background: rgba(4, 13, 24, .48); border: 1px solid #203d5b; }
+        .traffic-indicator { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+        .traffic-indicator.available { background: var(--green); box-shadow: 0 0 9px var(--green); }
+        .traffic-indicator.unavailable { background: var(--amber); }
+        .traffic-copy { display: grid; gap: 4px; min-width: 0; }
+        .traffic-copy strong { font-size: .86rem; }
+        .traffic-copy span { color: var(--muted); font-size: .8rem; line-height: 1.4; overflow-wrap: anywhere; }
+        .priority-panel { margin-top: 18px; }
+        .breakdown-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto auto; gap: 10px; align-items: end; }
+        .field { display: grid; gap: 6px; color: var(--muted); font-size: .75rem; }
+        .field input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; color: var(--text); background: rgba(4, 13, 24, .62); font: inherit; }
+        .button { border: 1px solid var(--blue); border-radius: 7px; padding: 9px 12px; color: #06111d; background: var(--blue); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .button.secondary { color: var(--text); background: transparent; border-color: var(--line); }
+        .button:hover, .button:focus-visible { filter: brightness(1.12); outline: 2px solid transparent; }
+        .breakdown-source { margin: 12px 0 0; }
+        .breakdown-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 10px; margin-top: 13px; }
+        .breakdown-card { padding: 13px; background: rgba(4, 13, 24, .48); border: 1px solid #203d5b; border-left: 3px solid var(--amber); border-radius: 8px; }
+        .breakdown-card.priority-one { border-left-color: var(--red); }
+        .breakdown-card p { margin-top: 7px; color: #c9d9e9; font-size: .86rem; line-height: 1.4; }
+        .breakdown-card .breakdown-cause { color: var(--muted); }
+        .breakdown-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 11px; color: var(--muted); font-size: .75rem; }
+        .breakdown-distance { color: var(--green); font-weight: 700; }
+        @media (max-width: 980px) { .breakdown-controls { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 980px) { .main-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 650px) { .wall { padding: 14px; } .topbar { align-items: start; flex-direction: column; } .brand-identity { align-items: flex-start; } .status-row { justify-content: start; } .metrics, .incident-columns, .breakdown-controls { grid-template-columns: 1fr; } .panel-header { padding: 15px; } .panel-body { padding: 14px 15px 16px; } }
+    </style>
+</head>
+<body>
+    <main class="wall">
+        <header class="topbar">
+            <div class="brand-identity">
+                <div>
+                    <p class="eyebrow">Grace Dispatch Console</p>
+                    <h1>PA Operations Wall</h1>
+                    <a class="company-email" href="mailto:graceroads@outlook.com">graceroads@outlook.com</a>
+                </div>
+            </div>
+            <div class="status-row" aria-label="Connection status">
+                <span id="system-status" class="status warn">System loading</span>
+                <span id="sse-status" class="status warn">SSE connecting</span>
+            </div>
+        </header>
+
+        <p class="intro">This wall reflects actual saved dispatch activity from the console. Location and incident cards update from live dispatch events. Live traffic is only displayed when a traffic provider is configured; unavailable traffic is never represented as live traffic.</p>
+
+        <section class="metrics" aria-label="Pennsylvania corridor activity">
+            <article class="metric"><span class="label">I-78 corridor</span><strong id="i78-count" class="metric-value">—</strong><span class="caption">saved incidents</span></article>
+            <article class="metric"><span class="label">I-81 corridor</span><strong id="i81-count" class="metric-value">—</strong><span class="caption">saved incidents</span></article>
+            <article class="metric"><span class="label">PA Turnpike</span><strong id="turnpike-count" class="metric-value">—</strong><span class="caption">saved incidents</span></article>
+        </section>
+
+        <section class="main-grid">
+            <article class="panel">
+                <header class="panel-header">
+                    <div><h2>Dispatch incidents</h2><p class="caption">Active and recently saved activity</p></div>
+                    <span id="last-updated" class="last-updated">Awaiting data</span>
+                </header>
+                <div class="panel-body">
+                    <div class="incident-columns">
+                        <section aria-labelledby="active-heading">
+                            <div class="stream-title"><h3 id="active-heading">Active</h3></div>
+                            <div id="active-list" class="incident-list"></div>
+                        </section>
+                        <section aria-labelledby="recent-heading">
+                            <div class="stream-title"><h3 id="recent-heading">Recent</h3></div>
+                            <div id="recent-list" class="incident-list"></div>
+                        </section>
+                    </div>
+                </div>
+            </article>
+
+            <aside class="side-stack">
+                <section class="panel">
+                    <header class="panel-header"><div><h2>Location alerts</h2><p class="caption">Latest reported dispatch locations</p></div></header>
+                    <div class="panel-body"><div id="alert-list" class="alert-list"></div></div>
+                </section>
+                <section class="panel">
+                    <header class="panel-header"><div><h2>Traffic provider</h2><p class="caption">Provider-reported availability only</p></div></header>
+                    <div class="panel-body">
+                        <div class="traffic-state">
+                            <span id="traffic-indicator" class="traffic-indicator" aria-hidden="true"></span>
+                            <div class="traffic-copy"><strong id="traffic-title">Checking traffic provider</strong><span id="traffic-message">No traffic information has been loaded.</span></div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </section>
+
+        <section class="panel priority-panel" aria-labelledby="priority-breakdowns-heading">
+            <header class="panel-header">
+                <div>
+                    <h2 id="priority-breakdowns-heading">Urgent priority breakdowns</h2>
+                    <p id="breakdown-source" class="caption">Live alerts appear only when real events are received.</p>
+                </div>
+                <button id="enable-alerts" class="button secondary" type="button">Enable Alerts</button>
+            </header>
+            <div class="panel-body">
+                <form id="breakdown-filter" class="breakdown-controls">
+                    <label class="field">Base latitude<input id="base-latitude" name="latitude" type="number" min="-90" max="90" step="any" inputmode="decimal" autocomplete="off"></label>
+                    <label class="field">Base longitude<input id="base-longitude" name="longitude" type="number" min="-180" max="180" step="any" inputmode="decimal" autocomplete="off"></label>
+                    <label class="field">Radius (miles)<input id="breakdown-radius" name="radius" type="number" min="1" step="1" value="150" inputmode="numeric"></label>
+                    <span></span>
+                    <button id="use-current-location" class="button secondary" type="button">Use Current Location</button>
+                    <button class="button" type="submit">Refresh / Filter</button>
+                </form>
+                <p id="breakdown-status" class="caption breakdown-source" role="status">Set a base location to filter live alerts by distance.</p>
+                <div id="breakdown-list" class="breakdown-list" aria-live="polite"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            const urlParameters = new URLSearchParams(window.location.search);
+            const apiKeyFromUrl = urlParameters.get('apiKey');
+            const operationsKeyFromUrl = urlParameters.get('operationsKey');
+            if (apiKeyFromUrl) {
+                sessionStorage.setItem('graceApiKey', apiKeyFromUrl);
+            }
+            if (operationsKeyFromUrl) {
+                sessionStorage.setItem('graceOperationsAccessKey', operationsKeyFromUrl);
+            }
+            if (apiKeyFromUrl || operationsKeyFromUrl) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            const apiKey = sessionStorage.getItem('graceApiKey');
+            const operationsAccessKey = sessionStorage.getItem('graceOperationsAccessKey');
+            const apiHeaders = {
+                ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+                ...(operationsAccessKey ? { 'X-Operations-Access-Key': operationsAccessKey } : {})
+            };
+            const activeList = document.getElementById('active-list');
+            const recentList = document.getElementById('recent-list');
+            const alertList = document.getElementById('alert-list');
+            const breakdownList = document.getElementById('breakdown-list');
+            const breakdownFilter = document.getElementById('breakdown-filter');
+            const baseLatitude = document.getElementById('base-latitude');
+            const baseLongitude = document.getElementById('base-longitude');
+            const breakdownRadius = document.getElementById('breakdown-radius');
+            const breakdownStatus = document.getElementById('breakdown-status');
+            const useCurrentLocation = document.getElementById('use-current-location');
+            const enableAlerts = document.getElementById('enable-alerts');
+            const systemStatus = document.getElementById('system-status');
+            const sseStatus = document.getElementById('sse-status');
+            const lastUpdated = document.getElementById('last-updated');
+            const corridorCounts = {
+                'I-78': document.getElementById('i78-count'),
+                'I-81': document.getElementById('i81-count'),
+                'PA Turnpike': document.getElementById('turnpike-count')
+            };
+            const breakdownLocationStorageKey = 'graceOperationsBreakdownLocation';
+            const seenBreakdownIds = new Set();
+            let hasLoadedBreakdowns = false;
+
+            function setStatus(element, text, type) {
+                element.textContent = text;
+                element.className = `status ${type}`;
+            }
+
+            function dispatchDetails(record) {
+                const input = Array.isArray(record.input) ? (record.input[0] || {}) : (record.input || {});
+                const output = record.output || {};
+                const billing = output.billing || {};
+                return {
+                    carrier: billing.carrierAccount || input.carrier || 'Carrier not recorded',
+                    location: output.location || output.breakdownLocation || input.location || input.breakdownLocation || 'Location not recorded',
+                    priority: output.priority || input.priority || 'Not assigned',
+                    total: billing.estimatedTotal || 'Not available',
+                    timestamp: record.timestamp || output.timestamp || input.timestamp,
+                    status: output.status || record.status || input.status || 'Saved'
+                };
+            }
+
+            function formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return Number.isNaN(date.getTime()) ? 'Time not recorded' : date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+            }
+
+            function priorityClass(priority) {
+                const value = String(priority).toLowerCase();
+                if (value === '1' || value.includes('high') || value.includes('critical')) return 'high';
+                if (value === '2' || value.includes('medium')) return 'medium';
+                return '';
+            }
+
+            function isActive(details) {
+                const status = String(details.status).toLowerCase();
+                return ['active', 'pending', 'assigned', 'in progress', 'in-progress', 'open', 'dispatched'].some(value => status.includes(value));
+            }
+
+            function emptyState(container, message) {
+                container.replaceChildren();
+                const text = document.createElement('p');
+                text.className = 'empty';
+                text.textContent = message;
+                container.appendChild(text);
+            }
+
+            function incidentCard(details) {
+                const card = document.createElement('article');
+                card.className = `incident ${priorityClass(details.priority)}`;
+                const header = document.createElement('div');
+                header.className = 'incident-header';
+                const carrier = document.createElement('h3');
+                carrier.textContent = details.carrier;
+                const priority = document.createElement('span');
+                priority.className = 'priority';
+                priority.textContent = `Priority ${details.priority}`;
+                header.append(carrier, priority);
+                const location = document.createElement('p');
+                location.className = 'incident-location';
+                location.textContent = details.location;
+                const meta = document.createElement('div');
+                meta.className = 'incident-meta';
+                const total = document.createElement('span');
+                total.className = 'total';
+                total.textContent = `Est. ${details.total}`;
+                const time = document.createElement('time');
+                time.className = 'incident-time';
+                time.textContent = formatTime(details.timestamp);
+                meta.append(total, time);
+                card.append(header, location, meta);
+                return card;
+            }
+
+            function renderIncidents(records) {
+                const details = records.map(dispatchDetails);
+                const active = details.filter(isActive).slice(0, 6);
+                const recent = details.filter(item => !isActive(item)).slice(0, 6);
+                if (active.length) {
+                    activeList.replaceChildren(...active.map(incidentCard));
+                } else {
+                    emptyState(activeList, 'No active dispatches are recorded.');
+                }
+                if (recent.length) {
+                    recentList.replaceChildren(...recent.map(incidentCard));
+                } else {
+                    emptyState(recentList, 'No recent closed dispatches are recorded.');
+                }
+            }
+
+            function renderCorridors(records) {
+                Object.entries(corridorCounts).forEach(([corridor, element]) => {
+                    const count = records.filter(record => dispatchDetails(record).location.toLowerCase().includes(corridor.toLowerCase())).length;
+                    element.textContent = String(count);
+                });
+            }
+
+            function renderAlerts(records) {
+                alertList.replaceChildren();
+                const alerts = records.slice(0, 6).map(dispatchDetails);
+                if (!alerts.length) {
+                    emptyState(alertList, 'No saved dispatch locations are available.');
+                    return;
+                }
+                alerts.forEach(details => {
+                    const alert = document.createElement('article');
+                    alert.className = 'alert';
+                    const location = document.createElement('p');
+                    location.className = 'alert-location';
+                    location.textContent = details.location;
+                    const detail = document.createElement('p');
+                    detail.className = 'alert-detail';
+                    detail.textContent = `${details.carrier} · Priority ${details.priority} · ${formatTime(details.timestamp)}`;
+                    alert.append(location, detail);
+                    alertList.appendChild(alert);
+                });
+            }
+
+            function renderTraffic(traffic) {
+                const indicator = document.getElementById('traffic-indicator');
+                const title = document.getElementById('traffic-title');
+                const message = document.getElementById('traffic-message');
+                const available = Boolean(traffic && traffic.available);
+                indicator.className = `traffic-indicator ${available ? 'available' : 'unavailable'}`;
+                title.textContent = available ? `Live provider available${traffic.source ? `: ${traffic.source}` : ''}` : 'Live provider unavailable';
+                message.textContent = traffic && traffic.message ? traffic.message : 'The traffic provider did not return a status.';
+            }
+
+            function isPriorityOne(breakdown) {
+                const priority = String(breakdown.priority ?? breakdown.severity ?? '').trim().toLowerCase();
+                return priority === '1' || priority === 'priority 1' || priority === 'p1' || priority.includes('critical');
+            }
+
+            function breakdownDetails(breakdown) {
+                return {
+                    id: breakdown.id ?? breakdown.dispatchId ?? breakdown.recordId ?? '',
+                    location: breakdown.location ?? breakdown.breakdownLocation ?? 'Location not recorded',
+                    cause: breakdown.cause ?? breakdown.issue ?? breakdown.description ?? breakdown.userQuestion ?? 'Issue not recorded',
+                    priority: breakdown.priority ?? breakdown.severity ?? 'Not assigned',
+                    distance: breakdown.distance ?? breakdown.distanceMiles ?? breakdown.milesAway,
+                    timestamp: breakdown.timestamp ?? breakdown.createdAt ?? breakdown.created_at
+                };
+            }
+
+            function formatDistance(distance) {
+                const numericDistance = Number(distance);
+                return Number.isFinite(numericDistance) ? `${numericDistance.toLocaleString(undefined, { maximumFractionDigits: 1 })} mi away` : 'Distance not available';
+            }
+
+            function breakdownCard(breakdown) {
+                const details = breakdownDetails(breakdown);
+                const card = document.createElement('article');
+                card.className = `breakdown-card${isPriorityOne(details) ? ' priority-one' : ''}`;
+                const header = document.createElement('div');
+                header.className = 'incident-header';
+                const location = document.createElement('h3');
+                location.textContent = details.location;
+                const priority = document.createElement('span');
+                priority.className = 'priority';
+                priority.textContent = `Priority ${details.priority}`;
+                header.append(location, priority);
+                const cause = document.createElement('p');
+                cause.className = 'breakdown-cause';
+                cause.textContent = details.cause;
+                const meta = document.createElement('div');
+                meta.className = 'breakdown-meta';
+                const distance = document.createElement('span');
+                distance.className = 'breakdown-distance';
+                distance.textContent = formatDistance(details.distance);
+                const time = document.createElement('time');
+                time.textContent = formatTime(details.timestamp);
+                meta.append(distance, time);
+                card.append(header, cause, meta);
+                return card;
+            }
+
+            function renderBreakdowns(breakdowns) {
+                if (!breakdowns.length) {
+                    emptyState(breakdownList, 'Live alerts appear only when real events are received.');
+                    return;
+                }
+                breakdownList.replaceChildren(...breakdowns.map(breakdownCard));
+            }
+
+            function persistBreakdownLocation() {
+                localStorage.setItem(breakdownLocationStorageKey, JSON.stringify({
+                    latitude: baseLatitude.value,
+                    longitude: baseLongitude.value,
+                    radius: breakdownRadius.value
+                }));
+            }
+
+            function restoreBreakdownLocation() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(breakdownLocationStorageKey));
+                    if (saved) {
+                        baseLatitude.value = saved.latitude || '';
+                        baseLongitude.value = saved.longitude || '';
+                        breakdownRadius.value = saved.radius || '150';
+                    }
+                } catch (_) {
+                    localStorage.removeItem(breakdownLocationStorageKey);
+                }
+            }
+
+            function updateAlertButton() {
+                if (!('Notification' in window)) {
+                    enableAlerts.disabled = true;
+                    enableAlerts.textContent = 'Alerts Unsupported';
+                    return;
+                }
+                enableAlerts.disabled = Notification.permission === 'denied';
+                enableAlerts.textContent = Notification.permission === 'granted' ? 'Alerts Enabled' : Notification.permission === 'denied' ? 'Alerts Blocked' : 'Enable Alerts';
+            }
+
+            function notifyPriorityOne(breakdown) {
+                const details = breakdownDetails(breakdown);
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Priority 1 breakdown', { body: `${details.location}: ${details.cause}` });
+                }
+            }
+
+            async function loadBreakdowns(notifyNew) {
+                const latitude = baseLatitude.value.trim();
+                const longitude = baseLongitude.value.trim();
+                const radius = breakdownRadius.value.trim() || '150';
+                const params = new URLSearchParams({ latitude, longitude, radius });
+                breakdownStatus.textContent = 'Refreshing live breakdown alerts…';
+                try {
+                    const response = await fetch(`/api/breakdowns/live?${params.toString()}`, { headers: apiHeaders });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const payload = await response.json();
+                    if (payload.success === false) throw new Error(payload.error || 'Live breakdown request was unsuccessful.');
+                    const breakdowns = Array.isArray(payload.breakdowns) ? payload.breakdowns : Array.isArray(payload.results) ? payload.results : [];
+                    renderBreakdowns(breakdowns);
+                    breakdownStatus.textContent = breakdowns.length ? `${breakdowns.length} qualifying live alert${breakdowns.length === 1 ? '' : 's'} received.` : 'Live alerts appear only when real events are received.';
+                    breakdowns.forEach(breakdown => {
+                        const id = String(breakdownDetails(breakdown).id);
+                        const isNew = id && !seenBreakdownIds.has(id);
+                        if (notifyNew && hasLoadedBreakdowns && isNew && isPriorityOne(breakdown)) notifyPriorityOne(breakdown);
+                        if (id) seenBreakdownIds.add(id);
+                    });
+                    hasLoadedBreakdowns = true;
+                } catch (_) {
+                    renderBreakdowns([]);
+                    breakdownStatus.textContent = 'Live alerts could not be refreshed. Live alerts appear only when real events are received.';
+                }
+            }
+
+            async function loadLiveData() {
+                setStatus(systemStatus, 'System refreshing', 'warn');
+                try {
+                    const response = await fetch('/api/operations/live', { headers: apiHeaders });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const payload = await response.json();
+                    if (!payload.success) throw new Error(payload.error || 'Live data request was unsuccessful.');
+                    const records = Array.isArray(payload.dispatches) ? payload.dispatches : [];
+                    renderIncidents(records);
+                    renderCorridors(records);
+                    renderAlerts(records);
+                    renderTraffic(payload.traffic);
+                    lastUpdated.textContent = `Updated ${formatTime(payload.generatedAt)}`;
+                    setStatus(systemStatus, 'System live', 'ok');
+                } catch (error) {
+                    setStatus(systemStatus, 'System unavailable', 'error');
+                    lastUpdated.textContent = 'Live data could not be refreshed';
+                }
+            }
+
+            function connectEventStream() {
+                const eventParameters = new URLSearchParams();
+                if (apiKey) eventParameters.set('apiKey', apiKey);
+                if (operationsAccessKey) eventParameters.set('operationsKey', operationsAccessKey);
+                const eventQuery = eventParameters.toString();
+                const eventUrl = `/api/operations/events${eventQuery ? `?${eventQuery}` : ''}`;
+                const eventSource = new EventSource(eventUrl);
+                eventSource.onopen = () => setStatus(sseStatus, 'SSE connected', 'ok');
+                eventSource.addEventListener('dispatch-created', () => {
+                    loadLiveData();
+                    loadBreakdowns(true);
+                });
+                eventSource.addEventListener('dispatch-updated', loadLiveData);
+                eventSource.onerror = () => setStatus(sseStatus, 'SSE reconnecting', 'warn');
+            }
+
+            restoreBreakdownLocation();
+            renderBreakdowns([]);
+            breakdownFilter.addEventListener('submit', event => {
+                event.preventDefault();
+                persistBreakdownLocation();
+                loadBreakdowns(false);
+            });
+            useCurrentLocation.addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    breakdownStatus.textContent = 'Current location is not supported by this browser.';
+                    return;
+                }
+                breakdownStatus.textContent = 'Getting current location…';
+                navigator.geolocation.getCurrentPosition(position => {
+                    baseLatitude.value = position.coords.latitude.toFixed(6);
+                    baseLongitude.value = position.coords.longitude.toFixed(6);
+                    persistBreakdownLocation();
+                    loadBreakdowns(false);
+                }, () => {
+                    breakdownStatus.textContent = 'Current location could not be obtained.';
+                }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
+            });
+            enableAlerts.addEventListener('click', async () => {
+                if (!('Notification' in window)) return;
+                if (Notification.permission === 'default') await Notification.requestPermission();
+                updateAlertButton();
+            });
+            updateAlertButton();
+            loadLiveData();
+            loadBreakdowns(false);
+            connectEventStream();
+            window.setInterval(loadLiveData, 60000);
+        })();
+    </script>
+</body>
+</html>

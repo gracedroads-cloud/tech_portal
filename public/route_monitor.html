@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Grace Master Route Monitor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQOUyJc0oS0+g2LlfWPgU04xyI0tB4=" crossorigin="">
+  <style>
+    body{margin:0;background:#05111e;color:#e8f4ff;font:15px Arial,sans-serif}header{padding:16px 20px;background:#0a1d30;border-bottom:1px solid #28506f;display:flex;gap:16px;justify-content:space-between;align-items:center}h1{margin:0;font-size:1.3rem}.status{color:#a8c6d9;font-size:.85rem}#map{height:calc(100vh - 143px)}.controls{padding:10px 20px;background:#071725;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.controls input{width:80px;padding:7px}.controls button{padding:8px 12px;background:#3bb9e8;border:0;border-radius:5px;font-weight:bold;cursor:pointer}.notice{color:#b9d3e5}.truck-pin{background:#e55353;border-radius:50%;border:2px solid white;width:16px;height:16px}.base-pin{background:#39d99a;border-radius:50%;border:2px solid white;width:16px;height:16px}
+  </style>
+</head>
+<body>
+<header><div><h1>Grace Master Route Monitor</h1><div class="status" id="status">Requesting current location…</div></div><div class="status">Real GPS events only · 150-mile base</div></header>
+<div class="controls"><label>Radius <input id="radius" type="number" min="1" max="500" value="150"> miles</label><button id="locate">Use Current Location</button><button id="refresh">Refresh Live Events</button><span class="notice">Routes appear only when an authorized fleet source supplies ongoing GPS updates.</span></div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(() => {
+ const status=document.getElementById('status'), radius=document.getElementById('radius');
+ const map=L.map('map').setView([40.6084,-75.4902],9);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);
+ let base=null, baseMarker=null, radiusCircle=null, eventLayer=L.layerGroup().addTo(map);
+ const key=sessionStorage.getItem('graceOperationsAccessKey');
+ const headers=key?{'X-Operations-Access-Key':key}:{};
+ function setBase(lat,lng){base={lat,lng}; if(baseMarker)map.removeLayer(baseMarker);if(radiusCircle)map.removeLayer(radiusCircle);baseMarker=L.marker([lat,lng],{icon:L.divIcon({className:'base-pin'})}).addTo(map).bindPopup('Current Grace base');radiusCircle=L.circle([lat,lng],{radius:Number(radius.value)*1609.344,color:'#39d99a',fillOpacity:.05}).addTo(map);map.setView([lat,lng],9);}
+ async function load(){if(!base){status.textContent='Current location is required for the 150-mile monitor.';return;}eventLayer.clearLayers();const params=new URLSearchParams({latitude:base.lat,longitude:base.lng,radius:radius.value||'150'});try{const r=await fetch('/api/breakdowns/live?'+params,{headers});const p=await r.json();if(!r.ok)throw Error(p.error||'Live event request failed.');p.breakdowns.forEach(item=>{if(item.latitude==null||item.longitude==null)return;const popup=`<strong>${item.vehicle||'Fleet vehicle'}</strong><br>${item.location}<br>Cause: ${item.cause}<br>Priority: ${item.priority}<br>${item.distanceMiles??'—'} miles away`;L.marker([item.latitude,item.longitude],{icon:L.divIcon({className:'truck-pin'})}).addTo(eventLayer).bindPopup(popup);});status.textContent=`${p.breakdowns.length} real breakdown event(s) within ${p.radiusMiles} miles. ${p.breakdowns.some(x=>x.latitude!=null)?'Markers show source GPS coordinates.':'No GPS coordinates received yet.'}`;}catch(e){status.textContent=e.message;}}
+ function locate(){if(!navigator.geolocation){status.textContent='This browser cannot provide current location.';return;}status.textContent='Getting current location…';navigator.geolocation.getCurrentPosition(pos=>{setBase(pos.coords.latitude,pos.coords.longitude);load();},()=>status.textContent='Location permission was not granted.');}
+ document.getElementById('locate').onclick=locate;document.getElementById('refresh').onclick=load;radius.onchange=()=>{if(base){setBase(base.lat,base.lng);load();}};locate();setInterval(load,30000);
+})();
+</script>
+</body></html>
