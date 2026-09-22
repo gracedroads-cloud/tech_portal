@@ -242,7 +242,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname)); // Serves root-level files like index.html
 
 // Ensure local data directory exists for JSON backups
-const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
 const graceDataDir = path.join(dataDir, 'grace_calls');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });

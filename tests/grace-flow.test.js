@@ -6,7 +6,7 @@ const http = require('http');
 const appModule = require('../app');
 const app = appModule.app || appModule;
 
-const dataDir = path.join(__dirname, '..', 'data');
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data'));
 const graceDataDir = path.join(dataDir, 'grace_calls');
 const auditLogPath = path.join(dataDir, 'grace_audit.log');
 
