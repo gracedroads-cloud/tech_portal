@@ -23,30 +23,30 @@
     <div class="card">
       <h1>Grace Call-to-Dispatch Flow</h1>
       <p class="warning">Scope limited to heavy-duty diesel repair for tractor-trailers/heavy-duty trucks. Towing/winching is out-of-scope.</p>
-      <label>Call ID</label>
+      <label for="callId">Call ID</label>
       <input id="callId" placeholder="Created after Answer">
 
       <label for="operatorToken">Operator Token (estimate approval only)</label>
       <input id="operatorToken" placeholder="Required for authenticated estimate approval">
 
-      <label>Carrier Name</label>
+      <label for="carrierName">Carrier Name</label>
       <input id="carrierName" value="Keystone Freight">
 
-      <label>Vehicle Type</label>
+      <label for="vehicleType">Vehicle Type</label>
       <select id="vehicleType">
         <option value="tractor-trailer">Tractor-Trailer</option>
         <option value="heavy-duty truck">Heavy-Duty Truck</option>
         <option value="passenger vehicle">Passenger Vehicle (out-of-scope)</option>
       </select>
 
-      <label>Service Category</label>
+      <label for="serviceCategory">Service Category</label>
       <select id="serviceCategory">
         <option value="air_brake_repair">Air Brake Repair</option>
         <option value="diagnostics">Diagnostics</option>
         <option value="tire_service">Commercial Tire Service</option>
       </select>
 
-      <label>Issue Description</label>
+      <label for="issueDescription">Issue Description</label>
       <textarea id="issueDescription">Trailer air leak near belly line.</textarea>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
