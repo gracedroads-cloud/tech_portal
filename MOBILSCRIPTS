@@ -1,0 +1,122 @@
+Here’s your **Claude Execution Script** for **Groups 19–21 in `/mobile`**—ready to paste straight into Claude in VS Code.
+
+---
+
+### ⭐ CLAUDE EXECUTION SCRIPT — IMPLEMENT GROUPS 19–21 IN `/mobile`
+
+```text
+Claude — implement Groups 19, 20, and 21 in /mobile now.
+
+Follow this exact sequence and execute each step in order:
+
+────────────────────────────────────────
+GROUP 19 — MOBILE TEST SUITE
+────────────────────────────────────────
+
+1. In /mobile, install test dependencies:
+   npm install --save-dev jest @testing-library/react-native @testing-library/jest-native
+
+2. Create /mobile/jest.config.js with:
+   module.exports = {
+     preset: "react-native",
+     setupFilesAfterEnv: ["@testing-library/jest-native/extend-expect"],
+   };
+
+3. Create test folder:
+   /mobile/src/__tests__
+
+4. Add tests:
+   - LoginScreen.test.js
+     • Render LoginScreen
+     • Fill username
+     • Press Login
+     • Expect navigation.navigate("Dashboard") to be called
+
+   - NoTowBanner.test.js
+     • Render NoTowBanner
+     • Assert text:
+       "Repair‑Only: WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE."
+
+5. Ensure tests run with:
+   npm test
+
+────────────────────────────────────────
+GROUP 20 — PERFORMANCE OPTIMIZATION
+────────────────────────────────────────
+
+6. Replace any non-virtualized lists with FlatList:
+   - Breakdown lists
+   - Grace Assistant messages
+   - Protocol steps
+
+7. For FlatList components:
+   - Add keyExtractor={(item, index) => index.toString()}
+   - Set initialNumToRender to a reasonable value (e.g., 10).
+
+8. Wrap heavy components with React.memo:
+   - BreakdownCard
+   - StatusTag
+
+9. Use useCallback for event handlers in screens to reduce re-renders.
+
+10. Optimize Socket.IO usage:
+    - In hooks (useBreakdowns, useGpsUnit, etc.), add cleanup:
+      useEffect(() => {
+        const handler = (data) => { ... };
+        socket.on('gps_update', handler);
+        return () => socket.off('gps_update', handler);
+      }, []);
+
+11. Avoid unnecessary libraries and keep bundle lean.
+
+────────────────────────────────────────
+GROUP 21 — SECURITY HARDENING
+────────────────────────────────────────
+
+12. Confirm backend URL usage:
+    - Use EXPO_PUBLIC_BACKEND_URL only for non-secret config.
+    - Do not store any secrets in the mobile app.
+
+13. Ensure all API calls and Socket.IO connect over HTTPS/WSS in production:
+    - Backend must be HTTPS-only.
+    - Socket client uses secure URL in production.
+
+14. Add basic client-side validation for user inputs:
+    - LoginScreen
+    - BreakdownIntakeScreen
+    - GraceAssistantScreen
+
+15. Ensure backend remains the source of truth for:
+    - NO-TOW policy enforcement
+    - Emergency protocol logic
+    - Vendor selection
+    - Grace assistant responses
+
+16. For GraceAssistantScreen:
+    - Keep NoTowBanner visible at the top.
+    - Add text under the input:
+      "Grace provides repair‑only guidance. No towing or winching will be suggested."
+
+17. Coordinate with backend /api/grace/assistant implementation:
+    - Backend filters tow/winch requests.
+    - Backend logs misuse attempts.
+    - Backend always responds with repair-only guidance.
+
+────────────────────────────────────────
+FINALIZE
+────────────────────────────────────────
+
+18. Run:
+    npm test
+    npm run start
+
+19. Confirm:
+    - Tests pass.
+    - App performance is smooth (lists, maps, sockets).
+    - Security posture is aligned with repair-only, NO-TOW identity.
+    - Grace Assistant behaves strictly within repair-only scope.
+
+Execute all steps in order. Do not skip any. Maintain repair-only identity throughout.
+```
+
+If you want to go further after Claude runs this, we can define **Group 22+** for analytics, technician productivity metrics, or in-app incident timelines.
