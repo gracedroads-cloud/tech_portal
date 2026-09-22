@@ -1,0 +1,90 @@
+EH GRACED ROADS SOLUTIONS LLC — SYSTEM DIAGRAM (text)
+
+=====================================================================
+ CURRENT STATE (two processes)
+=====================================================================
+
+  +----------------------+          +--------------------------------+
+  |  Operator browser    |          |  Operator browser              |
+  |  localhost:3000      |          |  localhost:4300                |
+  +----------+-----------+          +---------------+----------------+
+             |                                      |
+             v                                      v
+  +----------------------+          +--------------------------------+
+  | MAIN PORTAL          |          | ISOLATED OPERATIONS COMMAND    |
+  | Express 5 / helmet   |          | node:http, zero deps           |
+  |                      |          |                                |
+  | pages:               |          | monitor wall (SSE):            |
+  |  master suite        |          |  system health   automation    |
+  |  business dashboard  |          |  incidents       dispatch queue|
+  |   (Grace stream)     |          |  active units    Grace AI      |
+  |  breakdown scanner   |          |  Teams           video / TV    |
+  |  dispatch console    |          |  secure browser  policy rejects|
+  |  onboarding, draws   |          |  audit                         |
+  |  DVIR, no-tow waiver |          |                                |
+  |                      |          | intake -> policy -> Grace ->   |
+  | token: x-operator-   |          |   policy filter -> HUMAN       |
+  |  token (3 modes)     |          |   APPROVAL -> work order       |
+  +----------+-----------+          +---------------+----------------+
+             |                                      |
+             v                                      v
+  DATA_DIR/                            ISOLATED_OPS_DATA_DIR/
+    dvir_reports/*.json                  ops-state.json   (atomic)
+    stream_overrides/*.json              audit.log.jsonl  (append)
+    waiver_submissions/*.json
+    onboarding_requests/*.json
+    owner_draw_requests/*.json
+    dispatch_quotes/*.json
+    audit/*.ndjson         (append)
+
+=====================================================================
+ TARGET STATE (one process)  — docs/MERGE_PLAN.md
+=====================================================================
+
+  +---------------------------------------------------------------+
+  |  MERGED SERVER  (Express, PORT, one OPERATOR_TOKEN)           |
+  |                                                               |
+  |  /            /public/*.html   /no_tow_authorization.html     |
+  |  /api/*       portal routes, 3-mode auth, portal CSP          |
+  |  /healthz     /readyz (+ ops block, no paths)                 |
+  |                                                               |
+  |  /ops/        monitor wall UI, script-src 'self'              |
+  |  /ops/api/*   ops router: auth ALWAYS, rate limit, 16KB body, |
+  |               SSE, policy, Grace adapter, approvals, backup   |
+  +-------------------------------+-------------------------------+
+                                  |
+                                  v
+                    DATA_DIR/
+                      <portal collections>/   audit/
+                      isolated-ops/ops-state.json  audit.log.jsonl
+
+=====================================================================
+ OPTIONAL EXTERNAL (customer-owned, simulation by default)
+=====================================================================
+
+   GRACE_AI_ENDPOINT  --->  structured JSON only  --->  policy filter
+   TEAMS_WEBHOOK_URL  <---  status summaries (redacted logs, retries)
+   TEAMS_INBOUND_TOKEN ---> /ops/api/teams/events (own bearer check)
+   media / secure-browser origins  --->  allowlists + CSP
+
+=====================================================================
+ POLICY WALL (never bypassed)
+=====================================================================
+
+   request text ---> /tow|towing|towed|winch.*|recovery|pull[- ]?out/i
+                      |
+              match ---+---> 422  policy.rejected  -> external referral
+                      |
+           no match --+---> Grace advisory -> same regex on AI output
+                                              |
+                                   match -----+--> 422 policy.rejected_ai_output
+                                              |
+                                no match -----+--> awaiting_human_approval
+
+=====================================================================
+ MOBILE (separate repo: gracedroads-cloud/grace-roads-mobile)
+=====================================================================
+
+   Expo / React Native / TypeScript, role-based (admin, manager,
+   dispatcher, driver). Demo/local data now; will call the merged
+   server's APIs later with server-side authorization.

@@ -1,8 +1,10 @@
 # Claude Project Instructions — tech_portal (EH Graced Roads)
 
-Read this first, then `docs/MERGE_PLAN.md`, `docs/SECURITY_BOUNDARIES.md`,
-and `docs/GRACE_AI_INVENTORY.md`. Every Grace AI behavior on both sides must
-survive the merge; the inventory is the checklist.
+Read this first, then `docs/CopilotMasterContext.md` (the index of every
+doc, with reading order), then `docs/MERGE_PLAN.md`,
+`docs/SECURITY_BOUNDARIES.md`, and `docs/GRACE_AI_INVENTORY.md`. Every Grace
+AI behavior on both sides must survive the merge; the inventory is the
+checklist.
 
 ## Project identity
 
