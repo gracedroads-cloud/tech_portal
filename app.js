@@ -1274,7 +1274,6 @@ app.post('/api/grace/quote', writeRateLimit, (req, res) => {
       return res.status(409).json({ success: false, error: 'Scope must be approved before quote.' });
     }
 
-    const stateEvent = transitionState(call, 'quote', { generatedBy: 'grace' });
     const estimate = generateEstimate({
       serviceCategory: req.body.serviceCategory || call.intake.serviceCategory,
       laborTier: req.body.laborTier,
@@ -1282,6 +1281,7 @@ app.post('/api/grace/quote', writeRateLimit, (req, res) => {
       mileage: req.body.mileage,
       feeSchedule: req.body.feeSchedule
     });
+    const stateEvent = transitionState(call, 'quote', { generatedBy: 'grace' });
 
     call.estimate = estimate;
     call.dispatch.estimateProvided = true;
