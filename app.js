@@ -138,6 +138,12 @@ const fieldDvirReminderTracker = new Map();
 const fieldStaleReminderTracker = new Map();
 const fieldAuthRequestBuckets = new Map();
 const adminRequestBuckets = new Map();
+const publicPageLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 240,
+    standardHeaders: true,
+    legacyHeaders: false
+});
 const fieldAuthLoginLimiter = rateLimit({
     windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
     limit: AUTH_RATE_LIMIT_MAX,
@@ -239,13 +245,13 @@ app.use((req, res, next) => {
     next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (_req, res) => {
+app.get('/', publicPageLimiter, (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
-app.get('/index.html', (_req, res) => {
+app.get('/index.html', publicPageLimiter, (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
-app.get('/no_tow_authorization.html', (_req, res) => {
+app.get('/no_tow_authorization.html', publicPageLimiter, (_req, res) => {
   res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
 });
 
