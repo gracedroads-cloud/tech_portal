@@ -307,8 +307,30 @@ function createGraceCall(payload) {
   return call;
 }
 
+function getPersistedGraceCallPath(callId) {
+  if (path.basename(callId) !== callId) {
+    return null;
+  }
+  return path.join(graceDataDir, `${callId}.json`);
+}
+
+function loadPersistedGraceCall(callId) {
+  const filePath = getPersistedGraceCallPath(callId);
+  if (!filePath || !fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const call = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  if (call?.callId !== callId) {
+    return null;
+  }
+
+  graceCalls.set(callId, call);
+  return call;
+}
+
 function getCallOrThrow(callId) {
-  const call = graceCalls.get(callId);
+  const call = graceCalls.get(callId) || loadPersistedGraceCall(callId);
   if (!call) {
     throw new Error('Grace call not found.');
   }
