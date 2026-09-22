@@ -22,6 +22,25 @@ test('sanitizeForStorage redacts payment data embedded in free-text values', () 
   assert.match(sanitized.resolutionNotes, /\[REDACTED\]/);
 });
 
+test('sanitizeForStorage redacts whole nested payment payloads', () => {
+  const sanitized = sanitizeForStorage({
+    paymentMethod: {
+      number: '5555555555554444',
+      cvv: '321'
+    },
+    paymentLink: {
+      provider: 'pci-compliant-provider'
+    }
+  });
+
+  assert.deepEqual(sanitized, {
+    paymentMethod: '[REDACTED]',
+    paymentLink: {
+      provider: 'pci-compliant-provider'
+    }
+  });
+});
+
 test('appendAuditEvent does not write free-text payment values to disk', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'grace-audit-'));
   const auditPath = path.join(tempDir, 'grace_audit.log');
