@@ -239,7 +239,15 @@ app.use((req, res, next) => {
     next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname)); // Serves root-level files like index.html
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/index.html', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/no_tow_authorization.html', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'no_tow_authorization.html'));
+});
 
 // Ensure local data directory exists for JSON backups
 const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
