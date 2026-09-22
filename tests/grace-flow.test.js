@@ -13,7 +13,7 @@ const auditLogPath = path.join(dataDir, 'grace_audit.log');
 let server;
 let baseUrl;
 
-function request(method, route, body) {
+function request(method, route, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
     const url = new URL(route, baseUrl);
@@ -21,7 +21,8 @@ function request(method, route, body) {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': payload ? Buffer.byteLength(payload) : 0
+        'Content-Length': payload ? Buffer.byteLength(payload) : 0,
+        ...headers
       }
     }, (res) => {
       let raw = '';
@@ -186,4 +187,28 @@ test('payment-link generation requires estimate approval or acceptance', async (
   const denied = await request('POST', '/api/grace/payment_link', { callId });
   assert.equal(denied.status, 409);
   assert.match(denied.body.error, /Estimate must be approved or accepted/i);
+});
+
+test('operator-authenticated estimate approval unlocks payment-link generation after quote', async () => {
+  const callId = await createCallThroughIntake();
+  await request('POST', '/api/grace/scope_check', { callId });
+  await request('POST', '/api/grace/quote', {
+    callId,
+    laborTier: 'standard',
+    laborHours: 1,
+    mileage: 0,
+    feeSchedule: 'standard'
+  });
+
+  const approved = await request(
+    'POST',
+    '/api/grace/estimate_approval',
+    { callId, approvedBy: 'operator' },
+    { 'x-operator-token': process.env.GRACE_OPERATOR_TOKEN }
+  );
+  assert.equal(approved.status, 200);
+  assert.equal(approved.body.gates.pricingEstimateApprovedOrAccepted, true);
+
+  const paymentResp = await request('POST', '/api/grace/payment_link', { callId });
+  assert.equal(paymentResp.status, 200);
 });

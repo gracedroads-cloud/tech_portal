@@ -26,6 +26,9 @@
       <label>Call ID</label>
       <input id="callId" placeholder="Created after Answer">
 
+      <label for="operatorToken">Operator Token (estimate approval only)</label>
+      <input id="operatorToken" placeholder="Required for authenticated estimate approval">
+
       <label>Carrier Name</label>
       <input id="carrierName" value="Keystone Freight">
 
@@ -51,11 +54,12 @@
         <button type="button" id="btn-intake">2. intake</button>
         <button type="button" id="btn-scope-check">3. scope_check</button>
         <button type="button" id="btn-quote">4. quote</button>
-        <button type="button" id="btn-payment-link">5. payment_link</button>
-        <button type="button" id="btn-tech-offer">6. technician_offer</button>
-        <button type="button" id="btn-tech-acceptance">7. technician_acceptance</button>
-        <button type="button" id="btn-work-order">8. work_order_create</button>
-        <button type="button" id="btn-closeout">9. closeout</button>
+        <button type="button" id="btn-estimate-approval">5. estimate_approval</button>
+        <button type="button" id="btn-payment-link">6. payment_link</button>
+        <button type="button" id="btn-tech-offer">7. technician_offer</button>
+        <button type="button" id="btn-tech-acceptance">8. technician_acceptance</button>
+        <button type="button" id="btn-work-order">9. work_order_create</button>
+        <button type="button" id="btn-closeout">10. closeout</button>
       </div>
       <p class="warning">Payment is link-only. Do not enter raw card numbers in this app.</p>
     </div>
@@ -75,12 +79,14 @@
   <script>
     const output = document.getElementById('output');
     const callIdInput = document.getElementById('callId');
+    const operatorTokenInput = document.getElementById('operatorToken');
     const nextActionStatus = document.getElementById('next-action-status');
     const actionButtons = {
       answer: document.getElementById('btn-answer'),
       intake: document.getElementById('btn-intake'),
       scope_check: document.getElementById('btn-scope-check'),
       quote: document.getElementById('btn-quote'),
+      estimate_approval: document.getElementById('btn-estimate-approval'),
       payment_link: document.getElementById('btn-payment-link'),
       technician_offer: document.getElementById('btn-tech-offer'),
       technician_acceptance: document.getElementById('btn-tech-acceptance'),
@@ -88,14 +94,14 @@
       closeout: document.getElementById('btn-closeout')
     };
 
-    function updateActionAvailability(state) {
+    function updateActionAvailability(state, gates = {}) {
       const nextActionByState = {
         undefined: 'answer',
         new: 'answer',
         answered: 'intake',
         intake: 'scope_check',
         scope_check: 'quote',
-        quote: 'payment_link',
+        quote: gates.pricingEstimateApprovedOrAccepted ? 'payment_link' : 'estimate_approval',
         payment_link: 'technician_offer',
         technician_offer: 'technician_acceptance',
         technician_acceptance: 'work_order_create',
@@ -113,16 +119,16 @@
         : `No next action available from state: ${state || 'unknown'}`;
     }
 
-    async function post(path, body) {
+    async function post(path, body, headers = {}) {
       const response = await fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(body)
       });
       const json = await response.json();
       output.textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
       if (json.callId) callIdInput.value = json.callId;
-      if (json.state) updateActionAvailability(json.state);
+      if (json.state) updateActionAvailability(json.state, json.gates);
       return json;
     }
 
@@ -140,17 +146,25 @@
     function answer() { return post('/api/grace/answer', { caller: { phone: '+1-610-555-0147' }, channel: 'voice' }); }
     function intake() { return post('/api/grace/intake', baseBody()); }
     function scopeCheck() { return post('/api/grace/scope_check', baseBody()); }
-    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard', estimateApprovedOrAccepted: true }); }
+    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard' }); }
+    function approveEstimate() {
+      return post(
+        '/api/grace/estimate_approval',
+        { callId: callIdInput.value, approvedBy: 'operator' },
+        { 'x-operator-token': operatorTokenInput.value.trim() }
+      );
+    }
     function paymentLink() { return post('/api/grace/payment_link', baseBody()); }
     function offerTech() { return post('/api/grace/technician_offer', { ...baseBody(), technicianId: 'tech-22', technicianName: 'J. Miller', etaMinutes: 35 }); }
     function acceptTech() { return post('/api/grace/technician_acceptance', { ...baseBody(), accepted: true }); }
-    function createWorkOrder() { return post('/api/grace/work_order_create', { ...baseBody(), estimateApprovedOrAccepted: true, safetyCheckPassed: true }); }
+    function createWorkOrder() { return post('/api/grace/work_order_create', { ...baseBody(), safetyCheckPassed: true }); }
     function closeout() { return post('/api/grace/closeout', { ...baseBody(), resolutionNotes: 'Completed roadside repair.' }); }
 
     document.getElementById('btn-answer').addEventListener('click', answer);
     document.getElementById('btn-intake').addEventListener('click', intake);
     document.getElementById('btn-scope-check').addEventListener('click', scopeCheck);
     document.getElementById('btn-quote').addEventListener('click', quote);
+    document.getElementById('btn-estimate-approval').addEventListener('click', approveEstimate);
     document.getElementById('btn-payment-link').addEventListener('click', paymentLink);
     document.getElementById('btn-tech-offer').addEventListener('click', offerTech);
     document.getElementById('btn-tech-acceptance').addEventListener('click', acceptTech);

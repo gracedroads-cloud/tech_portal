@@ -1299,6 +1299,18 @@ app.post('/api/grace/quote', writeRateLimit, (req, res) => {
   }
 });
 
+app.post('/api/grace/estimate_approval', writeRateLimit, requireOperatorAuth, (req, res) => {
+  try {
+    const call = getCallOrThrow(req.body.callId);
+    call.gates.pricingEstimateApprovedOrAccepted = true;
+    audit(call, 'estimate_approval', { approvedBy: req.body.approvedBy || 'operator' });
+    persistCall(call);
+    return respondWithCall(res, call, { message: 'Estimate approved for downstream dispatch actions.' });
+  } catch (error) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/grace/payment_link', writeRateLimit, (req, res) => {
   try {
     const call = getCallOrThrow(req.body.callId);
