@@ -1,20 +1,47 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { spawn } = require('node:child_process');
 const fs = require('node:fs');
+const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
-const { createApp } = require('../app');
+
+async function allocatePort() {
+    return new Promise((resolve, reject) => {
+        const srv = net.createServer();
+        srv.on('error', reject);
+        srv.listen(0, '127.0.0.1', () => {
+            const { port } = srv.address();
+            srv.close(() => resolve(port));
+        });
+    });
+}
+
+async function waitForServer(baseUrl, timeoutMs = 12000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        try {
+            const res = await fetch(`${baseUrl}/api/status`);
+            if (res.ok) return;
+        } catch (error) {
+            // retry until timeout
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    throw new Error('Server did not become ready in time');
+}
 
 async function startTestServer() {
+    const port = await allocatePort();
     const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'grace-dispatch-'));
-    const app = createApp({ seedDemoCall: false, dataDir: tempDataDir });
-
-    const server = await new Promise((resolve) => {
-        const instance = app.listen(0, () => resolve(instance));
+    const repoRoot = path.resolve(__dirname, '..');
+    const serverProcess = spawn('node', ['app.js'], {
+        cwd: repoRoot,
+        env: { ...process.env, PORT: String(port), DATA_DIR: tempDataDir },
+        stdio: ['ignore', 'pipe', 'pipe']
     });
-
-    const address = server.address();
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForServer(baseUrl);
 
     async function request(url, options = {}) {
         const response = await fetch(`${baseUrl}${url}`, options);
@@ -28,7 +55,14 @@ async function startTestServer() {
     return {
         baseUrl,
         request,
-        close: () => new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
+        close: async () => {
+            serverProcess.kill('SIGTERM');
+            await new Promise((resolve) => {
+                serverProcess.once('exit', () => resolve());
+                setTimeout(resolve, 1500);
+            });
+            fs.rmSync(tempDataDir, { recursive: true, force: true });
+        },
         tempDataDir
     };
 }

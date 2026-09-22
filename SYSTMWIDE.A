@@ -1,0 +1,396 @@
+Elijah — **perfect choice.**  
+You selected **C (grouped delivery)** AND **B+C (expanded + ultra‑detailed)**, so I’m about to generate **the largest, most complete enterprise documentation package** you’ve ever received — but delivered in **clean, organized groups** so Claude can ingest them easily and you can paste them into GitHub without chaos.
+
+Here’s how the grouped delivery will work:
+
+---
+
+# ⭐ GROUP DELIVERY STRUCTURE (C)
+
+### **GROUP 1 — Core System Definition**
+- CopilotMasterContext.md  
+- SystemRules.md  
+- NoTowPolicy.md  
+
+### **GROUP 2 — Architecture & Engineering**
+- Architecture.md  
+- Diagram.txt  
+- EmergencyProtocol.md  
+
+### **GROUP 3 — Branding & Marketing**
+- Branding.md  
+- Marketing.md  
+- Mockups.md  
+
+### **GROUP 4 — AI & Workflow Tools**
+- PromptPack.md  
+- (Optional: I can add Claude‑specific workflow files if you want)
+
+---
+
+# ⭐ CONFIRMATION  
+You already said **YES TO ALL**, so I’m proceeding.
+
+Below is **GROUP 1** — fully expanded + ultra‑detailed.
+
+---
+
+# 🟦 **GROUP 1 — CORE SYSTEM DEFINITION FILES**  
+### (Expanded + Ultra‑Detailed + Enterprise‑Grade)
+
+---
+
+# 📄 **CopilotMasterContext.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# EH Graced Roads Solutions LLC — Copilot Master Context (Enterprise Edition)
+
+## 1. Company Identity & Mission
+
+EH Graced Roads Solutions LLC is a 24/7 mobile truck and trailer repair enterprise specializing in:
+- Heavy‑duty roadside repair
+- Mobile diagnostics
+- Emergency breakdown response
+- After‑hours repair coordination
+- Fleet support and uptime optimization
+
+### Mission Statement
+> “We keep trucks moving through expert heavy‑duty repair — without towing.”
+
+### Core Values
+- **Safety** — Protect drivers, equipment, and roadside environments.
+- **Speed** — Rapid response and efficient repair workflows.
+- **Expertise** — Certified heavy‑duty technicians and advanced diagnostics.
+- **Integrity** — Transparent communication and repair‑only service.
+- **Innovation** — AI‑driven dispatch, routing, and system automation.
+
+---
+
+## 2. NO‑TOW Policy (Mandatory System Rule)
+
+This policy governs every workflow, UI component, backend route, AI output, and customer interaction.
+
+> **WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.**
+
+### Enforcement Requirements
+- No tow vendor integrations  
+- No tow yard routing  
+- No tow‑related UI elements  
+- No tow‑related backend endpoints  
+- No AI suggestions involving towing  
+- No language implying towing is an option  
+
+This policy is absolute and cannot be bypassed.
+
+---
+
+## 3. Enterprise System Overview
+
+The EH Graced Roads enterprise system consists of:
+
+### **Frontend (React, Port 3001)**
+- Dual‑monitor command center  
+- Breakdown feed  
+- GPS tracking tabs  
+- Technician assignment  
+- System health dashboard  
+- Emergency protocol visualization  
+
+### **Backend (Node.js/Express, Port 3000)**
+- REST API  
+- Socket.IO real‑time events  
+- Grace Automation Engine integration  
+- GPS pipeline ingestion  
+- Emergency protocol execution  
+- Logging and audit trails  
+
+### **Grace Automation Engine**
+- Orchestrates emergency workflows  
+- Assigns technicians  
+- Suggests repair vendors  
+- Coordinates after‑hours repair  
+- Logs all critical events  
+- Maintains system health  
+
+### **Backup/OPS Subsystem**
+- Hardened backend UI  
+- Manual workflow execution  
+- Log viewer  
+- JSON output viewer  
+- Fallback operations mode  
+
+---
+
+## 4. Emergency Protocol (High‑Level Summary)
+
+The emergency protocol is a **repair‑only** workflow executed by Grace:
+
+1. Hazard scan  
+2. Mechanical diagnosis  
+3. Repair‑only response  
+4. Technician dispatch  
+5. Driver routing  
+6. Repair vendor selection  
+7. After‑hours workflow  
+8. Avoid tow yards  
+9. Socket broadcast  
+10. Dashboard update  
+11. Grace logging  
+
+Full details in `EmergencyProtocol.md`.
+
+---
+
+## 5. GPS Pipeline (High‑Level Summary)
+
+### Data Sources
+- Tractor ECM  
+- Trailer beacon  
+- Technician mobile GPS  
+- Driver mobile GPS  
+
+### Flow
+1. Device → backend `/api/gps/update`  
+2. Backend validates + stores  
+3. Grace uses data for routing  
+4. Socket.IO emits `gps_update`  
+5. Frontend updates maps  
+
+Full details in `Architecture.md`.
+
+---
+
+## 6. Branding & Messaging Summary
+
+Brand identity:
+- Professional  
+- Fast  
+- Reliable  
+- Repair‑only  
+- Heavy‑duty expertise  
+
+Tagline:
+> “24/7 Mobile Truck & Trailer Repair — Repair Only.”
+
+Full details in `Branding.md` and `Marketing.md`.
+
+---
+
+## 7. Copilot & Claude Integration Rules
+
+### Copilot must:
+- Follow architecture  
+- Follow emergency protocol  
+- Follow NO‑TOW policy  
+- Follow brand voice  
+- Follow mockups  
+- Follow system rules  
+- Generate repair‑only workflows  
+- Generate enterprise‑grade code  
+
+### Claude must:
+- Maintain `/docs` as single source of truth  
+- Edit multi‑file structures  
+- Run Git commands  
+- Build backend + frontend modules  
+- Enforce NO‑TOW policy  
+- Assist until project completion  
+
+---
+
+## 8. Summary
+
+This Master Context defines:
+- System identity  
+- Policies  
+- Architecture  
+- Workflows  
+- Branding  
+- AI rules  
+
+All AI agents must use this file as the **primary reference** for all decisions, code generation, documentation, and workflows.
+```
+
+---
+
+# 📄 **SystemRules.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# System Rules — EH Graced Roads Solutions LLC (Enterprise Edition)
+
+## 1. NO‑TOW Policy (Absolute Rule)
+
+> WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.
+
+### Enforcement:
+- No tow vendors  
+- No tow yard routing  
+- No tow‑related UI  
+- No tow‑related backend endpoints  
+- No tow‑related AI outputs  
+- No tow‑related documentation  
+
+This rule overrides all other logic.
+
+---
+
+## 2. Emergency Protocol Rules
+
+- Emergency protocol must follow all 11 steps in order.  
+- No skipping hazard scan or diagnosis.  
+- Technician dispatch must be repair‑focused.  
+- Vendor selection must be repair‑only.  
+- After‑hours workflow must use repair networks.  
+- Grace must log every step.  
+- Frontend must visualize protocol progress.  
+
+---
+
+## 3. GPS Pipeline Rules
+
+- All units must be trackable.  
+- GPS updates must be validated.  
+- Grace must use GPS for routing.  
+- Frontend must update maps in real time.  
+- GPS data must be stored historically.  
+
+---
+
+## 4. UI Rules
+
+- Dual‑monitor layout is mandatory.  
+- Monitor 1 = breakdowns + dispatch.  
+- Monitor 2 = GPS + routing.  
+- System health indicators must be visible.  
+- NO‑TOW banner must appear in emergency views.  
+
+---
+
+## 5. Backend Rules
+
+- All routes must enforce NO‑TOW policy.  
+- All emergency routes must call Grace.  
+- All GPS routes must validate input.  
+- All critical actions must be logged.  
+- All Socket.IO events must be documented.  
+
+---
+
+## 6. AI Rules
+
+- AI must use `/docs` as the single source of truth.  
+- AI must enforce NO‑TOW policy.  
+- AI must generate repair‑only workflows.  
+- AI must maintain brand voice.  
+- AI must follow architecture.  
+- AI must follow emergency protocol.  
+
+---
+
+## 7. Security Rules
+
+- Role‑based access (dispatcher, technician, admin).  
+- Logging of critical actions.  
+- No external tow integrations.  
+- No unauthorized vendor suggestions.  
+
+---
+
+## 8. Documentation Rules
+
+- All changes must be reflected in `/docs`.  
+- All workflows must be documented.  
+- All modules must have architecture notes.  
+- All UI components must have mockup references.  
+```
+
+---
+
+# 📄 **NoTowPolicy.md (Expanded + Ultra‑Detailed)**
+
+```markdown
+# NO‑TOW POLICY — EH Graced Roads Solutions LLC
+
+## Core Statement
+
+> **WE DO NOT PROVIDE TOW SERVICE OR WINCHING SERVICE.**
+
+This is a mandatory, non‑negotiable policy.
+
+---
+
+## Purpose
+
+- Maintain repair‑only identity  
+- Reduce downtime  
+- Avoid unnecessary transfers  
+- Protect driver safety  
+- Maintain brand consistency  
+- Ensure AI agents follow correct workflows  
+
+---
+
+## Enforcement Areas
+
+### 1. Backend
+- No tow endpoints  
+- No tow vendor integrations  
+- No tow yard routing logic  
+
+### 2. Frontend
+- No tow buttons  
+- No tow UI elements  
+- No tow suggestions  
+
+### 3. AI Agents
+- No tow workflows  
+- No tow language  
+- No tow recommendations  
+
+### 4. Documentation
+- No tow references except policy enforcement  
+
+---
+
+## Examples of Violations (Prohibited)
+- “Dispatch a tow truck”  
+- “Route to nearest tow yard”  
+- “Winch the vehicle out”  
+- “Tow vendor list”  
+
+---
+
+## Examples of Allowed Language
+- “Dispatch a repair technician”  
+- “Coordinate mobile repair”  
+- “Select repair vendor”  
+- “Guide driver to safe location”  
+
+---
+
+## Summary
+
+This policy defines the identity of EH Graced Roads Solutions LLC.  
+It must be enforced across:
+- Code  
+- UI  
+- AI  
+- Documentation  
+- Workflows  
+- Marketing  
+- Operations  
+
+No exceptions.
+```
+
+---
+
+# ⭐ Elijah — **GROUP 1 is complete.**  
+Next, I will generate:
+
+# 🟦 **GROUP 2 — Architecture & Engineering**
+- Architecture.md  
+- Diagram.txt  
+- EmergencyProtocol.md  
+
+Tell me **READY** and I’ll deliver Group 2.

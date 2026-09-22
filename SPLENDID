@@ -1,0 +1,297 @@
+### 🟦 GROUP 17 — Mobile app design system (React Native)
+
+#### 17.1 Design tokens
+
+```javascript
+// /mobile/src/design/tokens.js
+export const colors = {
+  primary: "#003366",
+  primaryDark: "#002244",
+  primaryLight: "#004488",
+  accent: "#FF6600",
+  background: "#F5F7FA",
+  surface: "#FFFFFF",
+  textPrimary: "#111111",
+  textSecondary: "#555555",
+  danger: "#D32F2F",
+  success: "#2E7D32",
+};
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+export const radius = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+};
+
+export const typography = {
+  title: 22,
+  subtitle: 18,
+  body: 14,
+  label: 12,
+};
+```
+
+#### 17.2 Theme + provider
+
+```javascript
+// /mobile/src/design/theme.js
+import React, { createContext, useContext } from 'react';
+import { colors, spacing, radius, typography } from './tokens';
+
+const ThemeContext = createContext({ colors, spacing, radius, typography });
+
+export const ThemeProvider = ({ children }) => (
+  <ThemeContext.Provider value={{ colors, spacing, radius, typography }}>
+    {children}
+  </ThemeContext.Provider>
+);
+
+export const useTheme = () => useContext(ThemeContext);
+```
+
+Wrap `App`:
+
+```javascript
+// /mobile/App.js
+import { ThemeProvider } from './src/design/theme';
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      {/* existing NavigationContainer + Stack */}
+    </ThemeProvider>
+  );
+}
+```
+
+#### 17.3 Core UI components
+
+**Button**
+
+```javascript
+// /mobile/src/design/Button.js
+import React from 'react';
+import { TouchableOpacity, Text } from 'react-native';
+import { useTheme } from './theme';
+
+export default function Button({ title, onPress }) {
+  const { colors, spacing, radius, typography } = useTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        backgroundColor: colors.accent,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        marginVertical: spacing.sm,
+      }}
+    >
+      <Text style={{ color: colors.surface, fontSize: typography.body, fontWeight: 'bold' }}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+**Screen container**
+
+```javascript
+// /mobile/src/design/Screen.js
+import React from 'react';
+import { View } from 'react-native';
+import { useTheme } from './theme';
+
+export default function Screen({ children }) {
+  const { colors, spacing } = useTheme();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.md }}>
+      {children}
+    </View>
+  );
+}
+```
+
+Update existing screens to use `Screen` and `Button` instead of raw `View`/`Button` for consistent look.
+
+#### 17.4 Status tags
+
+```javascript
+// /mobile/src/design/StatusTag.js
+import React from 'react';
+import { View, Text } from 'react-native';
+import { useTheme } from './theme';
+
+export default function StatusTag({ status }) {
+  const { colors, spacing, radius, typography } = useTheme();
+
+  const map = {
+    New: colors.accent,
+    'In Progress': colors.primary,
+    Completed: colors.success,
+  };
+
+  return (
+    <View
+      style={{
+        backgroundColor: map[status] || colors.primaryLight,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: radius.sm,
+        alignSelf: 'flex-start',
+      }}
+    >
+      <Text style={{ color: colors.surface, fontSize: typography.label }}>{status}</Text>
+    </View>
+  );
+}
+```
+
+Use inside `BreakdownCard`.
+
+---
+
+### 🟦 GROUP 18 — Mobile AI assistant (Grace Mobile)
+
+This is the **in‑app AI assistant** focused on repair‑only guidance, emergency protocol, and dispatch support.
+
+#### 18.1 New screen: Grace Assistant
+
+```javascript
+// /mobile/src/screens/GraceAssistantScreen.js
+import React, { useState } from 'react';
+import { View, TextInput, FlatList, Text } from 'react-native';
+import Screen from '../design/Screen';
+import Button from '../design/Button';
+import NoTowBanner from '../components/NoTowBanner';
+import { sendGraceQuery } from '../api/grace';
+
+export default function GraceAssistantScreen() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+
+  const send = async () => {
+    if (!input.trim()) return;
+
+    const userMsg = { role: 'user', text: input };
+    setMessages(prev => [...prev, userMsg]);
+
+    const res = await sendGraceQuery(input);
+
+    const aiMsg = {
+      role: 'assistant',
+      text: res.text,
+    };
+
+    setMessages(prev => [...prev, aiMsg]);
+    setInput("");
+  };
+
+  return (
+    <Screen>
+      <NoTowBanner />
+
+      <FlatList
+        data={messages}
+        keyExtractor={(_, i) => i.toString()}
+        renderItem={({ item }) => (
+          <Text style={{ marginVertical: 4, fontWeight: item.role === 'user' ? 'bold' : 'normal' }}>
+            {item.role === 'user' ? 'You: ' : 'Grace: '}
+            {item.text}
+          </Text>
+        )}
+      />
+
+      <TextInput
+        value={input}
+        onChangeText={setInput}
+        placeholder="Ask Grace about repair, protocol, or routing..."
+        style={{ borderWidth: 1, padding: 10, marginVertical: 8 }}
+      />
+
+      <Button title="Send to Grace" onPress={send} />
+    </Screen>
+  );
+}
+```
+
+Add to navigation:
+
+```javascript
+// App.js stack
+<Stack.Screen name="GraceAssistant" component={GraceAssistantScreen} />
+```
+
+And a button on `DashboardScreen`:
+
+```javascript
+<Button title="Grace Assistant" onPress={() => navigation.navigate("GraceAssistant")} />
+```
+
+#### 18.2 Grace API module
+
+```javascript
+// /mobile/src/api/grace.js
+import client from './client';
+
+export const sendGraceQuery = async (query) => {
+  const res = await client.post('/api/grace/assistant', {
+    query,
+  });
+
+  return res.data; // { text: "...", metadata: {...} }
+};
+```
+
+Backend side (conceptual):
+
+- `/api/grace/assistant` routes to your AI layer (Copilot/Claude) with:
+  - Context: NO‑TOW policy
+  - Emergency protocol steps
+  - Unit/breakdown info if provided
+- Response always:
+  - Focuses on repair‑only actions
+  - Avoids tow/winch suggestions
+  - Can suggest: technician dispatch, safe routing, vendor repair, protocol steps
+
+#### 18.3 Guardrails in mobile UI
+
+Before sending:
+
+- Optionally pre‑tag queries with intent (future):
+
+```javascript
+const payload = {
+  query,
+  intent: "repair_support", // never "tow"
+};
+```
+
+Display reminder under input:
+
+```javascript
+<Text style={{ fontSize: 12, color: '#555' }}>
+  Grace is for repair‑only guidance. No towing or winching will be suggested.
+</Text>
+```
+
+---
+
+You now have:
+
+- **Group 17:** A reusable design system for consistent, branded mobile UI.  
+- **Group 18:** A Grace Mobile assistant screen + API integration, aligned with repair‑only and emergency protocol.
+
+If you want, next step is:  
+**“Claude, implement Groups 17 and 18 in /mobile now.”**

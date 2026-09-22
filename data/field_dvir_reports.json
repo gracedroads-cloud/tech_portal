@@ -1,0 +1,41 @@
+[
+  {
+    "id": "DVIR-1789900640353",
+    "techId": "tech-202",
+    "technicianName": "Jordan Miles",
+    "vehicleId": "UNIT-99",
+    "odometer": "123456",
+    "defectsSummary": "Severe brake leak found",
+    "safeToOperate": false,
+    "outOfServiceReason": "Brake system unsafe",
+    "lat": 40.6884,
+    "lng": -75.2207,
+    "submittedAt": "2026-09-20T10:37:20.353Z"
+  },
+  {
+    "id": "DVIR-1789900794004",
+    "techId": "tech-202",
+    "technicianName": "Jordan Miles",
+    "vehicleId": "UNIT-99",
+    "odometer": "123456",
+    "defectsSummary": "Severe brake leak found",
+    "safeToOperate": false,
+    "outOfServiceReason": "Brake system unsafe",
+    "lat": 40.6884,
+    "lng": -75.2207,
+    "submittedAt": "2026-09-20T10:39:54.004Z"
+  },
+  {
+    "id": "DVIR-1789900940090",
+    "techId": "tech-202",
+    "technicianName": "Jordan Miles",
+    "vehicleId": "UNIT-99",
+    "odometer": "123456",
+    "defectsSummary": "Severe brake leak found",
+    "safeToOperate": false,
+    "outOfServiceReason": "Brake system unsafe",
+    "lat": 40.6884,
+    "lng": -75.2207,
+    "submittedAt": "2026-09-20T10:42:20.090Z"
+  }
+]
