@@ -153,7 +153,7 @@ function createApp(overrides = {}) {
 
   const writeMode = config.operatorToken
     ? 'token_required'
-    : (config.allowDemoWriteMode ? 'demo_no_auth' : 'disabled');
+: (config.allowDemoWriteMode && String(config.env).toLowerCase() !== 'production' ? 'demo_no_auth' : 'disabled');
 
   const frontendRouteInventory = [];
   function registerApiRoute(method, routePath, ...handlers) {
