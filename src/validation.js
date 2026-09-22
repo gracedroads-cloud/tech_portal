@@ -93,7 +93,7 @@ function normalizeOnboarding(body) {
   if (!isNonEmptyString(paymentTerms, 80)) {
     errors.push('paymentTerms is required.');
   }
-  if (taxReference && !/^[A-Za-z0-9-]{2,12}$/.test(taxReference)) {
+  if (taxReference && !/^[X*]{2,8}\d{4}$/.test(taxReference)) {
     errors.push('taxReference must be an alphanumeric masked reference (2-12 chars).');
   }
 
