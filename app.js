@@ -402,6 +402,174 @@ function generateSecurePaymentLink(callId) {
     expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
   };
 }
+let streamControl = 'grace_ai_handling';
+
+const PROGRESS_STAGES = [
+  {
+    id: 'answer',
+    action: 'answer',
+    label: 'Call Answered',
+    note: 'Grace answered the inbound heavy-duty diesel repair call.',
+    nextAction: 'Capture caller intake for the heavy-duty service request.'
+  },
+  {
+    id: 'intake',
+    action: 'intake',
+    label: 'Intake Captured',
+    note: 'Caller intake details were captured.',
+    nextAction: 'Verify heavy-duty diesel service scope.'
+  },
+  {
+    id: 'scope_check',
+    action: 'scope_check',
+    label: 'Scope Verified',
+    note: 'Scope has been approved for Grace dispatch.',
+    blockedNote: 'Request rejected as outside heavy-duty diesel service scope.',
+    nextAction: 'Prepare an estimate for the approved service.'
+  },
+  {
+    id: 'quote',
+    action: 'quote',
+    label: 'Quote Ready',
+    note: 'Estimate prepared for the requested heavy-duty service.',
+    nextAction: 'Obtain estimate approval and generate a secure payment link.'
+  },
+  {
+    id: 'payment_link',
+    action: 'payment_link',
+    label: 'Payment Link Sent',
+    note: 'Secure payment link generated without storing card data locally.',
+    nextAction: 'Offer the job to a technician.'
+  },
+  {
+    id: 'technician_offer',
+    action: 'technician_offer',
+    label: 'Technician Offered',
+    note: 'Technician offer has been issued.',
+    nextAction: 'Wait for technician acceptance before final dispatch.'
+  },
+  {
+    id: 'technician_acceptance',
+    action: 'technician_acceptance',
+    label: 'Technician Accepted',
+    note: 'Technician acceptance recorded.',
+    nextAction: 'Create the work order and finalize dispatch.'
+  },
+  {
+    id: 'work_order',
+    action: 'work_order_create',
+    label: 'Work Order Created',
+    note: 'Work order created after all approval gates passed.',
+    nextAction: 'Capture closeout details and completion proof.'
+  },
+  {
+    id: 'closeout',
+    action: 'closeout',
+    label: 'Closeout Complete',
+    note: 'Grace lifecycle is complete.',
+    nextAction: 'No further action required.'
+  }
+];
+
+function getAllGraceCalls() {
+  const calls = new Map(graceCalls);
+  const persistedFiles = fs.existsSync(graceDataDir)
+    ? fs.readdirSync(graceDataDir).filter((file) => file.endsWith('.json'))
+    : [];
+
+  for (const fileName of persistedFiles) {
+    const callId = path.basename(fileName, '.json');
+    if (calls.has(callId)) continue;
+    const loaded = loadPersistedGraceCall(callId);
+    if (loaded) {
+      calls.set(callId, loaded);
+    }
+  }
+
+  return Array.from(calls.values());
+}
+
+function getProgressOverallStatus(call) {
+  if (call.state === FLOW_STATES.CLOSED_OUT) return 'complete';
+  if (call.state === FLOW_STATES.SCOPE_REJECTED) return 'blocked';
+  if (call.state === FLOW_STATES.TECHNICIAN_OFFERED) return 'ready';
+  return 'active';
+}
+
+function getProgressNextAction(call) {
+  const activeStage = buildProgressStages(call).find((stage) => stage.status === 'active');
+  return activeStage?.nextAction || 'No further action required.';
+}
+
+function buildProgressStages(call) {
+  const completedActions = new Set((call.stateHistory || []).map((event) => event.action));
+  const currentActionByState = {
+    [FLOW_STATES.ANSWERED]: 'intake',
+    [FLOW_STATES.INTAKE]: 'scope_check',
+    [FLOW_STATES.SCOPE_CHECKED]: 'quote',
+    [FLOW_STATES.QUOTED]: 'payment_link',
+    [FLOW_STATES.PAYMENT_LINK_SENT]: 'technician_offer',
+    [FLOW_STATES.TECHNICIAN_OFFERED]: 'technician_acceptance',
+    [FLOW_STATES.TECHNICIAN_ACCEPTED]: 'work_order_create',
+    [FLOW_STATES.WORK_ORDER_CREATED]: 'closeout'
+  };
+  const activeAction = currentActionByState[call.state] || null;
+
+  return PROGRESS_STAGES.map((stage) => {
+    const event = (call.stateHistory || []).find((item) => item.action === stage.action);
+    let status = 'pending';
+    let note = stage.note;
+
+    if (stage.id === 'scope_check' && call.state === FLOW_STATES.SCOPE_REJECTED) {
+      status = 'blocked';
+      note = call.scopeDecision?.reasons?.join(' ') || stage.blockedNote;
+    } else if (completedActions.has(stage.action)) {
+      status = 'complete';
+      if (stage.id === 'scope_check' && call.scopeDecision?.policyDomain) {
+        note = `Scope approved for ${call.scopeDecision.policyDomain}.`;
+      }
+    } else if (activeAction === stage.action) {
+      status = 'active';
+      if (stage.id === 'technician_acceptance') {
+        note = 'Awaiting technician acceptance before final dispatch.';
+      }
+    }
+
+    return {
+      id: stage.id,
+      label: stage.label,
+      status,
+      time: event?.timestamp || null,
+      note,
+      nextAction: stage.nextAction
+    };
+  });
+}
+
+function serializeProgressCall(call) {
+  const stages = buildProgressStages(call);
+  return {
+    id: call.callId,
+    carrierName: call.intake?.carrierName || call.caller?.carrierName || 'Carrier Pending',
+    location: call.intake?.location || call.caller?.location || 'Location Pending',
+    overallStatus: getProgressOverallStatus(call),
+    nextAction: stages.find((stage) => stage.status === 'active')?.nextAction || getProgressNextAction(call),
+    createdAt: call.createdAt,
+    updatedAt: call.updatedAt,
+    stages,
+    rawState: call.state
+  };
+}
+
+function summarizeProgressCalls(calls) {
+  return calls.reduce((summary, call) => {
+    const status = getProgressOverallStatus(call);
+    if (summary[status] !== undefined) {
+      summary[status] += 1;
+    }
+    return summary;
+  }, { ready: 0, active: 0, blocked: 0, complete: 0 });
+}
 
 const dispatchLogsPath = path.join(__dirname, 'radio_dispatch_logs.json');
 const fieldDvirPath = path.join(dataDir, 'field_dvir_reports.json');
@@ -1208,7 +1376,20 @@ app.get('/api/status', (req, res) => {
     base: 'Lehigh Valley, PA',
     port: PORT,
     timestamp: new Date().toISOString(),
+    streamControl,
+    graceSummary: summarizeProgressCalls(getAllGraceCalls()),
     gracePolicy: SERVICE_SCOPE_POLICY.domain
+  });
+});
+
+app.get('/api/grace/calls/active', (req, res) => {
+  const calls = getAllGraceCalls()
+    .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+
+  res.json({
+    ok: true,
+    calls: calls.map(serializeProgressCall),
+    summary: summarizeProgressCalls(calls)
   });
 });
 
@@ -1446,6 +1627,67 @@ app.post('/api/grace/closeout', writeRateLimit, (req, res) => {
     return respondWithCall(res, call, { message: 'Call closed out.', closeout: call.closeout });
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/breakdowns/scanner', (req, res) => {
+    const radiusMiles = Math.min(Math.max(toNumber(req.query.radius, 150), 10), 300);
+    const breakdowns = getBreakdownFeed(LEHIGH_VALLEY_BASE.lat, LEHIGH_VALLEY_BASE.lng, radiusMiles).map((alert) => ({
+        id: alert.id,
+        vehicle: alert.vehicle,
+        issue: alert.cause,
+        location: alert.location,
+        distance: `${Math.round(alert.distanceMiles)} mi`,
+        severity: String(alert.priority || 'normal').toUpperCase()
+    }));
+
+    res.json({
+        base: LEHIGH_VALLEY_BASE.label,
+        radiusMiles,
+        breakdowns
+    });
+});
+
+app.post('/api/stream/override', (req, res) => {
+    const action = req.body.action === 'pickup' ? 'human_operator_override' : 'grace_ai_handling';
+    streamControl = action;
+    res.json({
+        ok: true,
+        action,
+        lineStatus: streamControl
+    });
+});
+
+app.get('/api/grace/call/:callId', (req, res) => {
+  try {
+    const calls = getAllGraceCalls();
+    const call = getCallOrThrow(req.params.callId);
+    res.json({
+      ok: true,
+      call: serializeProgressCall(call),
+      summary: summarizeProgressCalls(calls)
+    });
+  } catch (error) {
+    res.status(404).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+app.get('/api/grace/call/:callId/audit', (req, res) => {
+  try {
+    const call = getCallOrThrow(req.params.callId);
+    res.json({
+      ok: true,
+      callId: call.callId,
+      auditLog: call.stateHistory || []
+    });
+  } catch (error) {
+    res.status(404).json({
+      ok: false,
+      error: error.message
+    });
   }
 });
 
