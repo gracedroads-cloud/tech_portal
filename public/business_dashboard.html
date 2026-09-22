@@ -226,6 +226,15 @@
     const transcriptScreen = document.getElementById('stream-transcript-screen');
     const ticker = document.getElementById('breakdown-ticker');
 
+    function formatBreakdownTickerEntry(breakdown) {
+        const sourceType = (breakdown.sourceType || breakdown.source || 'dispatch').toUpperCase();
+        const technician = breakdown.technician ? ` | TECH: ${breakdown.technician}` : '';
+        const location = breakdown.location || 'LOCATION PENDING';
+        const issue = breakdown.issue || 'ISSUE PENDING';
+        const distance = breakdown.distance || 'UNKNOWN';
+        return `🚨 [${sourceType}] ${breakdown.vehicle} - ${issue} @ ${location} (${distance} FROM HUB)${technician}`;
+    }
+
     // Helper TTS speech wrapper
     function speakGrace(text) {
         if ('speechSynthesis' in window) {
@@ -240,9 +249,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.breakdowns && data.breakdowns.length > 0) {
-                    const tickerText = data.breakdowns.map(b => 
-                        `🚨 [${b.id}] ${b.vehicle} - ${b.issue} @ ${b.location} (${b.distance} away) - STATUS: ${b.severity}`
-                    ).join('   |   ');
+                    const tickerText = data.breakdowns.map(formatBreakdownTickerEntry).join('   |   ');
                     ticker.innerText = tickerText;
                 } else {
                     ticker.innerText = "NO BREAKDOWNS DETECTED WITHIN 150-MILE RADIUS OF EASTON, PA.";

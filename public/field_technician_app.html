@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>Grace Field Jobs</title>
+  <link rel="manifest" href="/field-app-manifest.json">
+  <style>
+    :root { --bg:#0b1220; --card:#111827; --line:#334155; --txt:#e5e7eb; --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+    .wrap { max-width:760px; margin:0 auto; padding:14px; display:grid; gap:12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+    h1 { margin:0; font-size:20px; }
+    h2 { margin:0 0 8px; font-size:15px; color:#93c5fd; text-transform:uppercase; letter-spacing:.04em; }
+    .row { display:grid; gap:8px; margin:8px 0; }
+    input, select, textarea, button { width:100%; border-radius:8px; border:1px solid var(--line); background:#0f172a; color:var(--txt); padding:10px; font:inherit; }
+    button { cursor:pointer; background:#1d4ed8; border-color:#2563eb; }
+    button.secondary { background:#0f172a; }
+    button.ok { background:#15803d; border-color:#16a34a; }
+    button.warn { background:#b45309; border-color:#d97706; }
+    .state { display:flex; gap:8px; flex-wrap:wrap; }
+    .state button { width:auto; padding:8px 10px; }
+    .badge { font-size:11px; text-transform:uppercase; color:var(--accent); }
+    .meta { font-size:12px; color:#94a3b8; }
+    .job-item { border:1px solid var(--line); border-radius:10px; padding:10px; margin:8px 0; }
+    .job-item.active { border-color:var(--accent); }
+    .small { font-size:12px; color:#cbd5e1; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Grace Field Technician App</h1>
+      <p class="meta">Field-only mobile workflow: accept, travel, on-scene, repair, proof, complete.</p>
+      <div class="badge" id="syncStatus">Sync: Online</div>
+      <div class="small">Access scope: service-delivery only. No admin, payroll, billing controls, or system secrets.</div>
+      <div style="margin-top:8px;">
+        <a href="/field_dvir_app.html" style="color:#93c5fd; font-size:13px;">Open DVIR App</a>
+      </div>
+    </section>
+
+    <section class="card" id="loginCard">
+      <h2>Technician Login</h2>
+      <div class="row">
+        <input id="techId" placeholder="Tech ID (example: tech-101)">
+        <input id="techPin" placeholder="PIN" type="password">
+        <button id="loginBtn">Login</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="jobsCard">
+      <h2>Assigned Jobs</h2>
+      <div id="jobsList"></div>
+      <button class="secondary" id="refreshJobsBtn">Refresh Jobs</button>
+      <button class="secondary" id="logoutBtn">Logout</button>
+    </section>
+
+    <section class="card hidden" id="jobDetailCard">
+      <h2>Job Workflow</h2>
+      <div id="jobDetail" class="small"></div>
+      <div class="state">
+        <button data-state="En Route">En Route</button>
+        <button data-state="On Scene">On Scene</button>
+        <button data-state="Work In Progress">Work In Progress</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="proofCard">
+      <h2>Field Proof</h2>
+      <div class="row">
+        <textarea id="diagnostics" rows="2" placeholder="Diagnostics notes"></textarea>
+        <textarea id="workPerformed" rows="2" placeholder="Work performed"></textarea>
+        <input id="partsUsed" placeholder="Parts used">
+        <input id="laborMinutes" placeholder="Labor minutes">
+        <input id="photos" placeholder="Photo URLs (comma separated)">
+        <input id="signature" placeholder="Customer signature name">
+        <button class="secondary" id="saveProofBtn">Save Proof</button>
+        <button class="ok" id="completeBtn">Complete Job</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = '';
+    const tokenKey = 'grace_field_token';
+    const tokenExpiryKey = 'grace_field_token_expiry';
+    const techKey = 'grace_field_tech_id';
+    const queueKey = 'grace_field_queue';
+    let currentToken = sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
+    let currentTokenExpiry = sessionStorage.getItem(tokenExpiryKey) || localStorage.getItem(tokenExpiryKey) || '';
+    let currentTechId = sessionStorage.getItem(techKey) || localStorage.getItem(techKey) || '';
+    let selectedJobId = null;
+
+    const syncStatus = document.getElementById('syncStatus');
+    const loginCard = document.getElementById('loginCard');
+    const jobsCard = document.getElementById('jobsCard');
+    const jobsList = document.getElementById('jobsList');
+    const jobDetailCard = document.getElementById('jobDetailCard');
+    const proofCard = document.getElementById('proofCard');
+    const jobDetail = document.getElementById('jobDetail');
+
+    function setSyncLabel(msg) { syncStatus.textContent = `Sync: ${msg}`; }
+    function setToken(token, expiresAt, techId = '') {
+      currentToken = token || '';
+      currentTokenExpiry = expiresAt || '';
+      currentTechId = techId || '';
+      if (token) {
+        sessionStorage.setItem(tokenKey, token);
+        sessionStorage.setItem(tokenExpiryKey, expiresAt || '');
+        sessionStorage.setItem(techKey, currentTechId);
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenExpiryKey);
+        localStorage.removeItem(techKey);
+      } else {
+        sessionStorage.removeItem(tokenKey);
+        sessionStorage.removeItem(tokenExpiryKey);
+        sessionStorage.removeItem(techKey);
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenExpiryKey);
+        localStorage.removeItem(techKey);
+      }
+    }
+    function isTokenExpired() {
+      if (!currentTokenExpiry) return false;
+      const expiry = new Date(currentTokenExpiry).getTime();
+      return Number.isFinite(expiry) && Date.now() > expiry;
+    }
+    function headers() {
+      return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + currentToken };
+    }
+    function queueAction(action) {
+      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
+      queue.push({ ...action, techId: currentTechId });
+      localStorage.setItem(queueKey, JSON.stringify(queue));
+      setSyncLabel('Queued Offline Actions');
+    }
+    async function syncQueue() {
+      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
+      if (!queue.length || !currentToken) return;
+      const pending = [];
+      for (const action of queue) {
+        if (action.techId && action.techId !== currentTechId) {
+          pending.push(action);
+          continue;
+        }
+        try {
+          const res = await fetch(action.url, { method: action.method, headers: headers(), body: JSON.stringify(action.body) });
+          if (!res.ok) {
+            pending.push(action);
+          }
+        } catch (error) {
+          pending.push(action);
+        }
+      }
+      if (pending.length) {
+        localStorage.setItem(queueKey, JSON.stringify(pending));
+        setSyncLabel('Offline Queue Pending');
+        return;
+      }
+      localStorage.removeItem(queueKey);
+      setSyncLabel('Online');
+    }
+    async function getGps() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: Number(pos.coords.latitude.toFixed(6)), lng: Number(pos.coords.longitude.toFixed(6)) }),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+    function renderAuthState(isLoggedIn) {
+      loginCard.classList.toggle('hidden', isLoggedIn);
+      jobsCard.classList.toggle('hidden', !isLoggedIn);
+      jobDetailCard.classList.toggle('hidden', !isLoggedIn);
+      proofCard.classList.toggle('hidden', !isLoggedIn);
+    }
+    async function loadJobs() {
+      if (!currentToken) return;
+      if (isTokenExpired()) {
+        setToken('', '');
+        renderAuthState(false);
+        setSyncLabel('Session expired');
+        return;
+      }
+      let res;
+      try {
+        res = await fetch(`${API}/api/field/jobs`, { headers: headers() });
+      } catch (error) {
+        setSyncLabel('Offline • using last queued state');
+        return;
+      }
+      if (!res.ok) {
+        renderAuthState(false);
+        return;
+      }
+      const data = await res.json();
+      jobsList.innerHTML = '';
+      data.jobs.forEach((job) => {
+        const row = document.createElement('div');
+        row.className = `job-item ${selectedJobId === job.id ? 'active' : ''}`;
+        row.dataset.id = job.id;
+
+        const top = document.createElement('strong');
+        top.textContent = job.id;
+        row.appendChild(top);
+        row.appendChild(document.createTextNode(` — ${job.customer}`));
+        row.appendChild(document.createElement('br'));
+
+        const unit = document.createElement('span');
+        unit.className = 'small';
+        unit.textContent = `${job.unit} • ${job.location.label}`;
+        row.appendChild(unit);
+        row.appendChild(document.createElement('br'));
+
+        const state = document.createElement('span');
+        state.className = 'badge';
+        state.textContent = `State: ${job.state}`;
+        row.appendChild(state);
+
+        jobsList.appendChild(row);
+      });
+      if (!selectedJobId && data.jobs.length) selectedJobId = data.jobs[0].id;
+      const selected = data.jobs.find((j) => j.id === selectedJobId);
+      jobDetail.textContent = selected
+        ? `${selected.id} | ${selected.location.label} | Cause: ${selected.cause} | State: ${selected.state}`
+        : 'No jobs assigned.';
+      document.querySelectorAll('.job-item').forEach((el) => {
+        el.onclick = () => { selectedJobId = el.dataset.id; loadJobs(); };
+      });
+      const policyRes = await fetch(`${API}/api/field/policy`, { headers: headers() });
+      if (policyRes.ok) {
+        const policy = await policyRes.json();
+        setSyncLabel(`Online • ${policy.role.replace('_', ' ')}`);
+      }
+    }
+    async function callWithOfflineFallback(method, url, body) {
+      try {
+        const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          alert(payload.error || `Request failed (${res.status})`);
+          return;
+        }
+        await loadJobs();
+        await syncQueue();
+      } catch {
+        queueAction({ method, url, body });
+      }
+    }
+
+    document.getElementById('loginBtn').onclick = async () => {
+      const techId = document.getElementById('techId').value.trim();
+      const pin = document.getElementById('techPin').value.trim();
+      const res = await fetch(`${API}/api/field/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ techId, pin })
+      });
+      if (!res.ok) return alert('Invalid credentials');
+      const data = await res.json();
+      localStorage.removeItem(queueKey);
+      setToken(data.token, data.expiresAt, data.technician?.techId || '');
+      renderAuthState(true);
+      await loadJobs();
+      await syncQueue();
+    };
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      if (currentToken) {
+        try { await fetch(`${API}/api/field/auth/logout`, { method: 'POST', headers: headers() }); } catch {}
+      }
+      localStorage.removeItem(queueKey);
+      setToken('', '', '');
+      selectedJobId = null;
+      renderAuthState(false);
+    };
+
+    document.getElementById('refreshJobsBtn').onclick = loadJobs;
+
+    document.querySelectorAll('[data-state]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!selectedJobId) return;
+        const gps = await getGps();
+        if (!gps) return alert('Location permission required');
+        await callWithOfflineFallback('PATCH', `${API}/api/field/jobs/${selectedJobId}/state`, {
+          state: btn.dataset.state,
+          lat: gps.lat,
+          lng: gps.lng,
+          timestamp: new Date().toISOString()
+        });
+      };
+    });
+
+    document.getElementById('saveProofBtn').onclick = async () => {
+      if (!selectedJobId) return;
+      const body = {
+        diagnostics: document.getElementById('diagnostics').value.trim(),
+        workPerformed: document.getElementById('workPerformed').value.trim(),
+        partsUsed: document.getElementById('partsUsed').value.trim(),
+        laborMinutes: document.getElementById('laborMinutes').value.trim(),
+        signature: document.getElementById('signature').value.trim(),
+        photos: document.getElementById('photos').value.split(',').map((v) => v.trim()).filter(Boolean)
+      };
+      await callWithOfflineFallback('PATCH', `${API}/api/field/jobs/${selectedJobId}/proof`, body);
+    };
+
+    document.getElementById('completeBtn').onclick = async () => {
+      if (!selectedJobId) return;
+      const gps = await getGps();
+      if (!gps) return alert('Location permission required');
+      await callWithOfflineFallback('POST', `${API}/api/field/jobs/${selectedJobId}/complete`, {
+        lat: gps.lat,
+        lng: gps.lng,
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    window.addEventListener('online', async () => {
+      setSyncLabel('Online');
+      await syncQueue();
+      await loadJobs();
+    });
+    window.addEventListener('offline', () => setSyncLabel('Offline'));
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/field-sw.js', { scope: '/' }).catch(() => {}));
+    }
+
+    renderAuthState(Boolean(currentToken) && !isTokenExpired());
+    if (currentToken && !isTokenExpired()) {
+      loadJobs().catch(() => renderAuthState(false));
+      syncQueue().catch(() => {});
+    }
+  </script>
+</body>
+</html>
