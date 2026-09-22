@@ -1,0 +1,9 @@
+{"id":"ab034915-d08b-4f01-ac71-04d2a5dea019","type":"system.started","at":"2026-09-22T16:43:21.465Z","detail":{"port":41365,"simulationMode":true}}
+{"id":"0e237eb3-5d95-4dba-9432-214351e7c037","type":"dispatch.recommendation_created","at":"2026-09-22T16:43:21.501Z","detail":{"incidentId":"998fd207-828d-498e-b281-738103b4281d","queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c"}}
+{"id":"a7d69567-fa0f-4ffd-9c3d-346de27c9aa5","type":"work_order.transition","at":"2026-09-22T16:43:21.510Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","from":"awaiting_human_approval","to":"approved_dispatch","operator":"Dispatcher One","notes":""}}
+{"id":"84173117-ac5f-42da-81e6-0ccd394f957f","type":"dispatch.approved","at":"2026-09-22T16:43:21.511Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","operator":"Dispatcher One"}}
+{"id":"c58bc8a2-4df2-4737-80a5-2b723ad90642","type":"work_order.transition","at":"2026-09-22T16:43:21.515Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","from":"approved_dispatch","to":"technician_assigned","operator":"Dispatcher One","notes":""}}
+{"id":"e1cb7b45-e3f4-4c18-8ff2-2fa136c0222c","type":"work_order.transition","at":"2026-09-22T16:43:21.519Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","from":"technician_assigned","to":"in_progress","operator":"Tech 9","notes":""}}
+{"id":"ed9e643f-eb2e-440c-bc70-3347957ca695","type":"work_order.transition","at":"2026-09-22T16:43:21.522Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","from":"in_progress","to":"completed","operator":"Tech 9","notes":""}}
+{"id":"769b669b-555d-4a98-899b-bf8e74c87fa0","type":"work_order.transition","at":"2026-09-22T16:43:21.526Z","detail":{"queueItemId":"fba39700-a0eb-464f-b262-f27dce64d96c","from":"completed","to":"closed","operator":"Dispatcher One","notes":""}}
+{"id":"794220a6-5310-4a8d-97c9-dda4a158f173","type":"system.stopping","at":"2026-09-22T16:43:21.529Z","detail":{}}
