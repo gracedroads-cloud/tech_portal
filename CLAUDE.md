@@ -78,12 +78,21 @@ npm test
 npm audit --audit-level=high
 ```
 
-Confirmed on 2026-09-22: the root `node --test` discovers
-`isolated-ops-command/test/isolated-ops.test.js` as well, so one root run
-covers both suites (28 tests: 7 portal, 21 backup). Running the backup suite
-from its own directory is optional. The full gate, including the invariant
-tests that still need to be written and the manual startup, shutdown, and
-recovery checks, is `docs/TEST_PLAN.md`.
+Confirmed on 2026-09-22: the root `npm test` runs `scripts/run-tests.js`,
+which discovers `*.test.js` under `test/`, `tests/`, and
+`isolated-ops-command/test/` (new files there are picked up automatically).
+It deliberately excludes `frontend/`, whose tests are Jest and run with
+`npm test` inside that folder. Two tests in
+`tests/app-dvir.test.js` are skipped with a printed reason until the
+`/api/field` routes exist (see `docs/GRACE_AI_INVENTORY.md` section E). The
+current counts are in `docs/TEST_PLAN.md`. The full gate, including the
+invariant tests that still need to be written and the manual startup,
+shutdown, and recovery checks, is also `docs/TEST_PLAN.md`.
+
+The branch also carries a `frontend/` React app, two field apps under
+`public/`, and `BLUEPRINT.md` from an earlier line of work. None of them has
+a backend in this repository. See `docs/MERGE_PLAN.md` section 1b before
+touching them, and never describe `BLUEPRINT.md` as implemented.
 
 ## Definition of done for the merge
 

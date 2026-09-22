@@ -76,3 +76,48 @@ Decision needed from the owner, recorded in the PR:
 Do not leave it in the current half-state. Either way, the earlier CB radio
 console and Grace text-to-speech commits from that branch should be checked
 against `public/business_dashboard.html` to confirm nothing else was lost.
+
+## E. Field apps regression (PR #1, found 2026-09-22)
+
+`public/field_technician_app.html` and `public/field_dvir_app.html` (with
+`field-sw.js` and `field-app-manifest.json`) were merged from
+`copilot/live-monitoring-command-center`, but the server routes they call
+were not: `/api/field/auth/login`, `/api/field/auth/logout`,
+`/api/field/jobs`, `/api/field/jobs/:id/state`, `/api/field/jobs/:id/proof`,
+`/api/field/jobs/:id/complete`, `/api/field/policy`, `/api/field/dvir`, and
+`/api/breakdowns/live`. `tests/app-dvir.test.js` exercises them and is
+skipped with that reason so the gap shows in every run.
+
+The field login uses a technician ID and PIN and returns a bearer token. That
+is a second authentication model. Restoring it means either mapping it onto
+the single operator token, or designing per-user identity properly, which is
+a listed production blocker. Options for the owner:
+
+- Option 1: restore the field API behind the existing token model with
+  per-tech PIN as a demo-only layer, clearly labeled, with the DVIR
+  escalation into breakdown alerts. Large change; must satisfy I-1 to I-6,
+  I-14, I-15, I-19.
+- Option 2: remove the four field files and the skipped test, and let the
+  mobile app in `grace-roads-mobile` own the field workflow against the
+  merged server later.
+
+## F. Frontend React app Grace features (PR #1)
+
+`frontend/src/components/DispatchFeed.jsx` carries Grace behaviors not
+present anywhere else:
+
+| # | Feature | Notes |
+|---|---|---|
+| F-1 | Grace push-to-talk (PTT) | Browser `SpeechRecognition`; hands-free toggle; speech error states |
+| F-2 | Intelligence levels and profiles | `intelligenceLevel`, `intelligenceProfiles`, `intelligenceScore`; UI-only growth controls |
+| F-3 | "Grace AI Insights" panel | Placeholder tile labeled `Approval Gate`; no backend |
+| F-4 | Live dispatch feed | Socket.IO client to `API_BASE`, `GET /api/dispatch/live`; auto-retry limited |
+| F-5 | Breakdown alerts monitor | `GET /api/breakdowns/live` with location adapt |
+| F-6 | Master suite panel | `GET /api/mastersuite/{contracts,feature-flags,kpis,observability}` |
+
+None of the routes or the Socket.IO server exist in this repository. The
+app is preserved as-is (no edits) and excluded from the root test runner
+because its tests are Jest. If the owner wants any F-row live, it becomes a
+scoped backend task after the merge, with the same invariants. If the owner
+wants the PTT and hands-free behavior in the portal, `public/business_dashboard.html`
+is the place, alongside M-4.

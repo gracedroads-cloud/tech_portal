@@ -42,8 +42,21 @@ The merge is done when every item below is true and the PR shows evidence.
 
 - [ ] Every row in `docs/GRACE_AI_INVENTORY.md` sections A and B is checked
       off in the PR.
-- [ ] The section D regression has a recorded decision and is no longer in a
-      half-state.
+- [ ] The section D regression (breakdown scanner) has a recorded decision
+      and is no longer in a half-state.
+- [ ] The section E regression (field apps) has a recorded decision; either
+      the `/api/field` routes exist and `tests/app-dvir.test.js` runs
+      unskipped, or the field files and the test are removed.
+- [ ] The `frontend/` app (section F) has a recorded decision: kept as a
+      standalone prototype with its missing backend documented, or scheduled
+      as scoped work, or removed.
+
+## Repository hygiene
+
+- [ ] No files under `node_modules/` or `data/` are tracked
+      (`git ls-files node_modules data` is empty).
+- [ ] `BLUEPRINT.md` is labeled aspirational or moved under `docs/` with
+      that label.
 
 ## Tests and CI
 

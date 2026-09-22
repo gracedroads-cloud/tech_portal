@@ -14,7 +14,8 @@ npm test          ->  tests N, pass N, fail 0
 npm audit --audit-level=high ->
 ```
 
-Test count before this PR: 28. Test count after:
+Test count before this PR: 32 (30 pass, 2 skipped). Test count after:
+Skipped tests still present (list them or write "none"):
 
 ## Gate 2: invariants touched
 

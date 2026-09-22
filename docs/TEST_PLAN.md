@@ -6,19 +6,40 @@ so the same checks run in CI. Nothing here is optional.
 
 ## Baseline recorded 2026-09-22
 
-Before the merge work started, from the repository root on the
+Before the guidance package, from the repository root on the local
 `copilot/harden-backup-operations` branch:
 
 | Command | Result |
 |---|---|
 | `npm run check` | pass |
-| `node --test` | 28 tests, 28 pass, 0 fail |
-| of which portal (`test/api.test.js`) | 7 |
-| of which backup (`isolated-ops-command/test/isolated-ops.test.js`) | 21 |
+| `node --test` | 28 tests, 28 pass, 0 fail (7 portal, 21 backup) |
 
-The root `node --test` already discovers the backup suite. After the merge
-the count must not go down. New behavior needs new tests, so the count goes
-up.
+The remote branch then arrived with 36 more commits (PR #1 merge and
+follow-ups). Run against that code, unmodified:
+
+| Command | Result |
+|---|---|
+| `npm run check` | pass |
+| `node --test` | 35 tests, 30 pass, 5 fail |
+
+The five failures were three Jest files under `frontend/` that Node's runner
+cannot execute, and two field-API tests that hit routes missing from
+`src/server.js` (regression E). Fixes applied the same day: `npm test` now
+runs `scripts/run-tests.js`, which discovers `*.test.js` under `test/`,
+`tests/`, and `isolated-ops-command/test/` only (works on Node 20 and 24),
+and the two field tests are skipped with the reason printed in the output.
+
+| Command (after fixes, local Node 24) | Result |
+|---|---|
+| `npm run check` | pass |
+| `npm test` | 32 tests, 30 pass, 0 fail, 2 skipped (field API) |
+| `npm audit --audit-level=high` | pass (one moderate advisory in `qs`, transitive) |
+
+Skipped tests count as neither pass nor fail and must be listed in every PR
+until they run.
+
+After the merge the passing count must not go down. New behavior needs new
+tests, so the count goes up.
 
 ## Gate 1: automated, every commit
 

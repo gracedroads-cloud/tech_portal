@@ -29,6 +29,27 @@ Branch context: work happens on `copilot/**` branches (currently
 | Static | `public/`, `index.html`, `no_tow_authorization.html` | `public/index.html`, `app.js`, `styles.css` |
 | Launcher | `Launch_Graced_Roads_Cockpit.bat` and `auto_launch_cockpit.ps1` (hardcoded `C:\GracedRoadsSystem\backend-api`) | `node server.js` |
 
+### 1b. Other artifacts on the branch (as of 2026-09-22)
+
+Merges from `copilot/live-monitoring-command-center` (PR #1) brought in work
+that is not part of the main or backup servers and has no backend in this
+repository yet:
+
+| Artifact | What it is | Backend it expects | Status |
+|---|---|---|---|
+| `frontend/` | Create React App "Grace Command Center" with DispatchFeed (Grace PTT, hands-free speech), BreakdownAlertsMonitor, MasterSuitePanel; Jest tests | Socket.IO server, `GET /api/dispatch/live`, `GET /api/breakdowns/live`, `GET /api/mastersuite/{contracts,feature-flags,kpis,observability}` | None of these exist in `src/server.js`. Runs standalone on :3001 with a proxy to :3000 and will show errors. |
+| `public/field_technician_app.html`, `public/field_dvir_app.html`, `public/field-sw.js`, `public/field-app-manifest.json` | Role-locked field apps (tech ID + PIN login, jobs, proof, DVIR, offline queue) | `/api/field/auth/{login,logout}`, `/api/field/jobs*`, `/api/field/policy`, `/api/field/dvir`, `/api/breakdowns/live` | No `/api/field` routes exist. Pages load but every call 404s. |
+| `tests/app-dvir.test.js` | Spawns `app.js`, logs in as a field tech, submits DVIRs, expects breakdown escalation | same as above | Skipped with a stated reason until the API exists. |
+| `BLUEPRINT.md` | Enterprise vision for a `C:\GracedRoadsSystem` layout with workers, Socket.IO, payroll, billing | n/a | Aspirational. Nothing in it is implemented here. Do not describe it as current. |
+| `isolated-ops-command` ETA policy | Intake gate on technician ETA, see `docs/SECURITY_BOUNDARIES.md` I-30 | already in the backup | Implemented and tested. Moves with the router. |
+
+The root `npm test` runs `test/`, `tests/`, and `isolated-ops-command/test/`
+only. `frontend/` tests are Jest and run with `npm test` inside `frontend/`.
+
+Also removed from tracking on 2026-09-22: 422 files under `node_modules/`
+and `data/field_dvir_reports.json`, both committed by accident during a
+conflict resolution. `.gitignore` already excluded them.
+
 ## 2. Target shape
 
 ```text
@@ -121,16 +142,27 @@ after each.
 - **Two data-dir env vars.** Honor both for one release, log which one is used at startup, never log the resolved path in an API response.
 - **`simulationMode` default is true.** Keep that default for local dev, but the README must state that production sets it to false and therefore requires a real token.
 
-## 6. Pre-existing regression to resolve alongside the merge
+## 6. Pre-existing regressions to resolve alongside the merge
 
-Pull request #2 added `POST /api/breakdowns/ingest`, `GET
-/api/breakdowns/live`, `GET /api/breakdowns/schema`, and DVIR-triggered
-breakdown alerts to the old monolithic `app.js`. The refactor to
-`src/server.js` did not carry them over, but the merge kept the rewritten
-`public/breakdown_scanner.html` that expects `sourceType`, `alertType`,
-`timestamp`, and `coordinates` on scanner items. The page currently renders
-"Invalid Date" for every card. See `docs/GRACE_AI_INVENTORY.md` section D for
-the two options. The owner picks; the PR records the choice.
+Two features arrived with their pages but without their server routes. Both
+need an owner decision, recorded in the PR. Do not leave either half-built.
+
+1. **Breakdown scanner (PR #2).** `POST /api/breakdowns/ingest`, `GET
+   /api/breakdowns/live`, `GET /api/breakdowns/schema`, and DVIR-triggered
+   alerts existed in the old monolithic `app.js`. `public/breakdown_scanner.html`
+   still expects `sourceType`, `alertType`, `timestamp`, `coordinates` and
+   renders "Invalid Date". Options: `docs/GRACE_AI_INVENTORY.md` section D.
+2. **Field apps (PR #1).** `public/field_technician_app.html` and
+   `public/field_dvir_app.html` call `/api/field/*` routes that do not exist.
+   `tests/app-dvir.test.js` is skipped for that reason. Options:
+   `docs/GRACE_AI_INVENTORY.md` section E. Note the field login is a tech ID
+   plus PIN, which is a second authentication model; if restored it must be
+   reconciled with the single operator token in step 3 and must not weaken
+   I-1 to I-6.
+
+The `frontend/` React app has the same shape of problem at larger scale
+(Socket.IO and five REST routes with no server). It is listed in section 1b
+and is out of scope for the merge unless the owner says otherwise.
 
 ## 7. Out of scope for the merge
 

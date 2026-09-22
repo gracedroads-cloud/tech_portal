@@ -9,8 +9,8 @@
   },
   "scripts": {
     "start": "node app.js",
-    "check": "node --check app.js && node --check src/server.js && node --check src/persistence.js && node --check src/validation.js",
-    "test": "node --test"
+    "check": "node --check app.js && node --check src/server.js && node --check src/persistence.js && node --check src/validation.js && node --check scripts/run-tests.js",
+    "test": "node scripts/run-tests.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

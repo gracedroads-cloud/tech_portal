@@ -21,6 +21,9 @@ Support hotline shown in the product: 215-821-8046.
 | Main portal (cockpit) | `app.js`, `src/`, `public/` | Working, port 3000 |
 | Isolated Operations Command (backup) | `isolated-ops-command/` | Working, port 4300 |
 | Merged system | in progress | see `docs/MERGE_PLAN.md` |
+| Grace Command Center (React prototype) | `frontend/` | UI only; its backend does not exist here. See `docs/MERGE_PLAN.md` 1b |
+| Field technician and field DVIR apps | `public/field_*.html` | UI only; `/api/field` routes missing. See `docs/GRACE_AI_INVENTORY.md` E |
+| System blueprint | `BLUEPRINT.md` | Aspirational, not implemented |
 
 A separate mobile app lives in `gracedroads-cloud/grace-roads-mobile`. It is
 not part of this repository.

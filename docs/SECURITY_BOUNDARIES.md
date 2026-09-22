@@ -135,6 +135,17 @@ Numbered so PRs can cite them.
 - **I-29** Readiness reports degraded dependencies honestly: `degraded: true`
   when persistence, Grace AI, or Teams report `error`.
 
+### Dispatch availability (added to the branch 2026-09-21)
+
+- **I-30** The internal ETA policy in the ops server (`ISOLATED_OPS_DISPATCH_ETA_PREFERRED_MINUTES`,
+  default 90; `ISOLATED_OPS_DISPATCH_ETA_MAX_MINUTES`, default 120) only
+  rejects and escalates. An incident whose technician ETA exceeds the maximum
+  returns 422 `ETA_THRESHOLD_EXCEEDED`, audits
+  `dispatch.eta_threshold_exceeded`, and is routed to manual handling. It
+  never dispatches, never bypasses policy or human approval, and runs before
+  Grace is consulted. Queue items carry `availabilityTier`. The thresholds
+  are operational and are not customer-facing copy (see `docs/Marketing.md`).
+
 ## Controls the main lacks and gains from the merge
 
 Rate limiting, body-size guard per router, startup token validation,

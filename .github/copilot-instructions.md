@@ -91,10 +91,13 @@ npm test
 npm audit --audit-level=high
 ```
 
-The root `npm test` already runs both suites (28 tests at baseline, 7 portal
-and 21 backup). The count must never go down. Report the real output. If
-something fails, say so in the PR body. Fill in every section of
-`.github/PULL_REQUEST_TEMPLATE.md`; reviewers reject PRs with empty sections.
+The root `npm test` runs `scripts/run-tests.js` over `test/`, `tests/`, and
+`isolated-ops-command/test/` (32 tests at baseline: 30 pass, 2 skipped
+pending the field API). `frontend/` Jest tests are excluded and run inside
+that folder. The passing count must never go down and skipped tests must be
+listed in the PR. Report the real output. If something fails, say so in the
+PR body. Fill in every section of `.github/PULL_REQUEST_TEMPLATE.md`;
+reviewers reject PRs with empty sections.
 
 ## PR description expectations
 
