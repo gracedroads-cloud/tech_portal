@@ -155,17 +155,13 @@ function createApp(overrides = {}) {
     ? 'token_required'
     : (config.allowDemoWriteMode ? 'demo_no_auth' : 'disabled');
 
-  const frontendRouteInventory = [
-    { method: 'GET', path: '/api/status' },
-    { method: 'GET', path: '/api/dvir' },
-    { method: 'POST', path: '/api/dvir' },
-    { method: 'GET', path: '/api/breakdowns/scanner' },
-    { method: 'POST', path: '/api/stream/override' },
-    { method: 'POST', path: '/api/submit-job' },
-    { method: 'POST', path: '/api/onboarding' },
-    { method: 'POST', path: '/api/owner-draws' },
-    { method: 'POST', path: '/api/dispatch/quotes' },
-  ];
+  const frontendRouteInventory = [];
+  function registerApiRoute(method, routePath, ...handlers) {
+    if (typeof routePath === 'string' && routePath.startsWith('/api/')) {
+      frontendRouteInventory.push({ method: method.toUpperCase(), path: routePath });
+    }
+    return app[method](routePath, ...handlers);
+  }
 
   function rejectWithError(res, status, code, message, requestId, details) {
     return res.status(status).json(errorBody({ code, message, requestId, details }));
@@ -263,7 +259,7 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.get('/api/routes', (req, res) => {
+  registerApiRoute('get', '/api/routes', (req, res) => {
     res.json({
       ok: true,
       frontendRouteInventory,
@@ -271,7 +267,7 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.get('/api/status', (req, res) => {
+  registerApiRoute('get', '/api/status', (req, res) => {
     res.json({
       ok: true,
       status: 'online',
@@ -288,7 +284,7 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.get('/api/dvir', (req, res) => {
+  registerApiRoute('get', '/api/dvir', (req, res) => {
     res.json({
       ok: true,
       message: 'Use POST /api/dvir to submit DVIR records. Data is prototype-local and auditable in the configured data directory.',
@@ -297,7 +293,7 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.post('/api/dvir', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/dvir', requireMutatingAccess, async (req, res, next) => {
     try {
       await writeOperation(
         req,
@@ -311,7 +307,7 @@ function createApp(overrides = {}) {
     }
   });
 
-  app.get('/api/breakdowns/scanner', (req, res) => {
+  registerApiRoute('get', '/api/breakdowns/scanner', (req, res) => {
     const radiusRaw = req.query.radius;
     const radius = radiusRaw === undefined ? 150 : Number(radiusRaw);
 
@@ -342,7 +338,7 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.post('/api/stream/override', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/stream/override', requireMutatingAccess, async (req, res, next) => {
     try {
       const normalized = normalizeStreamOverride(req.body);
       await writeOperation(
@@ -366,7 +362,7 @@ function createApp(overrides = {}) {
     }
   });
 
-  app.post('/api/submit-job', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/submit-job', requireMutatingAccess, async (req, res, next) => {
     try {
       await writeOperation(
         req,
@@ -380,7 +376,7 @@ function createApp(overrides = {}) {
     }
   });
 
-  app.post('/api/onboarding', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/onboarding', requireMutatingAccess, async (req, res, next) => {
     try {
       await writeOperation(
         req,
@@ -394,7 +390,7 @@ function createApp(overrides = {}) {
     }
   });
 
-  app.post('/api/owner-draws', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/owner-draws', requireMutatingAccess, async (req, res, next) => {
     try {
       await writeOperation(
         req,
@@ -408,7 +404,7 @@ function createApp(overrides = {}) {
     }
   });
 
-  app.post('/api/dispatch/quotes', requireMutatingAccess, async (req, res, next) => {
+  registerApiRoute('post', '/api/dispatch/quotes', requireMutatingAccess, async (req, res, next) => {
     try {
       await writeOperation(
         req,
