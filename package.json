@@ -13,10 +13,16 @@
     "test": "node scripts/run-tests.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
+    "@simplewebauthn/server": "^13.1.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.1.0",
-    "helmet": "^8.1.0"
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^1.1.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "supertest": "^7.1.4"

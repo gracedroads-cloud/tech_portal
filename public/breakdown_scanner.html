@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EH Graced Roads - 100-Mile Commercial Breakdown Scanner</title>
+    <title>EH Graced Roads - 150-Mile Commercial Breakdown Scanner</title>
     <style>
         :root {
             --bg-dark: #020617;
@@ -30,14 +30,20 @@
             flex-direction: column;
             gap: 16px;
         }
+        .scanner-header,
+        .status-card,
+        .incident-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
         .scanner-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 16px;
-            border-radius: 12px;
+            gap: 16px;
+            flex-wrap: wrap;
         }
         .pulse-beacon {
             width: 10px;
@@ -46,20 +52,35 @@
             border-radius: 50%;
             display: inline-block;
             box-shadow: 0 0 10px var(--accent-green);
+            margin-right: 8px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .status-field {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .status-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .status-value {
+            font-size: 13px;
+            color: #ffffff;
+            font-weight: bold;
         }
         .incident-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 16px;
-        }
-        .incident-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
         }
         .card-top {
             display: flex;
@@ -67,6 +88,8 @@
             align-items: center;
             border-bottom: 1px solid #1e293b;
             padding-bottom: 8px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .corridor-pill {
             background: rgba(56, 189, 248, 0.15);
@@ -90,6 +113,8 @@
             align-items: center;
             border-top: 1px solid #1e293b;
             padding-top: 8px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .quote-rate { font-size: 13px; font-family: monospace; font-weight: bold; color: var(--accent-green); }
         .dispatch-cta {
@@ -104,109 +129,202 @@
             cursor: pointer;
             border: none;
         }
-        .meta-line {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            font-size: 11px;
-            color: #cbd5e1;
-        }
-        .meta-pill {
-            background: rgba(16, 185, 129, 0.12);
-            color: var(--accent-green);
-            padding: 3px 8px;
-            border-radius: 999px;
-        }
     </style>
 </head>
 <body>
     <div class="scanner-container">
         <div class="scanner-header">
-            <h1><span class="pulse-beacon"></span> 100-Mile Commercial Breakdown Scanner</h1>
-            <div style="font-family: monospace; font-size: 12px; color: var(--accent-green);">RADAR HUB ACTIVE — ZERO-COST PROFILE MAP</div>
+            <div>
+                <h1 style="margin: 0 0 6px 0;"><span class="pulse-beacon"></span><span id="scanner-title">150-Mile Commercial Breakdown Scanner</span></h1>
+                <div style="font-size: 13px; color: #94a3b8;">Based in Lehigh Valley • mobile diesel repair for tractor-trailers and heavy-duty trucks.</div>
+            </div>
+            <div id="scanner-mode" style="font-family: monospace; font-size: 12px; color: var(--accent-green);">WATCH CENTER LOADING...</div>
         </div>
-        <div class="incident-grid" id="incident-grid"></div>
+
+        <div class="status-card">
+            <div class="status-grid">
+                <div class="status-field">
+                    <div class="status-label">Watch center</div>
+                    <div class="status-value" id="status-watch-center">Loading...</div>
+                </div>
+                <div class="status-field">
+                    <div class="status-label">Radius indicator</div>
+                    <div class="status-value" id="status-radius">150 miles</div>
+                </div>
+                <div class="status-field">
+                    <div class="status-label">Last live GPS update</div>
+                    <div class="status-value" id="status-last-update">Awaiting live GPS</div>
+                </div>
+                <div class="status-field">
+                    <div class="status-label">GPS freshness</div>
+                    <div class="status-value" id="status-freshness">Checking...</div>
+                </div>
+                <div class="status-field">
+                    <div class="status-label">Fallback state</div>
+                    <div class="status-value" id="status-fallback">Checking...</div>
+                </div>
+                <div class="status-field">
+                    <div class="status-label">Active coordinates</div>
+                    <div class="status-value" id="status-coordinates">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="incident-grid" id="incident-grid">
+            <div class="incident-card">
+                <div class="issue-title">Loading watch-center breakdown feed...</div>
+                <div class="issue-details">The server-selected 150-mile watch filter is being applied.</div>
+            </div>
+        </div>
     </div>
     <script>
+        const scannerTitle = document.getElementById('scanner-title');
+        const scannerMode = document.getElementById('scanner-mode');
+        const statusWatchCenter = document.getElementById('status-watch-center');
+        const statusRadius = document.getElementById('status-radius');
+        const statusLastUpdate = document.getElementById('status-last-update');
+        const statusFreshness = document.getElementById('status-freshness');
+        const statusFallback = document.getElementById('status-fallback');
+        const statusCoordinates = document.getElementById('status-coordinates');
         const incidentGrid = document.getElementById('incident-grid');
+        const POLL_INTERVAL_MS = 30000;
 
-        function executeTriageRedirect(location, vehicle, issue) {
+        function formatTimestamp(timestamp) {
+            return timestamp ? new Date(timestamp).toLocaleString() : 'Awaiting live GPS';
+        }
+
+        function formatFreshness(freshnessMs, freshnessLabel) {
+            if (freshnessLabel === 'unavailable' || freshnessMs === null) {
+                return 'No live GPS received';
+            }
+
+            const seconds = Math.max(0, Math.round(freshnessMs / 1000));
+            if (seconds < 60) {
+                return `${freshnessLabel.toUpperCase()} • ${seconds}s ago`;
+            }
+
+            const minutes = Math.floor(seconds / 60);
+            return `${freshnessLabel.toUpperCase()} • ${minutes}m ago`;
+        }
+
+        function renderWatchCenter(center) {
+            const watchCenterLabel = center.sourceMode === 'live_gps' ? 'Watch Center: Live GPS' : 'Watch Center: Lehigh Valley fallback';
+            scannerMode.innerText = `${watchCenterLabel.toUpperCase()} • ${center.radiusMiles}-MILE FILTER`;
+            statusWatchCenter.innerText = watchCenterLabel;
+            statusRadius.innerText = `${center.radiusMiles} miles`;
+            statusLastUpdate.innerText = formatTimestamp(center.lastUpdateTimestamp);
+            statusFreshness.innerText = formatFreshness(center.freshnessMs, center.gpsFreshness);
+            statusFallback.innerText = center.fallbackState === 'active' ? 'Fallback active' : 'Fallback standby';
+            statusCoordinates.innerText = `${center.latitude.toFixed(4)}, ${center.longitude.toFixed(4)}`;
+            scannerTitle.innerText = `${center.radiusMiles}-Mile Commercial Breakdown Scanner`;
+        }
+
+        function renderEmptyState(title, details) {
+            incidentGrid.replaceChildren();
+
+            const card = document.createElement('div');
+            card.className = 'incident-card';
+
+            const issueTitle = document.createElement('div');
+            issueTitle.className = 'issue-title';
+            issueTitle.textContent = title;
+
+            const issueDetails = document.createElement('div');
+            issueDetails.className = 'issue-details';
+            issueDetails.textContent = details;
+
+            card.append(issueTitle, issueDetails);
+            incidentGrid.appendChild(card);
+        }
+
+        function createBreakdownCard(breakdown, watchCenterLabel) {
+            const card = document.createElement('div');
+            card.className = 'incident-card';
+
+            const cardTop = document.createElement('div');
+            cardTop.className = 'card-top';
+
+            const corridorPill = document.createElement('span');
+            corridorPill.className = 'corridor-pill';
+            corridorPill.textContent = breakdown.corridor;
+
+            const distancePill = document.createElement('span');
+            distancePill.className = 'distance-pill';
+            distancePill.textContent = `${breakdown.distance} FROM WATCH CENTER`;
+
+            cardTop.append(corridorPill, distancePill);
+
+            const issueTitle = document.createElement('div');
+            issueTitle.className = 'issue-title';
+            issueTitle.textContent = `🚨 ${breakdown.vehicle} — ${breakdown.issue}`;
+
+            const issueDetails = document.createElement('div');
+            issueDetails.className = 'issue-details';
+            issueDetails.textContent = `${breakdown.location} • Source mode: ${watchCenterLabel}`;
+
+            const cardActions = document.createElement('div');
+            cardActions.className = 'card-actions';
+
+            const quoteRate = document.createElement('span');
+            quoteRate.className = 'quote-rate';
+            quoteRate.textContent = `Quoted Rate: ${breakdown.quoteRate}`;
+
+            const dispatchButton = document.createElement('button');
+            dispatchButton.className = 'dispatch-cta';
+            dispatchButton.type = 'button';
+            dispatchButton.textContent = 'Triage Job ➔';
+            dispatchButton.addEventListener('click', () => {
+                executeTriageRedirect(breakdown.vehicle, breakdown.location, breakdown.issue, breakdown.quoteRate);
+            });
+
+            cardActions.append(quoteRate, dispatchButton);
+            card.append(cardTop, issueTitle, issueDetails, cardActions);
+
+            return card;
+        }
+
+        function renderBreakdowns(data) {
+            renderWatchCenter(data.watchCenter);
+
+            if (!data.breakdowns || data.breakdowns.length === 0) {
+                renderEmptyState(
+                    'No breakdowns inside the active watch filter',
+                    `The server is applying the ${data.radiusMiles}-mile watch-center radius from ${data.watchCenter.watchCenterLabel}.`
+                );
+                return;
+            }
+
+            incidentGrid.replaceChildren(...data.breakdowns.map((breakdown) => createBreakdownCard(breakdown, data.watchCenter.watchCenterLabel)));
+        }
+
+        function executeTriageRedirect(vehicle, location, issue, quoteRate) {
             const params = new URLSearchParams({
-                carrier: vehicle || 'Fleet Unit',
-                location: location || 'Location Pending',
-                serviceKey: issue || 'vehicle_repair',
-                estPrice: '0.00'
+                carrier: vehicle,
+                location,
+                serviceKey: issue,
+                estPrice: quoteRate.replace(/[^0-9.]/g, '') || '0.00'
             });
             window.location.href = `grace_dispatch_console.html?${params.toString()}`;
         }
 
-        function renderAlerts(alerts) {
-            if (!alerts.length) {
-                incidentGrid.innerHTML = `
-                    <div class="incident-card">
-                        <div class="issue-title">✅ No live breakdown or vehicle-repair alerts.</div>
-                        <div class="issue-details">The 100-mile scanner is online and waiting for dispatch, DVIR, telematics, or manual repair alerts.</div>
-                    </div>
-                `;
-                return;
-            }
-
-            incidentGrid.innerHTML = alerts.map((alert) => {
-                const sourceType = (alert.sourceType || alert.source || 'dispatch').toUpperCase();
-                const technician = alert.technician ? `<span class="meta-pill">TECH: ${alert.technician}</span>` : '';
-                const coordinates = alert.coordinates
-                    ? `<span class="meta-pill">GPS: ${alert.coordinates.latitude}, ${alert.coordinates.longitude}</span>`
-                    : '';
-                return `
-                    <div class="incident-card">
-                        <div class="card-top">
-                            <span class="corridor-pill">${sourceType} • ${alert.severity || 'HIGH'}</span>
-                            <span class="distance-pill">${alert.distance || 'UNKNOWN'} FROM HUB</span>
-                        </div>
-                        <div class="issue-title">🚨 ${alert.vehicle || 'Fleet Unit'} — ${alert.issue || 'Issue pending'}</div>
-                        <div class="issue-details">${alert.location || 'Location pending'} • ${new Date(alert.timestamp).toLocaleString()}</div>
-                        <div class="meta-line">
-                            <span class="meta-pill">ID: ${alert.id}</span>
-                            ${technician}
-                            ${coordinates}
-                        </div>
-                        <div class="card-actions">
-                            <span class="quote-rate">${alert.alertType === 'vehicle_repair' ? 'VR Intake' : 'Dispatch Ready'}</span>
-                            <button
-                                class="dispatch-cta"
-                                data-location="${encodeURIComponent(alert.location || '')}"
-                                data-vehicle="${encodeURIComponent(alert.vehicle || '')}"
-                                data-issue="${encodeURIComponent(alert.issue || '')}"
-                            >
-                                Triage Job ➔
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            incidentGrid.querySelectorAll('.dispatch-cta').forEach((button) => {
-                button.addEventListener('click', () => {
-                    executeTriageRedirect(
-                        decodeURIComponent(button.dataset.location || ''),
-                        decodeURIComponent(button.dataset.vehicle || ''),
-                        decodeURIComponent(button.dataset.issue || '')
-                    );
+        function refreshScanner() {
+            fetch('/api/breakdowns/scanner')
+                .then(async (response) => {
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(payload.error || 'Breakdown scanner unavailable.');
+                    }
+                    return payload;
+                })
+                .then(renderBreakdowns)
+                .catch((error) => {
+                    scannerMode.innerText = 'WATCH CENTER OFFLINE';
+                    renderEmptyState('Breakdown scanner offline', error.message);
                 });
-            });
         }
 
-        fetch('/api/breakdowns/scanner?radius=100')
-            .then((response) => response.json())
-            .then((data) => renderAlerts(Array.isArray(data.breakdowns) ? data.breakdowns : []))
-            .catch(() => {
-                incidentGrid.innerHTML = `
-                    <div class="incident-card">
-                        <div class="issue-title">⚠️ Scanner feed offline.</div>
-                        <div class="issue-details">Unable to load live breakdown alerts from the backend feed.</div>
-                    </div>
-                `;
-            });
+        refreshScanner();
+        setInterval(refreshScanner, POLL_INTERVAL_MS);
     </script>
 </body>
 </html>

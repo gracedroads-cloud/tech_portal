@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Grace Company Safe</title>
+    <style>
+        :root { color-scheme: dark; --bg:#050b13; --panel:#0c1726; --line:#29465e; --text:#e8f2fb; --muted:#a5b5c4; --blue:#49a8e8; --green:#35d29a; --red:#ff6b6b; }
+        * { box-sizing:border-box; } body { margin:0; min-height:100vh; font-family:Arial,sans-serif; color:var(--text); background:radial-gradient(circle at top,#102b45 0,var(--bg) 46%); }
+        main { width:min(1040px,calc(100% - 32px)); margin:0 auto; padding:34px 0 50px; } header { display:flex; justify-content:space-between; gap:18px; align-items:start; border-bottom:1px solid var(--line); padding-bottom:22px; }
+        h1 { margin:0; font-size:clamp(1.5rem,4vw,2.25rem); } h2 { margin:0 0 12px; } p { color:var(--muted); line-height:1.55; } .badge { padding:7px 10px; border:1px solid var(--blue); color:#bce6ff; border-radius:999px; font-size:.75rem; white-space:nowrap; }
+        .notice { margin:22px 0; padding:14px 16px; border-left:3px solid var(--green); background:#0a211e; color:#d6f8e9; } .warning { border-left-color:#f2bb54; background:#2a210d; color:#ffe5aa; }
+        .card { margin-top:22px; padding:22px; border:1px solid var(--line); border-radius:12px; background:rgba(12,23,38,.92); } label { display:grid; gap:7px; color:#c8d8e6; font-size:.9rem; } input, textarea, select { width:100%; color:var(--text); background:#07111d; border:1px solid #35536c; border-radius:7px; padding:11px; font:inherit; } textarea { min-height:100px; resize:vertical; }
+        .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; } button { cursor:pointer; border:0; border-radius:7px; padding:11px 16px; font-weight:700; color:#06101a; background:var(--green); } button.secondary { background:#b9dff6; } button.danger { color:#fff; background:#a93636; } button:disabled { opacity:.55; cursor:not-allowed; }
+        .hidden { display:none !important; } #status { margin-top:14px; min-height:1.4em; color:var(--muted); } .entry { border:1px solid #29465e; border-radius:9px; padding:15px; margin-top:12px; background:#08121f; } .entry header { border:0; padding:0; align-items:center; } .entry h3 { margin:0; font-size:1rem; } .category { color:#b9dff6; font-size:.78rem; } .secret { white-space:pre-wrap; overflow-wrap:anywhere; margin:12px 0; color:#f5f7f9; } .entry-notes { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.88rem; } .links { margin-top:20px; } a { color:#9edaff; } @media(max-width:650px) { main { width:min(100% - 24px,1040px); padding-top:20px; } header,.grid { grid-template-columns:1fr; display:grid; } }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <div><h1>Grace Company Safe</h1><p>Encrypted company software, account, and setup information.</p></div>
+            <span class="badge">LOCAL LAPTOP ONLY</span>
+        </header>
+        <div class="notice">Your unlock code is never stored in plain text. There is no recovery path: if you lose it, the encrypted safe cannot be opened.</div>
+        <section id="loading" class="card"><p>Checking Company Safe status…</p></section>
+        <section id="setup" class="card hidden">
+            <h2>Create the Company Safe</h2>
+            <p>Create a unique code of at least 12 characters. Save it in a physical secure location that only you control.</p>
+            <form id="setup-form">
+                <div class="grid">
+                    <label>Unique unlock code<input id="setup-code" type="password" minlength="12" maxlength="256" autocomplete="new-password" required></label>
+                    <label>Confirm unlock code<input id="setup-confirmation" type="password" minlength="12" maxlength="256" autocomplete="new-password" required></label>
+                </div>
+                <div class="actions"><button type="submit">Create Company Safe</button></div>
+            </form>
+        </section>
+        <section id="unlock" class="card hidden">
+            <h2>Unlock the Company Safe</h2>
+            <form id="unlock-form"><label>Unlock code<input id="unlock-code" type="password" maxlength="256" autocomplete="current-password" required></label><div class="actions"><button type="submit">Unlock</button></div></form>
+        </section>
+        <section id="vault" class="hidden">
+            <section class="card">
+                <h2>Add protected company information</h2>
+                <form id="entry-form">
+                    <div class="grid">
+                        <label>Title<input id="entry-title" maxlength="120" placeholder="Example: Dispatch email account" required></label>
+                        <label>Category<select id="entry-category" required><option value="Software">Software</option><option value="Account">Account</option><option value="Setup">Setup</option><option value="Recovery contact">Recovery contact</option><option value="Other">Other</option></select></label>
+                    </div>
+                    <label>Protected information<textarea id="entry-secret" maxlength="10000" placeholder="License key, secure process, account identifier, or other protected content."></textarea></label>
+                    <label>Private notes<textarea id="entry-notes" maxlength="10000" placeholder="Optional handling notes."></textarea></label>
+                    <div class="actions"><button type="submit">Save encrypted entry</button><button id="lock" class="secondary" type="button">Lock safe</button></div>
+                </form>
+                <p id="status" role="status"></p>
+            </section>
+            <section class="card"><h2>Safe entries</h2><div id="entries"></div></section>
+        </section>
+        <p class="links"><a href="/command_center.html">Return to Master Command Center</a></p>
+    </main>
+    <script>
+        (() => {
+            let unlockCode = '';
+            const loading = document.getElementById('loading');
+            const setup = document.getElementById('setup');
+            const unlock = document.getElementById('unlock');
+            const vault = document.getElementById('vault');
+            const entries = document.getElementById('entries');
+            const status = document.getElementById('status');
+            const request = async (url, options = {}) => {
+                const response = await fetch(url, options);
+                const payload = await response.json();
+                if (!response.ok || payload.success === false) throw new Error(payload.error || 'Company Safe request failed.');
+                return payload;
+            };
+            const safeHeaders = () => ({ 'Content-Type': 'application/json', 'X-Company-Safe-Code': unlockCode });
+            function setStatus(message) { status.textContent = message; }
+            function lock() {
+                unlockCode = '';
+                vault.classList.add('hidden');
+                unlock.classList.remove('hidden');
+                document.getElementById('unlock-code').value = '';
+                entries.replaceChildren();
+                setStatus('');
+            }
+            function render(list) {
+                entries.replaceChildren();
+                if (!list.length) {
+                    const empty = document.createElement('p'); empty.textContent = 'No encrypted entries have been saved yet.'; entries.append(empty); return;
+                }
+                list.forEach(entry => {
+                    const card = document.createElement('article'); card.className = 'entry';
+                    const header = document.createElement('header'); const title = document.createElement('h3'); title.textContent = entry.title;
+                    const category = document.createElement('span'); category.className = 'category'; category.textContent = entry.category; header.append(title, category);
+                    const secret = document.createElement('p'); secret.className = 'secret'; secret.textContent = entry.secret || 'No protected information recorded.';
+                    const notes = document.createElement('p'); notes.className = 'entry-notes'; notes.textContent = entry.notes || '';
+                    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'danger'; remove.textContent = 'Delete';
+                    remove.addEventListener('click', async () => {
+                        if (!window.confirm(`Delete "${entry.title}" permanently?`)) return;
+                        try { await request(`/api/company-safe/entries/${encodeURIComponent(entry.id)}`, { method:'DELETE', headers:safeHeaders() }); await loadEntries(); setStatus('Entry deleted.'); } catch (error) { setStatus(error.message); }
+                    });
+                    card.append(header, secret, notes, remove); entries.append(card);
+                });
+            }
+            async function loadEntries() {
+                const payload = await request('/api/company-safe/entries', { headers: safeHeaders() });
+                render(payload.entries);
+            }
+            document.getElementById('setup-form').addEventListener('submit', async event => {
+                event.preventDefault();
+                const code = document.getElementById('setup-code').value;
+                if (code !== document.getElementById('setup-confirmation').value) { window.alert('The unlock codes do not match.'); return; }
+                try { await request('/api/company-safe/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code }) }); unlockCode = code; setup.classList.add('hidden'); vault.classList.remove('hidden'); await loadEntries(); setStatus('Company Safe created and unlocked.'); } catch (error) { window.alert(error.message); }
+            });
+            document.getElementById('unlock-form').addEventListener('submit', async event => {
+                event.preventDefault(); unlockCode = document.getElementById('unlock-code').value;
+                try { await loadEntries(); unlock.classList.add('hidden'); vault.classList.remove('hidden'); setStatus('Company Safe unlocked.'); } catch (error) { unlockCode = ''; window.alert(error.message); }
+            });
+            document.getElementById('entry-form').addEventListener('submit', async event => {
+                event.preventDefault();
+                try {
+                    await request('/api/company-safe/entries', { method:'POST', headers:safeHeaders(), body:JSON.stringify({ title:document.getElementById('entry-title').value, category:document.getElementById('entry-category').value, secret:document.getElementById('entry-secret').value, notes:document.getElementById('entry-notes').value }) });
+                    event.target.reset(); await loadEntries(); setStatus('Encrypted entry saved.');
+                } catch (error) { setStatus(error.message); }
+            });
+            document.getElementById('lock').addEventListener('click', lock);
+            window.addEventListener('beforeunload', () => { unlockCode = ''; });
+            request('/api/company-safe/status').then(payload => { loading.classList.add('hidden'); (payload.initialized ? unlock : setup).classList.remove('hidden'); }).catch(error => { loading.innerHTML = `<p class="warning">${error.message}</p>`; });
+        })();
+    </script>
+</body>
+</html>
