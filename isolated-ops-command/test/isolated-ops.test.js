@@ -240,6 +240,47 @@ test('supports full work-order transitions through closeout with idempotency', a
   }
 });
 
+test('requires an explicit customer-safe summary when closing a work order', async () => {
+  const ctx = await startTestServer();
+  try {
+    const created = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ description: 'Battery diagnostics requested', serviceType: 'battery_electrical_help' })
+    });
+    const queueId = created.body.queueItem.id;
+    await jsonRequest(ctx.baseUrl, `/api/dispatch/${queueId}/approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ operator: 'Dispatcher One' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'assign-close-1' }),
+      body: JSON.stringify({ transition: 'technician_assigned', operator: 'Dispatcher One', technician: 'Tech 9' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'progress-close-1' }),
+      body: JSON.stringify({ transition: 'in_progress', operator: 'Tech 9' })
+    });
+    await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'complete-close-1' }),
+      body: JSON.stringify({ transition: 'completed', operator: 'Tech 9', completionNotes: 'Internal note only' })
+    });
+    const closed = await jsonRequest(ctx.baseUrl, `/api/work-orders/${queueId}/transition`, {
+      method: 'POST',
+      headers: authHeaders({ 'idempotency-key': 'close-without-summary' }),
+      body: JSON.stringify({ transition: 'closed', operator: 'Dispatcher One' })
+    });
+    assert.equal(closed.response.status, 400);
+    assert.match(closed.body.error, /customerSafeSummary/);
+  } finally {
+    await ctx.stop();
+  }
+});
+
 test('replays the original idempotent incident response shape and status', async () => {
   const ctx = await startTestServer();
   try {
@@ -513,6 +554,29 @@ test('rejects malformed backup restore payloads', async () => {
       body: JSON.stringify({ state: { bad: true }, audit: ['not-an-object'] })
     });
     assert.equal(malformed.response.status, 400);
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('sanitizes invalid nested backup restore entries before persisting them', async () => {
+  const ctx = await startTestServer();
+  try {
+    const exported = await jsonRequest(ctx.baseUrl, '/api/admin/backup/export', {
+      method: 'GET',
+      headers: { 'x-ops-token': 'test-token' }
+    });
+    exported.body.state.mediaSources = [null];
+    const restore = await jsonRequest(ctx.baseUrl, '/api/admin/backup/restore', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(exported.body)
+    });
+    assert.equal(restore.response.status, 202);
+
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
+    assert.equal(state.response.status, 200);
+    assert.deepEqual(state.body.mediaSources, []);
   } finally {
     await ctx.stop();
   }

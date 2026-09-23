@@ -73,6 +73,126 @@
             padding: 18px;
         }
 
+        .progress-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin: 14px 0 16px;
+        }
+
+        .summary-card {
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .summary-label {
+            color: #94A3B8;
+            font-size: 0.72rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .summary-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .status-ready { color: var(--accent-blue); }
+        .status-active { color: var(--accent-gold); }
+        .status-blocked { color: #F87171; }
+        .status-complete { color: var(--accent-green); }
+
+        .progress-stage-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .progress-stage-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1.2fr) 110px 150px minmax(180px, 1.2fr);
+            gap: 10px;
+            align-items: center;
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .progress-stage-name {
+            font-weight: bold;
+            color: white;
+        }
+
+        .progress-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid transparent;
+            width: fit-content;
+        }
+
+        .chip-pending {
+            color: #94A3B8;
+            background: rgba(148, 163, 184, 0.12);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .chip-active {
+            color: #111827;
+            background: var(--accent-gold);
+        }
+
+        .chip-complete {
+            color: #052E16;
+            background: var(--accent-green);
+        }
+
+        .chip-blocked {
+            color: white;
+            background: #DC2626;
+        }
+
+        .progress-stage-meta {
+            color: #94A3B8;
+            font-size: 0.78rem;
+        }
+
+        .progress-note {
+            color: #CBD5E1;
+            font-size: 0.83rem;
+            margin-top: 8px;
+        }
+
+        #graceLog {
+            background: #000;
+            color: var(--accent-green);
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 1024px) {
+            .progress-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .progress-stage-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .btn-group {
             display: flex;
             gap: 10px;
@@ -103,6 +223,28 @@
             min-height: 100px;
             white-space: pre-wrap;
         }
+
+        .watch-center-field {
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+
+        .watch-center-label {
+            font-size: 0.75rem;
+            color: #94A3B8;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .watch-center-value {
+            font-size: 0.92rem;
+            color: white;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -112,10 +254,59 @@
     <!-- 150-MILE LIVE BREAKDOWN TICKER BAR -->
     <div class="ticker-wrapper">
         <div class="ticker-header">
-            <span class="ticker-badge">📡 EASTON PA 150-MILE RADAR TICKER</span>
+            <span class="ticker-badge" id="ticker-badge">📡 WATCH CENTER 150-MILE RADAR TICKER</span>
             <marquee id="breakdown-ticker" behavior="scroll" direction="left" scrollamount="6">
                 [LOADING LIVE 150-MILE BREAKDOWN FEED...]
             </marquee>
+        </div>
+    </div>
+
+    <div class="op-card" style="border: 1px solid var(--border-color); margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div>
+                <h3 style="color: var(--accent-green); margin: 0;">📍 WATCH CENTER CONTROL</h3>
+                <div style="font-size: 0.85rem; color: #94A3B8;">Based in Lehigh Valley • mobile diesel repair for tractor-trailers and heavy-duty trucks.</div>
+            </div>
+            <span id="watch-center-mode" style="background: #334155; color: white; padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: bold;">
+                Loading watch center...
+            </span>
+        </div>
+
+        <div class="grid-2col" style="margin-bottom: 0;">
+            <div>
+                <div class="watch-center-field">
+                    <div class="watch-center-label">Active center</div>
+                    <div class="watch-center-value" id="watch-center-coordinates">Loading...</div>
+                </div>
+                <div class="watch-center-field">
+                    <div class="watch-center-label">150-mile radius indicator</div>
+                    <div class="watch-center-value" id="watch-center-radius">150 miles</div>
+                </div>
+                <div class="watch-center-field">
+                    <div class="watch-center-label">Last live GPS update</div>
+                    <div class="watch-center-value" id="watch-center-last-update">Awaiting live GPS</div>
+                </div>
+            </div>
+            <div>
+                <div class="watch-center-field">
+                    <div class="watch-center-label">GPS freshness</div>
+                    <div class="watch-center-value" id="watch-center-freshness">Checking...</div>
+                </div>
+                <div class="watch-center-field">
+                    <div class="watch-center-label">Fallback state</div>
+                    <div class="watch-center-value" id="watch-center-fallback">Checking...</div>
+                </div>
+                <div class="watch-center-field" style="margin-bottom: 0;">
+                    <div class="watch-center-label">Operator live GPS</div>
+                    <label for="operator-access-key" style="display: block; margin-bottom: 8px; font-size: 0.8rem; color: #94A3B8;">Operator access key</label>
+                    <input id="operator-access-key" type="password" placeholder="Enter operator access key" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #020604; color: white;">
+                    <div class="btn-group">
+                        <button id="start-watch-center-gps" type="button" class="btn" style="background: #00E676; color: black; flex: 1;">📡 SHARE LIVE GPS</button>
+                        <button id="stop-watch-center-gps" type="button" class="btn" style="background: #334155; color: white; flex: 1;">⏹ STOP GPS</button>
+                    </div>
+                    <div id="gps-status" style="margin-top: 10px; font-size: 0.8rem; color: #94A3B8;">Browser GPS idle. Location is only requested after you press Share Live GPS.</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -141,14 +332,14 @@
                 </div>
                 <div style="flex: 0.8;">
                     <div style="font-size: 0.75rem; color: #64748B; font-weight: bold;">ORIGIN LOCATION</div>
-                    <div id="caller-loc-display" style="font-weight: bold; color: var(--accent-gold);">I-78 Corridor (Easton, PA)</div>
+                    <div id="caller-loc-display" style="font-weight: bold; color: var(--accent-gold);">I-78 Corridor</div>
                 </div>
             </div>
 
             <!-- Live Transcript Screen -->
             <div style="font-size: 0.75rem; color: #94A3B8; margin-bottom: 4px; font-weight: bold;">LIVE AUDIO STREAM TRANSCRIPT:</div>
             <div id="stream-transcript-screen" style="background: #020604; color: #38BDF8; font-family: monospace; padding: 12px; border-radius: 6px; height: 110px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--accent-green); font-size: 0.88rem; line-height: 1.4;">
-                [GRACE AI]: EH Graced Roads Solutions, GRACE speaking. How can we assist your fleet near Easton today?
+                [GRACE AI]: EH Graced Roads Solutions, GRACE speaking. How can we assist your fleet today?
             </div>
 
             <!-- Override Buttons -->
@@ -169,9 +360,9 @@
         <div class="op-card" style="border: 2px solid var(--accent-blue);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <h3 style="color: var(--accent-blue); margin: 0; font-size: 1.15rem;">
-                    🚨 DISPATCH CONSOLE 2.0 (EASTON BASE)
+                    🚨 DISPATCH CONSOLE 2.0
                 </h3>
-                <span style="background: #0284C7; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
+                <span id="watch-center-radius-badge" style="background: #0284C7; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;">
                     RADAR: 150 MI
                 </span>
             </div>
@@ -179,7 +370,7 @@
             <!-- Fleet Unit Status -->
             <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                 <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #1 (EASTON HQ)</div>
+                    <div style="font-size: 0.75rem; color: #94A3B8;">VAN #1 (LEHIGH VALLEY BASE)</div>
                     <div style="color: var(--accent-green); font-weight: bold; font-size: 0.88rem;">● DISPATCH READY</div>
                 </div>
                 <div style="flex: 1; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
@@ -203,16 +394,48 @@
             </div>
 
             <div style="margin-top: 12px; background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #94A3B8; border-left: 3px solid var(--accent-blue);">
-                <strong style="color: white;">Base Location:</strong> Easton, PA | GPS: 40.6884, -75.2207
+                <strong style="color: white;">Based in Lehigh Valley:</strong> mobile diesel repair for tractor-trailers and heavy-duty trucks.<br>
+                <span id="watch-center-base-detail">Watch Center: Lehigh Valley fallback</span>
             </div>
         </div>
 
     </div>
 
+    <div class="op-card" style="border: 2px solid var(--accent-green); margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
+            <h3 style="color: var(--accent-green); margin: 0; font-size: 1.15rem;">
+                📈 GRACE DISPATCH PROGRESS
+            </h3>
+            <span id="progress-call-id" style="background: rgba(0, 230, 118, 0.12); color: var(--accent-green); padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: bold;">
+                LOADING ACTIVE CALL
+            </span>
+        </div>
+        <div id="progress-overall-note" class="progress-note">Loading Grace lifecycle status from the command center...</div>
+        <div class="progress-summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Ready</div>
+                <div id="summary-ready" class="summary-count status-ready">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Active</div>
+                <div id="summary-active" class="summary-count status-active">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Blocked</div>
+                <div id="summary-blocked" class="summary-count status-blocked">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Complete</div>
+                <div id="summary-complete" class="summary-count status-complete">0</div>
+            </div>
+        </div>
+        <div id="progress-stage-list" class="progress-stage-list"></div>
+    </div>
+
     <!-- TERMINAL OUTPUT -->
     <div class="op-card" style="border: 1px solid var(--border-color);">
         <h4 style="margin: 0 0 10px 0; color: #94A3B8;">CONSOLE TERMINAL LOG</h4>
-        <div id="graceLog">SYSTEM INITIALIZED - EASTON PA RADAR ONLINE</div>
+        <div id="graceLog">SYSTEM INITIALIZED - WATCH CENTER RADAR ONLINE</div>
     </div>
 
 </div>
@@ -225,14 +448,40 @@
     const statusBadge = document.getElementById('call-status-badge');
     const transcriptScreen = document.getElementById('stream-transcript-screen');
     const ticker = document.getElementById('breakdown-ticker');
+    const tickerBadge = document.getElementById('ticker-badge');
+    const watchCenterMode = document.getElementById('watch-center-mode');
+    const watchCenterCoordinates = document.getElementById('watch-center-coordinates');
+    const watchCenterRadius = document.getElementById('watch-center-radius');
+    const watchCenterLastUpdate = document.getElementById('watch-center-last-update');
+    const watchCenterFreshness = document.getElementById('watch-center-freshness');
+    const watchCenterFallback = document.getElementById('watch-center-fallback');
+    const watchCenterBaseDetail = document.getElementById('watch-center-base-detail');
+    const watchCenterRadiusBadge = document.getElementById('watch-center-radius-badge');
+    const operatorAccessKey = document.getElementById('operator-access-key');
+    const startWatchCenterGpsBtn = document.getElementById('start-watch-center-gps');
+    const stopWatchCenterGpsBtn = document.getElementById('stop-watch-center-gps');
+    const gpsStatus = document.getElementById('gps-status');
+    const WATCH_CENTER_POLL_MS = 30000;
+    const GPS_UPDATE_INTERVAL_MS = 45000;
+    let geolocationWatchId = null;
+    let lastGpsSentAt = 0;
+    let gpsUpdateInFlight = false;
+    const progressCallId = document.getElementById('progress-call-id');
+    const progressOverallNote = document.getElementById('progress-overall-note');
+    const progressStageList = document.getElementById('progress-stage-list');
+    const summaryReady = document.getElementById('summary-ready');
+    const summaryActive = document.getElementById('summary-active');
+    const summaryBlocked = document.getElementById('summary-blocked');
+    const summaryComplete = document.getElementById('summary-complete');
 
     function formatBreakdownTickerEntry(breakdown) {
-        const sourceType = (breakdown.sourceType || breakdown.source || 'dispatch').toUpperCase();
+        const sourceType = String(breakdown.id || breakdown.sourceType || breakdown.source || 'dispatch').toUpperCase();
         const technician = breakdown.technician ? ` | TECH: ${breakdown.technician}` : '';
         const location = breakdown.location || 'LOCATION PENDING';
         const issue = breakdown.issue || 'ISSUE PENDING';
         const distance = breakdown.distance || 'UNKNOWN';
-        return `🚨 [${sourceType}] ${breakdown.vehicle} - ${issue} @ ${location} (${distance} FROM HUB)${technician}`;
+        const severity = breakdown.severity ? ` - STATUS: ${breakdown.severity}` : '';
+        return `🚨 [${sourceType}] ${breakdown.vehicle} - ${issue} @ ${location} (${distance})${technician}${severity}`;
     }
 
     // Helper TTS speech wrapper
@@ -243,21 +492,192 @@
         }
     }
 
+    function formatTimestamp(timestamp) {
+        return timestamp ? new Date(timestamp).toLocaleString() : 'Awaiting live GPS';
+    }
+
+    function formatFreshness(freshnessMs, freshnessLabel) {
+        if (freshnessLabel === 'unavailable' || freshnessMs === null) {
+            return 'No live GPS received';
+        }
+
+        const totalSeconds = Math.max(0, Math.round(freshnessMs / 1000));
+
+        if (totalSeconds < 60) {
+            return `${freshnessLabel.toUpperCase()} • ${totalSeconds}s ago`;
+        }
+
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${freshnessLabel.toUpperCase()} • ${minutes}m ${seconds}s ago`;
+    }
+
+    function formatCoordinates(latitude, longitude) {
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+            return 'Unavailable';
+        }
+
+        return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(async (response) => {
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload.error || 'Request failed.');
+            }
+
+            return payload;
+        });
+    }
+
+    function renderWatchCenter(center) {
+        const isLiveGps = center.sourceMode === 'live_gps';
+        const modeLabel = isLiveGps ? 'Watch Center: Live GPS' : 'Watch Center: Lehigh Valley fallback';
+
+        watchCenterMode.innerText = modeLabel;
+        watchCenterMode.style.background = isLiveGps ? '#15803D' : '#92400E';
+        watchCenterCoordinates.innerText = `${modeLabel} • GPS ${formatCoordinates(center.latitude, center.longitude)}`;
+        watchCenterRadius.innerText = `${center.radiusMiles} miles`;
+        watchCenterLastUpdate.innerText = formatTimestamp(center.lastUpdateTimestamp);
+        watchCenterFreshness.innerText = formatFreshness(center.freshnessMs, center.gpsFreshness);
+        watchCenterFallback.innerText = center.fallbackState === 'active' ? 'Fallback active' : 'Fallback standby';
+        watchCenterBaseDetail.innerText = `${modeLabel} | GPS: ${formatCoordinates(center.latitude, center.longitude)}`;
+        watchCenterRadiusBadge.innerText = `RADAR: ${center.radiusMiles} MI`;
+        tickerBadge.innerText = `📡 WATCH CENTER ${center.radiusMiles}-MILE RADAR TICKER`;
+    }
+
+    function refreshWatchCenter() {
+        return fetchJson('/api/watch-center')
+            .then(renderWatchCenter)
+            .catch((error) => {
+                watchCenterMode.innerText = 'Watch center offline';
+                watchCenterMode.style.background = '#7F1D1D';
+                watchCenterFreshness.innerText = error.message;
+            });
+    }
+
+    function formatStageTime(value) {
+        if (!value) return 'Awaiting update';
+        return new Date(value).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function renderProgressPanel(call, summary) {
+        summaryReady.innerText = summary.ready ?? 0;
+        summaryActive.innerText = summary.active ?? 0;
+        summaryBlocked.innerText = summary.blocked ?? 0;
+        summaryComplete.innerText = summary.complete ?? 0;
+
+        if (!call) {
+            progressCallId.innerText = 'NO ACTIVE CALL';
+            progressOverallNote.innerText = 'No Grace dispatch calls are active right now.';
+            progressStageList.innerHTML = '';
+            return;
+        }
+
+        progressCallId.innerText = `${call.id} • ${String(call.overallStatus || '').toUpperCase()}`;
+        progressOverallNote.innerText = `${call.carrierName} | ${call.location} | NEXT: ${call.nextAction}`;
+
+        progressStageList.innerHTML = call.stages.map((stage) => `
+            <div class="progress-stage-row">
+                <div>
+                    <div class="progress-stage-name">${stage.label}</div>
+                    <div class="progress-note">${stage.note || 'No note yet.'}</div>
+                </div>
+                <div><span class="progress-chip chip-${stage.status}">${stage.status}</span></div>
+                <div class="progress-stage-meta">${formatStageTime(stage.time)}</div>
+                <div class="progress-stage-meta">${stage.nextAction || 'Awaiting next action.'}</div>
+            </div>
+        `).join('');
+    }
+
+    function refreshGraceProgress() {
+        fetch('/api/grace/calls/active')
+            .then((response) => response.json())
+            .then((payload) => {
+                renderProgressPanel(payload.calls?.[0], payload.summary || {});
+            })
+            .catch(() => {
+                progressCallId.innerText = 'PROGRESS OFFLINE';
+                progressOverallNote.innerText = 'Unable to load Grace lifecycle progress.';
+            });
+    }
+
     // 1. Fetch 150-Mile Radius Breakdowns and Update Ticker
     function refreshBreakdownTicker() {
-        fetch('/api/breakdowns/scanner?radius=150')
-            .then(res => res.json())
+        return fetchJson('/api/breakdowns/scanner')
             .then(data => {
+                renderWatchCenter(data.watchCenter);
+
                 if (data.breakdowns && data.breakdowns.length > 0) {
-                    const tickerText = data.breakdowns.map(formatBreakdownTickerEntry).join('   |   ');
+                    const tickerText = data.breakdowns
+                        .map((breakdown) => formatBreakdownTickerEntry({
+                            ...breakdown,
+                            distance: `${breakdown.distance} from ${data.watchCenter.watchCenterLabel}`
+                        }))
+                        .join('   |   ');
                     ticker.innerText = tickerText;
                 } else {
-                    ticker.innerText = "NO BREAKDOWNS DETECTED WITHIN 150-MILE RADIUS OF EASTON, PA.";
+                    ticker.innerText = `NO BREAKDOWNS DETECTED WITHIN THE ${data.radiusMiles}-MILE WATCH-CENTER FILTER.`;
                 }
             })
             .catch(() => {
                 ticker.innerText = "150-MILE BREAKDOWN TICKER OFFLINE.";
+                refreshWatchCenter();
             });
+    }
+
+    function stopWatchCenterTracking(message) {
+        if (geolocationWatchId !== null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(geolocationWatchId);
+            geolocationWatchId = null;
+        }
+
+        gpsUpdateInFlight = false;
+        gpsStatus.innerText = message || 'Browser GPS stopped. The server will fall back automatically when live GPS becomes stale.';
+    }
+
+    function sendWatchCenterLocation(position) {
+        const accessKey = operatorAccessKey.value.trim();
+
+        if (!accessKey) {
+            gpsStatus.innerText = 'Enter the operator access key before sharing live GPS.';
+            return Promise.resolve();
+        }
+
+        if (lastGpsSentAt !== 0 && Date.now() - lastGpsSentAt < GPS_UPDATE_INTERVAL_MS) {
+            return Promise.resolve();
+        }
+
+        if (gpsUpdateInFlight) {
+            return Promise.resolve();
+        }
+
+        gpsUpdateInFlight = true;
+        gpsStatus.innerText = 'Sending live GPS to the watch center...';
+
+        return fetchJson('/api/watch-center/location', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': ['Bearer', accessKey].join(' '),
+            },
+            body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                recordedAt: new Date(position.timestamp || Date.now()).toISOString()
+            })
+        }).then(data => {
+            lastGpsSentAt = Date.now();
+            renderWatchCenter(data.watchCenter);
+            gpsStatus.innerText = `Live GPS active. Last sent at ${new Date().toLocaleTimeString()}.`;
+        }).finally(() => {
+            gpsUpdateInFlight = false;
+        });
     }
 
     // 2. Call Intercept (Pickup)
@@ -302,20 +722,56 @@
 
     // 4. Dispatch Closest Breakdown
     document.getElementById('btn-assign-closest').addEventListener('click', () => {
-        fetch('/api/breakdowns/scanner?radius=150')
+        fetch('/api/breakdowns/scanner')
         .then(r => r.json())
         .then(data => {
             if (data.breakdowns && data.breakdowns.length > 0) {
                 const closest = data.breakdowns[0];
-                graceLog.innerText = `[DISPATCHING CLOSEST UNIT]\nTarget: ${closest.id}\nVehicle: ${closest.vehicle}\nLocation: ${closest.location} (${closest.distance} from Easton)\nIssue: ${closest.issue}`;
+                const centerLabel = data.watchCenter && data.watchCenter.watchCenterLabel ? data.watchCenter.watchCenterLabel : 'watch center';
+                graceLog.innerText = `[DISPATCHING CLOSEST UNIT]\nTarget: ${closest.id}\nVehicle: ${closest.vehicle}\nLocation: ${closest.location} (${closest.distance} from ${centerLabel})\nIssue: ${closest.issue}`;
                 speakGrace(`Dispatching mobile service van to ${closest.vehicle} at ${closest.location}.`);
             }
         });
     });
 
+    startWatchCenterGpsBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            gpsStatus.innerText = 'Browser geolocation is unavailable on this device.';
+            return;
+        }
+
+        gpsStatus.innerText = 'Requesting browser GPS permission...';
+
+        if (geolocationWatchId !== null) {
+            navigator.geolocation.clearWatch(geolocationWatchId);
+        }
+
+        geolocationWatchId = navigator.geolocation.watchPosition(
+            (position) => {
+                sendWatchCenterLocation(position)
+                    .catch((error) => {
+                        stopWatchCenterTracking(`GPS update paused: ${error.message}. The server will fall back automatically when live GPS becomes stale.`);
+                        refreshWatchCenter();
+                    });
+            },
+            (error) => {
+                stopWatchCenterTracking(`GPS permission/location error: ${error.message}. The server will fall back automatically when live GPS becomes stale.`);
+                refreshWatchCenter();
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        );
+    });
+
+    stopWatchCenterGpsBtn.addEventListener('click', () => {
+        stopWatchCenterTracking();
+    });
+
     // Initial load & 30-second ticker interval
+    refreshGraceProgress();
     refreshBreakdownTicker();
-    setInterval(refreshBreakdownTicker, 30000);
+    setInterval(refreshBreakdownTicker, WATCH_CENTER_POLL_MS);
+    setInterval(refreshGraceProgress, 15000);
+    setInterval(refreshBreakdownTicker, WATCH_CENTER_POLL_MS);
 </script>
 
 </body>
