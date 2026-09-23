@@ -7,6 +7,12 @@ const crypto = require('crypto');
 const https = require('https');
 const { Server } = require('socket.io');
 const { rateLimit } = require('express-rate-limit');
+const {
+    DEFAULT_WATCH_CENTER_RADIUS_MILES,
+    DEFAULT_WATCH_CENTER_STALE_MS,
+    LEHIGH_VALLEY_FALLBACK_CENTER,
+    createWatchCenterStore
+} = require('./watch-center');
 const { FLOW_STATES, transitionState } = require('./lib/graceStateEngine');
 const { SERVICE_SCOPE_POLICY, validateScope, generateEstimate } = require('./lib/gracePolicy');
 const { sanitizeForStorage, appendAuditEvent } = require('./lib/graceAudit');
@@ -158,6 +164,13 @@ const adminOpsLimiter = rateLimit({
     legacyHeaders: false,
     message: { error: 'Admin rate limit exceeded. Try again shortly.' }
 });
+const writeOpsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many requests. Please try again shortly.' }
+});
 const fieldSessions = new Map();
 const fieldLoginAttempts = new Map();
 const fieldRequestBuckets = new Map();
@@ -213,6 +226,25 @@ const LEHIGH_VALLEY_BASE = Object.freeze({
     label: 'Lehigh Valley, PA',
     lat: 40.6884,
     lng: -75.2207
+});
+const WATCH_CENTER_OPERATOR_TOKEN = String(process.env.WATCH_CENTER_OPERATOR_TOKEN || '').trim() || null;
+const WATCH_CENTER_RADIUS_MILES = (() => {
+    const parsed = Number(process.env.WATCH_CENTER_RADIUS_MILES);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_WATCH_CENTER_RADIUS_MILES;
+})();
+const WATCH_CENTER_STALE_MS = (() => {
+    const parsed = Number(process.env.WATCH_CENTER_STALE_MS);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_WATCH_CENTER_STALE_MS;
+})();
+const LEHIGH_VALLEY_CENTER = Object.freeze({
+    label: LEHIGH_VALLEY_FALLBACK_CENTER.label,
+    latitude: LEHIGH_VALLEY_BASE.lat,
+    longitude: LEHIGH_VALLEY_BASE.lng
+});
+const watchCenterStore = createWatchCenterStore({
+    fallbackCenter: LEHIGH_VALLEY_CENTER,
+    radiusMiles: WATCH_CENTER_RADIUS_MILES,
+    staleMs: WATCH_CENTER_STALE_MS
 });
 
 const BREAKDOWN_CAUSES = [
@@ -668,6 +700,9 @@ function publishEvent(channel, event) {
         });
     }
     io.emit(channel, event);
+    if (channel === CHANNELS.BREAKDOWN_ALERTS) {
+        emitBreakdownMonitorUpdate();
+    }
 }
 
 function bufferEvent(channel, event) {
@@ -724,6 +759,25 @@ function toIsoTimestamp(value) {
 
 function isValidCoordinates(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+function requireWatchCenterOperatorAuth(req, res, next) {
+    if (!WATCH_CENTER_OPERATOR_TOKEN) {
+        return res.status(503).json({ success: false, error: 'Watch-center operator authorization is not configured.' });
+    }
+
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+    if (!token) {
+        return res.status(401).json({ success: false, error: 'Operator authorization is required.' });
+    }
+
+    if (token !== WATCH_CENTER_OPERATOR_TOKEN) {
+        return res.status(403).json({ success: false, error: 'Operator authorization is invalid.' });
+    }
+
+    return next();
 }
 
 function writeAuditEntry(entry) {
@@ -1302,6 +1356,44 @@ function createBreakdownAlert(overrides = {}) {
     };
 }
 
+function toScannerBreakdown(alert) {
+    return {
+        id: alert.id,
+        timestamp: alert.timestamp,
+        vehicle: alert.vehicle || 'Fleet Unit',
+        issue: alert.issue || alert.cause || 'Issue pending',
+        location: alert.location || 'Location pending',
+        severity: String(alert.priority || 'normal').toUpperCase(),
+        corridor: alert.corridor || `${String(alert.source || 'dispatch').toUpperCase()} • ${String(alert.priority || 'normal').toUpperCase()}`,
+        quoteRate: alert.quoteRate || (alert.alertType === 'vehicle_repair' ? 'VR Intake' : 'Dispatch Ready'),
+        source: alert.source || 'dispatch',
+        sourceType: alert.sourceType || alert.source || 'dispatch',
+        technician: alert.technician || null,
+        coordinates: isValidCoordinates(alert.lat, alert.lng) ? { latitude: alert.lat, longitude: alert.lng } : null,
+        latitude: alert.lat,
+        longitude: alert.lng
+    };
+}
+
+function getWatchCenterBreakdownSnapshot(referenceTimeMs = Date.now()) {
+    const scannerFeed = eventBus[CHANNELS.BREAKDOWN_ALERTS].map(toScannerBreakdown);
+    const { watchCenter, breakdowns } = watchCenterStore.filterBreakdowns(scannerFeed, referenceTimeMs);
+
+    return {
+        radiusMiles: watchCenter.radiusMiles,
+        watchCenter,
+        breakdowns
+    };
+}
+
+function emitBreakdownMonitorUpdate(referenceTimeMs = Date.now()) {
+    const snapshot = getWatchCenterBreakdownSnapshot(referenceTimeMs);
+    io.emit('breakdown-monitor-updated', {
+        ...snapshot,
+        timestamp: new Date(referenceTimeMs).toISOString()
+    });
+}
+
 function getBreakdownFeed(centerLat, centerLng, radiusMiles) {
     return eventBus[CHANNELS.BREAKDOWN_ALERTS]
         .filter((alert) => distanceMiles(centerLat, centerLng, alert.lat, alert.lng) <= radiusMiles)
@@ -1357,29 +1449,31 @@ function stopAutomationLoops() {
 }
 
 // DVIR API Endpoint
-app.post('/api/dvir', writeRateLimit, (req, res) => {
-  try {
-    const dvirData = req.body;
-    const filePath = path.join(dataDir, `dvir_${Date.now()}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
-    res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
-  } catch (error) {
-    console.error('Error saving DVIR:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
+app.post('/api/dvir', writeOpsLimiter, (req, res) => {
+    try {
+        const dvirData = req.body;
+        const filePath = path.join(dataDir, `dvir_${Date.now()}_${crypto.randomUUID()}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(dvirData, null, 2));
+        res.status(200).json({ success: true, message: 'DVIR record saved successfully', file: filePath });
+    } catch (error) {
+        console.error('Error saving DVIR:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // System Status / Breakdown Ticker Endpoint
 app.get('/api/status', (req, res) => {
-  res.json({
-    status: 'ONLINE',
-    base: 'Lehigh Valley, PA',
-    port: PORT,
-    timestamp: new Date().toISOString(),
-    streamControl,
-    graceSummary: summarizeProgressCalls(getAllGraceCalls()),
-    gracePolicy: SERVICE_SCOPE_POLICY.domain
-  });
+    res.json({
+        status: 'ONLINE',
+        base: 'Based in Lehigh Valley',
+        service: 'mobile diesel repair for tractor-trailers and heavy-duty trucks',
+        port: req.socket && req.socket.localPort ? req.socket.localPort : PORT,
+        timestamp: new Date().toISOString(),
+        watchCenter: watchCenterStore.getCenter(Date.now()),
+        streamControl,
+        graceSummary: summarizeProgressCalls(getAllGraceCalls()),
+        gracePolicy: SERVICE_SCOPE_POLICY.domain
+    });
 });
 
 app.get('/api/grace/calls/active', (req, res) => {
@@ -1630,24 +1724,6 @@ app.post('/api/grace/closeout', writeRateLimit, (req, res) => {
   }
 });
 
-app.get('/api/breakdowns/scanner', (req, res) => {
-    const radiusMiles = Math.min(Math.max(toNumber(req.query.radius, 150), 10), 300);
-    const breakdowns = getBreakdownFeed(LEHIGH_VALLEY_BASE.lat, LEHIGH_VALLEY_BASE.lng, radiusMiles).map((alert) => ({
-        id: alert.id,
-        vehicle: alert.vehicle,
-        issue: alert.cause,
-        location: alert.location,
-        distance: `${Math.round(alert.distanceMiles)} mi`,
-        severity: String(alert.priority || 'normal').toUpperCase()
-    }));
-
-    res.json({
-        base: LEHIGH_VALLEY_BASE.label,
-        radiusMiles,
-        breakdowns
-    });
-});
-
 app.post('/api/stream/override', (req, res) => {
     const action = req.body.action === 'pickup' ? 'human_operator_override' : 'grace_ai_handling';
     streamControl = action;
@@ -1689,6 +1765,27 @@ app.get('/api/grace/call/:callId/audit', (req, res) => {
       error: error.message
     });
   }
+});
+
+app.get('/api/watch-center', (req, res) => {
+    res.json(watchCenterStore.getCenter(Date.now()));
+});
+
+app.post('/api/watch-center/location', writeOpsLimiter, requireWatchCenterOperatorAuth, (req, res) => {
+    try {
+        const watchCenter = watchCenterStore.updateLiveLocation({
+            latitude: req.body.latitude,
+            longitude: req.body.longitude,
+            recordedAt: req.body.recordedAt
+        });
+
+        io.emit('watch-center-updated', watchCenter);
+        emitBreakdownMonitorUpdate();
+
+        return res.status(200).json({ success: true, watchCenter });
+    } catch (error) {
+        return res.status(400).json({ success: false, error: error.message });
+    }
 });
 
 app.get('/api/system/health', (req, res) => {
@@ -1844,6 +1941,15 @@ app.get('/api/breakdowns/live', (req, res) => {
     });
 });
 
+app.get('/api/breakdowns/scanner', (req, res) => {
+    const snapshot = getWatchCenterBreakdownSnapshot(Date.now());
+
+    res.json({
+        ...snapshot,
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.post('/api/breakdowns/ingest', (req, res) => {
     if (!BREAKDOWN_INGEST_KEY) {
         return res.status(503).json({ error: 'Breakdown ingest is disabled until BREAKDOWN_INGEST_KEY is configured' });
@@ -1892,6 +1998,14 @@ app.post('/api/breakdowns/ingest', (req, res) => {
     });
 
     return res.status(201).json({ alert: event });
+});
+
+app.post('/api/stream/override', writeOpsLimiter, (req, res) => {
+    res.json({
+        success: true,
+        action: req.body.action || 'noop',
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.get('/api/location/base', (req, res) => {
@@ -2359,6 +2473,11 @@ io.on('connection', (socket) => {
         socket.emit('dispatch.replay', replay);
     }
     socket.emit('dispatch.snapshot', getDispatchFeed().slice(-80));
+    socket.emit('watch-center-updated', watchCenterStore.getCenter(Date.now()));
+    socket.emit('breakdown-monitor-updated', {
+        ...getWatchCenterBreakdownSnapshot(Date.now()),
+        timestamp: new Date().toISOString()
+    });
 });
 
 function startServer() {
@@ -2369,7 +2488,7 @@ function startServer() {
         startAutomationLoops();
         console.log('=======================================================');
         console.log(`⚡ GRACE MASTER HUB ONLINE - PORT ${PORT}`);
-        console.log('📍 OPERATING BASE: LEHIGH VALLEY, PA (150-MILE RADAR LIVE)');
+        console.log(`🏢 BASED IN LEHIGH VALLEY - ${WATCH_CENTER_RADIUS_MILES}-MILE WATCH FILTER READY`);
         console.log('=======================================================');
     });
 }
@@ -2389,5 +2508,10 @@ module.exports = {
     app,
     server,
     startServer,
-    runAutomationDomain
+    runAutomationDomain,
+    LEHIGH_VALLEY_CENTER,
+    WATCH_CENTER_OPERATOR_TOKEN,
+    WATCH_CENTER_RADIUS_MILES,
+    WATCH_CENTER_STALE_MS,
+    watchCenterStore
 };
