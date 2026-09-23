@@ -35,14 +35,6 @@ laptop is powered off.
 For operator startup, Operations Wall, maintenance, access-control, and recovery
 instructions, read [the Operations startup guide](docs/operations-startup-guide.md).
 
-<<<<<<< HEAD
-## Official Policy Statement
-We do not provide tow service or winching service.
-
-## Isolated Grace Learning Subsystem
-An isolated, integration-ready learning/governance module is available at `isolated-ops-command/`.
-See `isolated-ops-command/LEARNING_AND_GOVERNANCE.md` for safety controls, auditability, and integration notes.
-=======
 For VS Code system-information commands and a ready-to-copy Microsoft Copilot Chat
 handoff, read [the Copilot Chat handoff](docs/microsoft-copilot-chat-handoff.md).
 
@@ -50,4 +42,7 @@ For the owner-only local encrypted vault, read [the Company Safe guide](docs/com
 
 The company-wide no-towing/no-winching rule is documented and enforced in
 [the Service Policy](docs/service-policy.md).
->>>>>>> origin/main
+
+## Isolated Grace Learning Subsystem
+An isolated, integration-ready learning/governance module is available at `isolated-ops-command/`.
+See `isolated-ops-command/LEARNING_AND_GOVERNANCE.md` for safety controls, auditability, and integration notes.
