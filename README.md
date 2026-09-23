@@ -42,3 +42,7 @@ For the owner-only local encrypted vault, read [the Company Safe guide](docs/com
 
 The company-wide no-towing/no-winching rule is documented and enforced in
 [the Service Policy](docs/service-policy.md).
+
+## Isolated Grace Learning Subsystem
+An isolated, integration-ready learning/governance module is available at `isolated-ops-command/`.
+See `isolated-ops-command/LEARNING_AND_GOVERNANCE.md` for safety controls, auditability, and integration notes.
