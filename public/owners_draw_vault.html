@@ -1,4 +1,3 @@
-<!-- SYSTEM VERIFICATION CODE: 774291 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,34 +12,87 @@
         label { font-size: 11px; color: #ff9f1c; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px; }
         input[type="number"], input[type="text"] { width: 100%; padding: 10px; background-color: #1e293b; border: 1px solid #334155; color: white; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 14px; }
         .submit-btn { background-color: #ff9f1c; color: #020617; font-weight: 900; text-transform: uppercase; padding: 14px; width: 100%; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
-        .status-box { background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 12px; display: none; text-transform: uppercase; margin-top: 12px; }
+        .status-box { border: 1px solid #334155; text-align: center; font-weight: bold; padding: 12px; border-radius: 8px; font-size: 12px; display: none; text-transform: uppercase; margin-top: 12px; }
+        .ok { background-color: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #10b981; }
+        .error { background-color: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
     </style>
 </head>
 <body>
     <div class="vault-card">
         <h2>Digital Owner's Draw Ledger</h2>
         <div class="bank-strip">
-            🏢 REMITTING BANK SOURCE: LILI BUSINESS STANDALONE<br>
-            📌 RTN: 091017138 | ACCT: 692101449662
+            BANK PROFILE: MASKED OPERATING ACCOUNT<br>
+            ROUTING: *****7138 | ACCOUNT: ******9662
         </div>
-        <form id="draw-form" onsubmit="event.preventDefault(); document.getElementById('vault-status').style.display='block';">
+        <form id="draw-form">
             <label>Disbursement Extraction Amount ($ USD)</label>
-            <input type="number" id="w-amount" step="0.01" placeholder="0.00" required>
-            
-            <label>Internal Corporate Authorization Key / Signature</label>
-            <input type="text" id="w-auth" placeholder="Type Elijah Wright to confirm" required>
-            
+            <input type="number" id="w-amount" step="0.01" min="0.01" placeholder="0.00" required>
+
+            <label>Internal Authorization Confirmation</label>
+            <input type="text" id="w-auth" placeholder="Type your name to confirm" required>
+
             <div id="vault-status" class="status-box"></div>
-            <button type="submit" id="w-btn" class="submit-btn">Inject Extraction Row to Lili Ledger</button>
+            <button type="submit" id="w-btn" class="submit-btn">Submit Owner Draw Request</button>
         </form>
     </div>
     <script>
-        document.getElementById('draw-form').addEventListener('submit', function() {
-            document.getElementById('vault-status').textContent = "✅ Owner's Draw Row Logged Natively to Lili Operating Accounts Ledger Cache";
-            document.getElementById('w-btn').style.display = "none";
-            document.querySelectorAll('input').forEach(i => i.disabled = true);
+        const form = document.getElementById('draw-form');
+        const statusBox = document.getElementById('vault-status');
+        const submitBtn = document.getElementById('w-btn');
+
+        function setStatus(text, ok) {
+            statusBox.textContent = text;
+            statusBox.className = `status-box ${ok ? 'ok' : 'error'}`;
+            statusBox.style.display = 'block';
+        }
+
+        function operatorHeaders() {
+            const token = window.localStorage.getItem('operatorToken') || '';
+            return token ? { 'x-operator-token': token } : {};
+        }
+
+        async function safeParseResponse(response) {
+            const text = await response.text();
+            if (!text) return {};
+            try {
+                return JSON.parse(text);
+            } catch (_error) {
+                return { raw: text };
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            setStatus('Submitting owner draw request...', true);
+
+            try {
+                const response = await fetch('/api/owner-draws', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...operatorHeaders(),
+                    },
+                    body: JSON.stringify({
+                        amount: document.getElementById('w-amount').value,
+                        authorizationText: document.getElementById('w-auth').value.trim(),
+                    }),
+                });
+
+                const payload = await safeParseResponse(response);
+                if (!response.ok || payload.ok === false) {
+                    throw new Error(payload?.error?.message || payload?.raw || `Request failed (HTTP ${response.status})`);
+                }
+
+                setStatus(`Request recorded for review. Reference ID: ${payload.id}`, true);
+            } catch (error) {
+                setStatus(`Request failed: ${error.message}`, false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Owner Draw Request';
+            }
         });
     </script>
 </body>
 </html>
-

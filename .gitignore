@@ -1,4 +1,11 @@
 node_modules/
+.env
+.env.*
+!.env.example
+coverage/
+data/
+*.log
+.DS_Store
 data/*.log
 data/dvir_*.json
 data/*.sqlite

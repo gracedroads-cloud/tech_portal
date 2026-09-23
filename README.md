@@ -1,48 +1,87 @@
-# Grace Dispatch Console
+# tech_portal (Backup Operations Command Prototype)
 
-## Windows automatic startup
+This repository contains a dispatch-oriented backup operations command prototype for EH Graced Roads.
 
-Run PowerShell once from the installed console folder:
+## Critical safety statement
 
-```powershell
-.\Install_Grace_Dispatch_Autostart.ps1 -Port 3109 -RunNow
+This system is **not** a substitute for certified emergency dispatch, regulated payment processing, or regulated financial controls. It uses simulated/offline integrations unless explicitly configured and validated.
+
+## Requirements
+
+- Node.js 20+ (`.nvmrc` included)
+- npm 10+
+
+## Run locally
+
+```bash
+cp .env.example .env
+npm install
+npm start
 ```
 
-This registers a **Grace Dispatch Console - Logon** scheduled task. At each Windows
-Hello sign-in, it waits 30 seconds for Windows and the network to settle, then runs
-`auto_launch_cockpit.ps1`. The launcher checks whether the configured local port
-(default `3109`) is already listening and validates `GET /healthz`. If the console is
-already healthy, it leaves it untouched; otherwise it starts `node app.js` in the
-background. If another service occupies that port, the launcher warns and leaves the
-service untouched rather than attempting a destructive restart.
+Default URL: `http://localhost:3000`
 
-After each startup, it writes `data/startup-report.json` with the computer name,
-console/Operations Wall health, loopback address, detected LAN addresses, and key
-endpoint URLs. It opens the authorized Operations Wall automatically when
-`OPERATIONS_ACCESS_KEY` is configured for the Windows user. To open the Operations
-Wall manually without restarting a running server, run
-`Launch_Graced_Roads_Cockpit.bat`.
+## Environment variables
 
-If Windows blocks Scheduled Task registration for the current account, the installer
-automatically places the same launcher in that user's Windows Startup folder instead.
-It uses the same 30-second readiness wait and generates the same health report.
+See `.env.example`.
 
-The console can run continuously only while the laptop is powered on and awake.
-For unattended 24/7 operation, use an always-on host or configure a separate
-administrator-managed startup/service task; a logon task cannot run while the
-laptop is powered off.
+- `PORT` - HTTP port (default `3000`)
+- `NODE_ENV` - environment label (`development`/`production`)
+- `REQUEST_SIZE_LIMIT` - request body limit (default `100kb`)
+- `DATA_DIR` - directory for prototype persistence (default `./data`)
+- `ALLOWED_ORIGINS` - comma-separated allowed CORS origins
+- `OPERATOR_TOKEN` - token required for mutating API routes when set
+- `ALLOW_DEMO_WRITE_MODE` - dev-only fallback for mutating routes without token
 
-For operator startup, Operations Wall, maintenance, access-control, and recovery
-instructions, read [the Operations startup guide](docs/operations-startup-guide.md).
+## Auth and mode behavior
 
-For VS Code system-information commands and a ready-to-copy Microsoft Copilot Chat
-handoff, read [the Copilot Chat handoff](docs/microsoft-copilot-chat-handoff.md).
+Mutating routes (POST endpoints) behave as follows:
 
-For the owner-only local encrypted vault, read [the Company Safe guide](docs/company-safe.md).
+1. `OPERATOR_TOKEN` set: caller must send `x-operator-token`
+2. Else if `ALLOW_DEMO_WRITE_MODE=true`: writes allowed in explicit demo mode
+3. Else: writes disabled (HTTP 503)
 
-The company-wide no-towing/no-winching rule is documented and enforced in
-[the Service Policy](docs/service-policy.md).
+Do **not** run production with demo mode enabled.
 
-## Isolated Grace Learning Subsystem
-An isolated, integration-ready learning/governance module is available at `isolated-ops-command/`.
-See `isolated-ops-command/LEARNING_AND_GOVERNANCE.md` for safety controls, auditability, and integration notes.
+## API endpoints
+
+- `GET /healthz` - liveness
+- `GET /readyz` - readiness and write-mode status
+- `GET /api/status` - system/integration status (`simulated_demo_data` when live integrations are unavailable)
+- `GET /api/breakdowns/scanner?radius=150` - scanner feed shape with explicit offline/simulated labels
+- `GET /api/dvir` - DVIR endpoint usage metadata
+- `POST /api/dvir` - validated DVIR submission
+- `POST /api/stream/override` - validated stream override action
+- `POST /api/submit-job` - towing waiver submission
+- `POST /api/onboarding` - onboarding request intake
+- `POST /api/owner-draws` - owner draw request intake
+- `POST /api/dispatch/quotes` - dispatch quote intake
+- `GET /api/routes` - frontend route inventory for parity checks
+
+## Data persistence policy
+
+Prototype records are written under `DATA_DIR` as JSON files with generated IDs and timestamps, plus append-only audit indexes in `DATA_DIR/audit/*.ndjson`.
+
+- No raw filesystem paths are returned in API responses.
+- Inputs are validated server-side before persistence.
+- Writes are atomic (temp file + rename) per record.
+
+See `docs/OPERATIONS.md` for retention/backup/recovery details.
+
+## Test and checks
+
+```bash
+npm run check
+npm test
+```
+
+CI (`.github/workflows/ci.yml`) runs install, syntax checks, tests, and dependency audit.
+
+## Production blockers (priority order)
+
+1. Replace local file persistence with managed transactional storage and encrypted backups.
+2. Add real identity/authN/authZ (users, roles, MFA) beyond shared operator token.
+3. Integrate validated live dispatch/telematics/mapping providers and remove simulation reliance.
+4. Add immutable audit trails with tamper-evident storage and retention enforcement.
+5. Add regulated financial controls and external payment processor controls before any real fund movement.
+6. Add runbook-driven monitoring/alerting and incident response automation.

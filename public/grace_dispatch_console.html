@@ -1,176 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grace Dispatch Console</title>
-  <style>
-    body { margin: 0; padding: 20px; background: #020617; color: #f1f5f9; font-family: sans-serif; }
-    .wrap { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
-    h1, h2 { margin-top: 0; color: #38bdf8; }
-    label { display: block; margin-top: 10px; font-size: 12px; color: #94a3b8; }
-    input, select, textarea, button { width: 100%; margin-top: 6px; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #020617; color: #f1f5f9; }
-    button { background: #10b981; color: #02130c; font-weight: 700; cursor: pointer; }
-    .warning { color: #f59e0b; font-size: 12px; }
-    pre { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; max-height: 360px; overflow: auto; }
-    .states { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; font-size: 12px; }
-    .state { background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 6px; text-align: center; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EH Graced Roads - Complete Dispatch & Pricing Console</title>
+    <style>
+        :root { --bg-dark:#020617; --card-bg:#0f172a; --border-color:#334155; --text-main:#f1f5f9; --accent-orange:#ff9f1c; --accent-blue:#38bdf8; --accent-green:#10b981; }
+        body { background-color:var(--bg-dark); color:var(--text-main); font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding:20px; margin:0; }
+        .container { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+        .panel { background-color:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; padding:24px; }
+        h2 { margin-top:0; font-size:16px; text-transform:uppercase; color:var(--accent-orange); border-bottom:1px solid var(--border-color); padding-bottom:12px; }
+        label { font-size:11px; color:var(--accent-orange); font-weight:bold; text-transform:uppercase; display:block; margin-bottom:6px; margin-top:14px; }
+        input[type="text"], select { width:100%; padding:12px; background-color:#1e293b; border:1px solid var(--border-color); color:white; border-radius:8px; font-size:13px; box-sizing:border-box; }
+        .action-btn { background-color:var(--accent-orange); color:#020617; font-weight:900; text-transform:uppercase; padding:14px; width:100%; border:none; border-radius:8px; cursor:pointer; font-size:13px; margin-top:20px; }
+        .status-box { border:1px solid #334155; border-radius:8px; padding:12px; font-size:12px; text-transform:uppercase; display:none; margin-top:12px; font-weight:bold; }
+        .ok { background:rgba(16,185,129,.1); border-color:var(--accent-green); color:var(--accent-green); }
+        .error { background:rgba(239,68,68,.1); border-color:#ef4444; color:#ef4444; }
+        .bank-strip { background-color:#020617; border-left:4px solid var(--accent-green); padding:12px; font-size:11px; font-family:monospace; color:var(--accent-green); margin-bottom:16px; border-radius:0 8px 8px 0; }
+        .rate-row { display:flex; justify-content:space-between; border-bottom:1px solid #1e293b; padding:10px 0; font-size:13px; }
+        .rate-price { color:var(--accent-green); font-family:monospace; font-weight:bold; }
+        .note { margin-top:12px; font-size:11px; color:#94a3b8; }
+        @media (max-width: 900px) { .container { grid-template-columns:1fr; } }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Grace Call-to-Dispatch Flow</h1>
-      <p class="warning">Scope limited to heavy-duty diesel repair for tractor-trailers/heavy-duty trucks. Towing/winching is out-of-scope.</p>
-      <label for="callId">Call ID</label>
-      <input id="callId" placeholder="Created after Answer">
+    <div class="container">
+        <div class="panel">
+            <h2>Grace Automated Dispatch Desk</h2>
+            <div class="bank-strip">
+                BILLING PROFILE: MASKED OPERATIONS CONFIGURATION<br>
+                ROUTING: *****7138 | ACCOUNT: ******9662
+            </div>
+            <form id="dispatch-form">
+                <label>Commercial Carrier Enterprise Name</label>
+                <input type="text" id="carrier-name" placeholder="e.g., Werner Enterprises" required>
 
-      <label for="operatorToken">Operator Token (estimate approval only)</label>
-      <input id="operatorToken" placeholder="Required for authenticated estimate approval">
+                <label>Select Primary Roadside Repair Triage Classification</label>
+                <select id="service-key" required>
+                    <option value="">-- Choose service --</option>
+                    <option value="callout_std">Mobile Service Call / Dispatch (Standard)</option>
+                    <option value="labor_std">Mobile Labor (Standard Fleet Tier)</option>
+                    <option value="diag_base">Diagnostic Scan (Standard Electronic Clearance)</option>
+                    <option value="brake_chamber_3030">Type 30/30 Brake Chamber Replacement</option>
+                    <option value="line_air_single">Air Line Structural Cable Replacement (Single)</option>
+                </select>
 
-      <label for="carrierName">Carrier Name</label>
-      <input id="carrierName" value="Keystone Freight">
+                <div id="dispatch-status" class="status-box"></div>
+                <button type="submit" id="dispatch-btn" class="action-btn">Submit Dispatch Intake</button>
+            </form>
+            <div class="note">Dispatch records are stored in a local prototype data directory. Use an operator token for authenticated production-like mode.</div>
+        </div>
 
-      <label for="vehicleType">Vehicle Type</label>
-      <select id="vehicleType">
-        <option value="tractor-trailer">Tractor-Trailer</option>
-        <option value="heavy-duty truck">Heavy-Duty Truck</option>
-        <option value="passenger vehicle">Passenger Vehicle (out-of-scope)</option>
-      </select>
-
-      <label for="serviceCategory">Service Category</label>
-      <select id="serviceCategory">
-        <option value="air_brake_repair">Air Brake Repair</option>
-        <option value="diagnostics">Diagnostics</option>
-        <option value="tire_service">Commercial Tire Service</option>
-      </select>
-
-      <label for="issueDescription">Issue Description</label>
-      <textarea id="issueDescription">Trailer air leak near belly line.</textarea>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-        <button type="button" id="btn-answer">1. answer</button>
-        <button type="button" id="btn-intake">2. intake</button>
-        <button type="button" id="btn-scope-check">3. scope_check</button>
-        <button type="button" id="btn-quote">4. quote</button>
-        <button type="button" id="btn-estimate-approval">5. estimate_approval</button>
-        <button type="button" id="btn-payment-link">6. payment_link</button>
-        <button type="button" id="btn-tech-offer">7. technician_offer</button>
-        <button type="button" id="btn-tech-acceptance">8. technician_acceptance</button>
-        <button type="button" id="btn-work-order">9. work_order_create</button>
-        <button type="button" id="btn-closeout">10. closeout</button>
-      </div>
-      <p class="warning">Payment is link-only. Do not enter raw card numbers in this app.</p>
+        <div class="panel">
+            <h2>Pricing Reference (Demo)</h2>
+            <div class="rate-row"><span>Mobile Service Call / Dispatch (Standard)</span><span class="rate-price">$175.00</span></div>
+            <div class="rate-row"><span>Mobile Labor (Standard Fleet Tier)</span><span class="rate-price">$150.00/hr</span></div>
+            <div class="rate-row"><span>Diagnostic Scan (Standard Electronic Clearance)</span><span class="rate-price">$150.00</span></div>
+            <div class="rate-row"><span>Type 30/30 Brake Chamber Replacement</span><span class="rate-price">$425.00</span></div>
+            <div class="rate-row"><span>Air Line Structural Cable Replacement (Single)</span><span class="rate-price">$250.00</span></div>
+            <div class="note">Prices are demo references only and not a confirmed invoice.</div>
+        </div>
     </div>
 
-    <div class="card">
-      <h2>State + Response Monitor</h2>
-      <div class="states">
-        <div class="state">answer</div><div class="state">intake</div><div class="state">scope_check</div>
-        <div class="state">quote</div><div class="state">payment_link</div><div class="state">technician_offer</div>
-        <div class="state">technician_acceptance</div><div class="state">work_order_create</div><div class="state">closeout</div>
-      </div>
-      <p id="next-action-status" role="status" aria-live="polite" class="warning">Next suggested action: answer</p>
-      <pre id="output" role="status" aria-live="polite">Ready.</pre>
-    </div>
-  </div>
+    <script>
+        const form = document.getElementById('dispatch-form');
+        const statusBox = document.getElementById('dispatch-status');
+        const button = document.getElementById('dispatch-btn');
 
-  <script>
-    const output = document.getElementById('output');
-    const callIdInput = document.getElementById('callId');
-    const operatorTokenInput = document.getElementById('operatorToken');
-    const nextActionStatus = document.getElementById('next-action-status');
-    const actionButtons = {
-      answer: document.getElementById('btn-answer'),
-      intake: document.getElementById('btn-intake'),
-      scope_check: document.getElementById('btn-scope-check'),
-      quote: document.getElementById('btn-quote'),
-      estimate_approval: document.getElementById('btn-estimate-approval'),
-      payment_link: document.getElementById('btn-payment-link'),
-      technician_offer: document.getElementById('btn-tech-offer'),
-      technician_acceptance: document.getElementById('btn-tech-acceptance'),
-      work_order_create: document.getElementById('btn-work-order'),
-      closeout: document.getElementById('btn-closeout')
-    };
+        function setStatus(message, ok) {
+            statusBox.textContent = message;
+            statusBox.className = `status-box ${ok ? 'ok' : 'error'}`;
+            statusBox.style.display = 'block';
+        }
 
-    function updateActionAvailability(state, gates = {}) {
-      const nextActionByState = {
-        undefined: 'answer',
-        new: 'answer',
-        answered: 'intake',
-        intake: 'scope_check',
-        scope_check: 'quote',
-        quote: gates.pricingEstimateApprovedOrAccepted ? 'payment_link' : 'estimate_approval',
-        payment_link: 'technician_offer',
-        technician_offer: 'technician_acceptance',
-        technician_acceptance: 'work_order_create',
-        work_order_create: 'closeout',
-        closeout: null,
-        scope_rejected: null
-      };
+        function operatorHeaders() {
+            const token = window.localStorage.getItem('operatorToken') || '';
+            return token ? { 'x-operator-token': token } : {};
+        }
 
-      const nextAction = nextActionByState[state];
-      Object.entries(actionButtons).forEach(([action, button]) => {
-        button.disabled = nextAction ? action !== nextAction : true;
-      });
-      nextActionStatus.textContent = nextAction
-        ? `Next suggested action: ${nextAction}`
-        : `No next action available from state: ${state || 'unknown'}`;
-    }
+        async function safeParseResponse(response) {
+            const text = await response.text();
+            if (!text) return {};
+            try {
+                return JSON.parse(text);
+            } catch (_error) {
+                return { raw: text };
+            }
+        }
 
-    async function post(path, body, headers = {}) {
-      const response = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify(body)
-      });
-      const json = await response.json();
-      output.textContent = JSON.stringify({ status: response.status, ...json }, null, 2);
-      if (json.callId) callIdInput.value = json.callId;
-      if (json.state) updateActionAvailability(json.state, json.gates);
-      return json;
-    }
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            button.disabled = true;
+            button.textContent = 'Submitting...';
+            setStatus('Submitting dispatch intake...', true);
 
-    function baseBody() {
-      return {
-        callId: callIdInput.value,
-        carrierName: document.getElementById('carrierName').value,
-        vehicleType: document.getElementById('vehicleType').value,
-        serviceCategory: document.getElementById('serviceCategory').value,
-        issueDescription: document.getElementById('issueDescription').value,
-        requestedWork: document.getElementById('issueDescription').value
-      };
-    }
+            try {
+                const response = await fetch('/api/dispatch/quotes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...operatorHeaders(),
+                    },
+                    body: JSON.stringify({
+                        carrierName: document.getElementById('carrier-name').value.trim(),
+                        serviceKey: document.getElementById('service-key').value,
+                    }),
+                });
 
-    function answer() { return post('/api/grace/answer', { caller: { phone: '+1-610-555-0147' }, channel: 'voice' }); }
-    function intake() { return post('/api/grace/intake', baseBody()); }
-    function scopeCheck() { return post('/api/grace/scope_check', baseBody()); }
-    function quote() { return post('/api/grace/quote', { ...baseBody(), laborTier: 'standard', laborHours: 1.5, mileage: 30, feeSchedule: 'standard' }); }
-    function approveEstimate() {
-      return post(
-        '/api/grace/estimate_approval',
-        { callId: callIdInput.value, approvedBy: 'operator' },
-        { 'x-operator-token': operatorTokenInput.value.trim() }
-      );
-    }
-    function paymentLink() { return post('/api/grace/payment_link', baseBody()); }
-    function offerTech() { return post('/api/grace/technician_offer', { ...baseBody(), technicianId: 'tech-22', technicianName: 'J. Miller', etaMinutes: 35 }); }
-    function acceptTech() { return post('/api/grace/technician_acceptance', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
-    function createWorkOrder() { return post('/api/grace/work_order_create', baseBody(), { 'x-operator-token': operatorTokenInput.value.trim() }); }
-    function closeout() { return post('/api/grace/closeout', { ...baseBody(), resolutionNotes: 'Completed roadside repair.' }); }
+                const payload = await safeParseResponse(response);
+                if (!response.ok || payload.ok === false) {
+                    throw new Error(payload?.error?.message || payload?.raw || `Request failed (HTTP ${response.status})`);
+                }
 
-    document.getElementById('btn-answer').addEventListener('click', answer);
-    document.getElementById('btn-intake').addEventListener('click', intake);
-    document.getElementById('btn-scope-check').addEventListener('click', scopeCheck);
-    document.getElementById('btn-quote').addEventListener('click', quote);
-    document.getElementById('btn-estimate-approval').addEventListener('click', approveEstimate);
-    document.getElementById('btn-payment-link').addEventListener('click', paymentLink);
-    document.getElementById('btn-tech-offer').addEventListener('click', offerTech);
-    document.getElementById('btn-tech-acceptance').addEventListener('click', acceptTech);
-    document.getElementById('btn-work-order').addEventListener('click', createWorkOrder);
-    document.getElementById('btn-closeout').addEventListener('click', closeout);
-    updateActionAvailability();
-  </script>
+                setStatus(`Dispatch intake recorded. Reference ID: ${payload.id}`, true);
+            } catch (error) {
+                setStatus(`Submission failed: ${error.message}`, false);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Submit Dispatch Intake';
+            }
+        });
+    </script>
 </body>
 </html>

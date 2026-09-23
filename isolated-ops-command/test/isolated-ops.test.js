@@ -191,6 +191,75 @@ test('requires human approval by default and allows explicit approval', async ()
   }
 });
 
+test('applies internal technician ETA windows for dispatch eligibility', async () => {
+  const ctx = await startTestServer({
+    dispatchEtaPreferredMinutes: 90,
+    dispatchEtaMaxMinutes: 120
+  });
+  try {
+    const preferred = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        description: 'Preferred-window roadside support',
+        serviceType: 'battery_electrical_help',
+        technicianEtaMinutes: 85,
+        locationState: 'TX'
+      })
+    });
+    assert.equal(preferred.response.status, 202);
+    assert.equal(preferred.body.queueItem.availabilityTier, 'preferred_eta_window');
+    assert.equal(preferred.body.queueItem.technicianEtaMinutes, 85);
+
+    const extended = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        description: 'Extended-window roadside support',
+        serviceType: 'battery_electrical_help',
+        technicianEtaMinutes: 115,
+        locationState: 'CA'
+      })
+    });
+    assert.equal(extended.response.status, 202);
+    assert.equal(extended.body.queueItem.availabilityTier, 'extended_eta_window');
+
+    const state = await jsonRequest(ctx.baseUrl, '/api/state', { headers: { 'x-ops-token': 'test-token' } });
+    assert.equal(state.response.status, 200);
+    assert.ok(state.body.dispatchQueue.some((item) => item.locationState === 'TX'));
+    assert.ok(state.body.dispatchQueue.some((item) => item.availabilityTier === 'extended_eta_window'));
+  } finally {
+    await ctx.stop();
+  }
+});
+
+test('rejects incident intake when technician ETA exceeds internal threshold', async () => {
+  const ctx = await startTestServer({
+    dispatchEtaPreferredMinutes: 90,
+    dispatchEtaMaxMinutes: 120
+  });
+  try {
+    const denied = await jsonRequest(ctx.baseUrl, '/api/incidents', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        description: 'No local technician available within threshold',
+        serviceType: 'battery_electrical_help',
+        technicianEtaMinutes: 121,
+        locationState: 'WA'
+      })
+    });
+    assert.equal(denied.response.status, 422);
+    assert.equal(denied.body.code, 'ETA_THRESHOLD_EXCEEDED');
+    assert.equal(denied.body.thresholdMinutes, 120);
+
+    const audit = await jsonRequest(ctx.baseUrl, '/api/audit', { headers: { 'x-ops-token': 'test-token' } });
+    assert.ok(audit.body.events.some((event) => event.type === 'dispatch.eta_threshold_exceeded'));
+  } finally {
+    await ctx.stop();
+  }
+});
+
 test('supports full work-order transitions through closeout with idempotency', async () => {
   const ctx = await startTestServer();
   try {
